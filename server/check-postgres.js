@@ -97,13 +97,15 @@ async function testTargetDatabase() {
     } else {
       console.log(`❌ Database '${process.env.DB_NAME}' does NOT exist!`);
       console.log('\n💡 Solution: Create the database');
-      console.log('   Method 1 - Command Line:');
+      console.log('   Method 1 - Automated (Recommended):');
+      console.log('   pnpm setup');
+      console.log('\n   Method 2 - Command Line:');
       console.log('   1. Open PowerShell');
       console.log('   2. cd "C:\\Program Files\\PostgreSQL\\16\\bin"');
       console.log('   3. .\\psql.exe -U postgres');
       console.log(`   4. CREATE DATABASE ${process.env.DB_NAME};`);
       console.log('   5. \\q');
-      console.log('\n   Method 2 - pgAdmin:');
+      console.log('\n   Method 3 - pgAdmin:');
       console.log('   1. Open pgAdmin 4');
       console.log('   2. Right-click "Databases"');
       console.log('   3. Create → Database');
@@ -145,7 +147,7 @@ async function testProjectDatabase() {
     if (result.rows.length === 0) {
       console.log('⚠️  No tables found - you need to run migration!');
       console.log('\n💡 Solution:');
-      console.log('   pnpm migrate');
+      console.log('   pnpm setup  (or pnpm migrate)');
     } else {
       result.rows.forEach(row => {
         console.log(`   - ${row.tablename}`);

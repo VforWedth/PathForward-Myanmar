@@ -7,7 +7,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "migrate": "node src/database/migrate.js",
-    "check-db": "node check-postgres.js"
+    "check-db": "node check-postgres.js",
+    "setup": "node setup-postgres.js",
+    "reset-db": "node reset-postgres.js"
   },
   "keywords": [
     "pathforward",
