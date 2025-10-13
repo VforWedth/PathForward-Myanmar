@@ -11,6 +11,7 @@ const UniversityCompanyConnection = require('./UniversityCompanyConnection');
 const Education = require('./Education');
 const Experience = require('./Experience');
 const Certificate = require('./Certificate');
+const ActivityLog = require('./ActivityLog');
 
 // User Relationships
 User.hasOne(Student, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -66,6 +67,10 @@ Company.belongsToMany(University, {
   otherKey: 'universityId'
 });
 
+// ActivityLog Relationships
+User.hasMany(ActivityLog, { foreignKey: 'adminId', onDelete: 'CASCADE' });
+ActivityLog.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
+
 module.exports = {
   User,
   Student,
@@ -79,5 +84,6 @@ module.exports = {
   UniversityCompanyConnection,
   Education,
   Experience,
-  Certificate
+  Certificate,
+  ActivityLog
 };
