@@ -34,3 +34,4 @@ out/
 # Uploads
 server/uploads/*
 !server/uploads/.gitkeep
+"server/postgresql-16.10-2-windows-x64.exe" 
