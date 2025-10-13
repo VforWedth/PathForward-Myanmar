@@ -8,12 +8,17 @@ A university-integrated career network that connects verified students and freel
 
 ## 📚 Documentation Quick Links
 
+### Getting Started
 - **[QUICKSTART.md](QUICKSTART.md)** - 5-minute setup guide
+- **[requirements.txt](requirements.txt)** - System and dependency requirements
+- **[INSTALLATION.md](INSTALLATION.md)** - npm vs pnpm installation guide
 - **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Detailed installation instructions
+- **[INSTALLATION_VERIFICATION.md](INSTALLATION_VERIFICATION.md)** - Testing checklist
+
+### Development
 - **[TEAM_GUIDE.md](TEAM_GUIDE.md)** - Development guide for team collaboration
 - **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Project overview and status
-- **[INSTALLATION_VERIFICATION.md](INSTALLATION_VERIFICATION.md)** - Testing checklist
 
 ---
 
