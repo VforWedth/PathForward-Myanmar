@@ -1,25 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 
 export default function Login() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const { login, user, isLoading } = useAuthStore();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+
+  // ✅ Redirect after login based on user role
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      router.push('/dashboard');
+    } else if (user?.role === 'student') {
+      router.push('/student/dashboard');
+    } else if (user?.role === 'company') {
+      router.push('/company/dashboard');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(formData.email, formData.password);
       toast.success('Login successful!');
+      // no manual router.push() here — handled automatically in useEffect above
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || 'Login failed');
     }
   };
 
@@ -29,6 +38,7 @@ export default function Login() {
         <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">
           Login to PathForward
         </h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 mb-2">Email</label>
@@ -62,8 +72,9 @@ export default function Login() {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
         <p className="mt-4 text-center text-gray-600">
-          Don't have an account?{' '}
+          Don’t have an account?{' '}
           <button
             onClick={() => router.push('/register')}
             className="text-blue-600 hover:underline"
