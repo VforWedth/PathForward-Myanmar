@@ -4,6 +4,19 @@
 
 A university-integrated career network that connects verified students and freelancers with targeted company roles.
 
+---
+
+## 📚 Documentation Quick Links
+
+- **[QUICKSTART.md](QUICKSTART.md)** - 5-minute setup guide
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Detailed installation instructions
+- **[TEAM_GUIDE.md](TEAM_GUIDE.md)** - Development guide for team collaboration
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Project overview and status
+- **[INSTALLATION_VERIFICATION.md](INSTALLATION_VERIFICATION.md)** - Testing checklist
+
+---
+
 ## 🎯 Problem Statement
 
 In Myanmar, a gap in verified experience and industry connections prevents qualified students from launching their careers and prevents companies from reliably hiring entry-level talent. Most job seekers lack verified academic records and real work experience, making recruitment risky and time-consuming.
