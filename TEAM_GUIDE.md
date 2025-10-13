@@ -27,7 +27,6 @@
 - Freelancer profile and portfolio
 - Freelancer job browsing
 
----
 
 ## 🚀 Quick Start for Each Team Member
 
