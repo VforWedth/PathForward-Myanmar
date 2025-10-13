@@ -46,46 +46,68 @@ export default function CompanyJobs() {
       return;
     }
 
-    // Mock data - replace with API call
-    const mockJobs: Job[] = [
-      {
-        id: '1',
-        title: 'Frontend Developer',
-        type: 'Full-time',
-        location: 'Yangon',
-        salary: '$2,000 - $3,000',
-        applications: 15,
-        status: 'active',
-        postedDate: '2024-01-10',
-        deadline: '2024-02-10',
-      },
-      {
-        id: '2',
-        title: 'Backend Engineer',
-        type: 'Full-time',
-        location: 'Remote',
-        salary: '$2,500 - $3,500',
-        applications: 8,
-        status: 'active',
-        postedDate: '2024-01-12',
-        deadline: '2024-02-12',
-      },
-      {
-        id: '3',
-        title: 'UI/UX Designer',
-        type: 'Part-time',
-        location: 'Mandalay',
-        salary: '$1,500 - $2,000',
-        applications: 12,
-        status: 'active',
-        postedDate: '2024-01-08',
-        deadline: '2024-02-08',
-      },
-    ];
+    const fetchJobs = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
 
-    setJobs(mockJobs);
-    setIsLoading(false);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Map backend data to frontend format
+            const formattedJobs = data.data.map((job: any) => ({
+              id: job.id,
+              title: job.title,
+              type: job.jobType,
+              location: job.location,
+              salary: job.salaryRange || 'Not specified',
+              applications: job.applicationCount || 0,
+              status: job.status,
+              postedDate: new Date(job.createdAt).toLocaleDateString(),
+              deadline: job.deadline ? new Date(job.deadline).toLocaleDateString() : 'Not specified',
+            }));
+            setJobs(formattedJobs);
+          }
+        } else {
+          console.error('Failed to fetch jobs');
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobs();
   }, [user, router]);
+
+  const handleDeleteJob = async (jobId: string) => {
+    if (!confirm('Are you sure you want to delete this job?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        setJobs(jobs.filter(job => job.id !== jobId));
+        alert('Job deleted successfully');
+      } else {
+        alert('Failed to delete job');
+      }
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      alert('Failed to delete job');
+    }
+  };
 
   const getStatusColor = (status: Job['status']) => {
     switch (status) {
@@ -194,7 +216,7 @@ export default function CompanyJobs() {
                         Edit Job
                       </button>
                       <button
-                        onClick={() => { /* TODO: handle delete */ }}
+                        onClick={() => handleDeleteJob(job.id)}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                       >
                         Delete

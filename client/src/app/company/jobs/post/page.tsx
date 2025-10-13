@@ -85,24 +85,36 @@ export default function PostJob() {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // You would POST here with trimmed form
       const payload = {
-        ...formData,
         title: formData.title.trim(),
         location: formData.location.trim(),
         description: formData.description.trim(),
         requirements: formData.requirements.trim(),
         salary: formData.salary.trim(),
         category: formData.category.trim(),
+        type: formData.type,
+        applicationDeadline: formData.applicationDeadline,
       };
-      console.log('POST /api/jobs => ', payload);
 
-      toast.success('Job posted successfully!');
-      router.push('/company/jobs');
-    } catch {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Job posted successfully!');
+        router.push('/company/jobs');
+      } else {
+        toast.error(data.message || 'Failed to post job');
+      }
+    } catch (error) {
+      console.error('Post job error:', error);
       toast.error('Failed to post job. Please try again.');
     } finally {
       setIsLoading(false);
