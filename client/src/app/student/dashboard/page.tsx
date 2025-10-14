@@ -1,3 +1,8 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import { AppSidebar } from "@/components/ui/app-sidebar"
 import {
   Breadcrumb,
@@ -15,6 +20,57 @@ import {
 } from "@/components/ui/sidebar"
 
 export default function Page() {
+  const router = useRouter();
+  const { isAuthenticated, user, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
+    if (user && user.role !== 'student') {
+      // Redirect to appropriate dashboard based on role
+      switch (user.role) {
+        case 'admin':
+          router.push('/admin/dashboard');
+          break;
+        case 'company':
+          router.push('/company/dashboard');
+          break;
+        case 'university':
+          router.push('/university/dashboard');
+          break;
+        case 'freelancer':
+          router.push('/freelancer/dashboard');
+          break;
+        default:
+          router.push('/login');
+      }
+    }
+  }, [isAuthenticated, user, router]);
+
+  // Show loading state while checking authentication
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only render dashboard if authenticated and is a student
+  if (user.role !== 'student') {
+    return null;
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

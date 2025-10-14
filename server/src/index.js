@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 const { sequelize, testConnection } = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const companyRoutes = require('./routes/companyRoutes');
+const quizRoutes = require('./routes/quizRoutes');
+const studentRoutes = require('./routes/studentRoutes');
 
 // Load env vars
 dotenv.config();
@@ -20,10 +23,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files (uploaded files)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/company', companyRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/student', studentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

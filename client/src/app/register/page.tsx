@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 
 export default function Register() {
   const router = useRouter();
-  const { register, isLoading } = useAuthStore();
+  const { register, user, isLoading } = useAuthStore();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
@@ -16,6 +16,34 @@ export default function Register() {
     role: 'student' as 'student' | 'company' | 'university' | 'freelancer',
     profileData: {} as any,
   });
+
+  // ✅ Redirect after registration based on user role
+  useEffect(() => {
+    if (user && user.role) {
+      console.log('Redirecting registered user with role:', user.role);
+
+      switch (user.role) {
+        case 'admin':
+          router.push('/dashboard');
+          break;
+        case 'student':
+          router.push('/student/dashboard');
+          break;
+        case 'company':
+          router.push('/company/dashboard');
+          break;
+        case 'university':
+          router.push('/university/dashboard');
+          break;
+        case 'freelancer':
+          router.push('/freelancer/dashboard');
+          break;
+        default:
+          console.error('Unknown user role:', user.role);
+          toast.error('Invalid user role');
+      }
+    }
+  }, [user, router]);
 
   const handleRoleSelect = (role: typeof formData.role) => {
     setFormData({ ...formData, role });

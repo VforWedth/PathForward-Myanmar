@@ -1,0 +1,181 @@
+const { Student, User, University, Education, Experience, Certificate } = require('../models');
+
+// @desc    Get student profile
+// @route   GET /api/student/profile
+// @access  Private (Student)
+const getProfile = async (req, res) => {
+  try {
+    const student = await Student.findOne({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: User,
+          attributes: ['email', 'phone', 'isVerified', 'createdAt']
+        },
+        {
+          model: University,
+          attributes: ['id', 'universityName', 'location']
+        }
+      ]
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: student
+    });
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Update student profile
+// @route   PUT /api/student/profile
+// @access  Private (Student)
+const updateProfile = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      major,
+      year,
+      location,
+      jobPreference,
+      portfolioUrl,
+      bio,
+      skills,
+      universityId
+    } = req.body;
+
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    await student.update({
+      firstName,
+      lastName,
+      major,
+      year,
+      location,
+      jobPreference,
+      portfolioUrl,
+      bio,
+      skills,
+      universityId
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: student
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Upload CV
+// @route   POST /api/student/upload-cv
+// @access  Private (Student)
+const uploadCV = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const cvUrl = `/uploads/cv/${req.file.filename}`;
+    await student.update({ cvUrl });
+
+    res.json({
+      success: true,
+      message: 'CV uploaded successfully',
+      cvUrl
+    });
+  } catch (error) {
+    console.error('Upload CV error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Upload profile picture
+// @route   POST /api/student/upload-picture
+// @access  Private (Student)
+const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const profilePicture = `/uploads/profile/${req.file.filename}`;
+    await student.update({ profilePicture });
+
+    res.json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      profilePicture
+    });
+  } catch (error) {
+    console.error('Upload profile picture error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+module.exports = {
+  getProfile,
+  updateProfile,
+  uploadCV,
+  uploadProfilePicture
+};

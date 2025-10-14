@@ -12,12 +12,29 @@ export default function Login() {
 
   // ✅ Redirect after login based on user role
   useEffect(() => {
-    if (user?.role === 'admin') {
-      router.push('/dashboard');
-    } else if (user?.role === 'student') {
-      router.push('/student/dashboard');
-    } else if (user?.role === 'company') {
-      router.push('/company/dashboard');
+    if (user && user.role) {
+      console.log('Redirecting user with role:', user.role);
+
+      switch (user.role) {
+        case 'admin':
+          router.push('/dashboard');
+          break;
+        case 'student':
+          router.push('/student/dashboard');
+          break;
+        case 'company':
+          router.push('/company/dashboard');
+          break;
+        case 'university':
+          router.push('/university/dashboard');
+          break;
+        case 'freelancer':
+          router.push('/freelancer/dashboard');
+          break;
+        default:
+          console.error('Unknown user role:', user.role);
+          toast.error('Invalid user role');
+      }
     }
   }, [user, router]);
 
