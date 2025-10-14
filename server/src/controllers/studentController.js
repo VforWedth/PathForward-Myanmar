@@ -463,13 +463,141 @@ const uploadProfilePicture = async (req, res) => {
     const profilePicture = `/uploads/profile/${req.file.filename}`;
     await student.update({ profilePicture });
 
+    // Log activity
+    const { Activity } = require('../models');
+    await Activity.create({
+      studentId: student.id,
+      type: 'profile_update',
+      title: 'Updated Profile Picture',
+      description: 'Profile picture has been updated.'
+    });
+
     res.json({
       success: true,
       message: 'Profile picture uploaded successfully',
-      profilePicture
+      profilePicture,
+      data: { profilePicture }
     });
   } catch (error) {
     console.error('Upload profile picture error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Upload CSV for bulk profile update
+// @route   POST /api/student/upload-csv
+// @access  Private (Student)
+const uploadCSV = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No CSV file uploaded'
+      });
+    }
+
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const fs = require('fs');
+    const csv = require('csv-parser');
+    const filePath = req.file.path;
+
+    // Parse CSV and update profile
+    const csvData = [];
+    
+    fs.createReadStream(filePath)
+      .pipe(csv())
+      .on('data', (row) => {
+        csvData.push(row);
+      })
+      .on('end', async () => {
+        try {
+          if (csvData.length > 0) {
+            const row = csvData[0]; // Use first row for profile update
+            
+            const updateData = {};
+            if (row.firstName) updateData.firstName = row.firstName;
+            if (row.lastName) updateData.lastName = row.lastName;
+            if (row.major) updateData.major = row.major;
+            if (row.year) updateData.year = row.year;
+            if (row.location) updateData.location = row.location;
+            if (row.jobPreference) updateData.jobPreference = row.jobPreference;
+            if (row.portfolioUrl) updateData.portfolioUrl = row.portfolioUrl;
+            if (row.bio) updateData.bio = row.bio;
+            if (row.skills) {
+              // Parse skills as comma-separated values
+              updateData.skills = row.skills.split(',').map(skill => skill.trim());
+            }
+
+            await student.update(updateData);
+
+            // Log activity
+            const { Activity } = require('../models');
+            await Activity.create({
+              studentId: student.id,
+              type: 'csv_upload',
+              title: 'Profile Updated via CSV',
+              description: 'Profile information has been updated from CSV file.'
+            });
+
+            // Clean up uploaded file
+            fs.unlinkSync(filePath);
+
+            res.json({
+              success: true,
+              message: 'Profile updated successfully from CSV',
+              data: updateData
+            });
+          } else {
+            // Clean up uploaded file
+            fs.unlinkSync(filePath);
+            
+            res.status(400).json({
+              success: false,
+              message: 'CSV file is empty or invalid'
+            });
+          }
+        } catch (error) {
+          // Clean up uploaded file
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+          
+          console.error('CSV processing error:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Error processing CSV file',
+            error: error.message
+          });
+        }
+      })
+      .on('error', (error) => {
+        // Clean up uploaded file
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        
+        console.error('CSV parsing error:', error);
+        res.status(400).json({
+          success: false,
+          message: 'Error parsing CSV file',
+          error: error.message
+        });
+      });
+
+  } catch (error) {
+    console.error('Upload CSV error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -1234,6 +1362,7 @@ module.exports = {
   updateProfile,
   uploadCV,
   uploadProfilePicture,
+  uploadCSV,
   updateStatus,
   addEducation,
   updateEducation,

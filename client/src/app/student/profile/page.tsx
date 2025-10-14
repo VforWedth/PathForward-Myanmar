@@ -204,21 +204,42 @@ export default function StudentProfilePage() {
     try {
       if (type === 'cv') {
         const res = await uploadCV(file);
-        toast.success('CV uploaded successfully');
+        if (res.success) {
+          toast.success('CV uploaded successfully');
+          // Update profile with new CV URL
+          if (profile) {
+            setProfile({ ...profile, cvUrl: res.cvUrl });
+          }
+        }
         setCvFile(null);
       } else if (type === 'picture') {
         const res = await uploadProfilePicture(file);
-        toast.success('Profile picture uploaded successfully');
+        if (res.success) {
+          toast.success('Profile picture uploaded successfully');
+          // Update profile with new profile picture URL
+          if (profile) {
+            setProfile({ ...profile, profilePicture: res.profilePicture });
+          }
+        }
         setProfileImageFile(null);
       } else if (type === 'csv') {
         const res = await uploadCSV(file);
-        toast.success('Profile updated from CSV successfully');
+        if (res.success) {
+          toast.success('Profile updated from CSV successfully');
+          loadProfile(); // Reload entire profile for CSV updates
+        }
         setCsvFile(null);
       }
-      loadProfile(); // Reload profile to show updated data
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Upload failed');
     }
+  };
+
+  // Helper function to construct full file URLs
+  const getFileUrl = (relativePath: string | undefined) => {
+    if (!relativePath) return '';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    return relativePath.startsWith('http') ? relativePath : `${baseUrl}${relativePath}`;
   };
 
   // Education handlers
@@ -350,15 +371,21 @@ export default function StudentProfilePage() {
                   <div className="relative">
                     {profile.profilePicture ? (
                       <img 
-                        src={profile.profilePicture} 
+                        src={getFileUrl(profile.profilePicture)} 
                         alt="Profile" 
                         className="h-16 w-16 rounded-2xl object-cover ring-1 ring-[#E3EAF1]"
+                        onError={(e) => {
+                          // Fallback to default avatar if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.setAttribute('style', 'display: grid');
+                        }}
                       />
-                    ) : (
-                      <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#F5EFEB] ring-1 ring-[#E3EAF1]">
-                        <UserCircle2 className="h-8 w-8 text-[#2F4156]" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div 
+                      className={`grid h-16 w-16 place-items-center rounded-2xl bg-[#F5EFEB] ring-1 ring-[#E3EAF1] ${profile.profilePicture ? 'hidden' : ''}`}
+                    >
+                      <UserCircle2 className="h-8 w-8 text-[#2F4156]" />
+                    </div>
                     {isEditing && (
                       <label className="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-emerald-500 p-1 text-white hover:bg-emerald-600">
                         <Camera className="h-3 w-3" />
@@ -874,13 +901,33 @@ export default function StudentProfilePage() {
               </CardHeader>
               <CardContent>
                 {profile.cvUrl ? (
-                  <Badge className="mb-3 bg-emerald-600 text-white">CV on file</Badge>
+                  <div className="mb-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-600 text-white">CV on file</Badge>
+                      <span className="text-sm text-[#567C8D]">PDF Document</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button asChild variant="outline" size="sm" className="flex-1">
+                        <a href={getFileUrl(profile.cvUrl)} target="_blank" rel="noopener noreferrer">
+                          <FileDown className="mr-2 h-4 w-4" /> Download
+                        </a>
+                      </Button>
+                      <Button asChild variant="outline" size="sm" className="flex-1">
+                        <a href={getFileUrl(profile.cvUrl)} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="mr-2 h-4 w-4" /> View
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <p className="mb-3 text-sm text-red-600">No CV uploaded</p>
                 )}
+                
                 <div className="rounded-xl border border-dashed border-[#C8D9E6] bg-[#F5EFEB]/40 p-4 text-center">
                   <Upload className="mx-auto h-6 w-6 text-[#567C8D]" />
-                  <p className="mt-2 text-sm text-[#2F4156]">Upload your CV</p>
+                  <p className="mt-2 text-sm text-[#2F4156]">
+                    {profile.cvUrl ? 'Replace your CV' : 'Upload your CV'}
+                  </p>
                   <Input 
                     type="file" 
                     accept=".pdf,.doc,.docx" 
@@ -893,13 +940,9 @@ export default function StudentProfilePage() {
                     }} 
                     className="mt-3" 
                   />
-                  {profile.cvUrl && (
-                    <Button asChild variant="secondary" className="mt-2 w-full">
-                      <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
-                        <FileDown className="mr-2 h-4 w-4" /> Download CV
-                      </a>
-                    </Button>
-                  )}
+                  <p className="mt-2 text-xs text-[#567C8D]">
+                    Supported formats: PDF, DOC, DOCX (Max 5MB)
+                  </p>
                 </div>
               </CardContent>
             </Card>

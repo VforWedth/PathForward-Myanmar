@@ -36,7 +36,8 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = {
     cv: ['.pdf', '.doc', '.docx'],
-    profilePicture: ['.jpg', '.jpeg', '.png', '.gif']
+    profilePicture: ['.jpg', '.jpeg', '.png', '.gif'],
+    csvFile: ['.csv']
   };
 
   const ext = path.extname(file.originalname).toLowerCase();
