@@ -99,6 +99,7 @@ export default function StudentProfilePage() {
   // File uploads
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [profileImageRefresh, setProfileImageRefresh] = useState(0);
   
   // Education, Experience, Certificates
   const [education, setEducation] = useState<any[]>([]);
@@ -150,13 +151,16 @@ export default function StudentProfilePage() {
     try {
       setLoading(true);
       const res = await getProfile();
+      console.log('Profile loaded:', res);
       if (res.success && res.data) {
         setProfile(res.data);
         setEducation(res.data.Education || []);
         setExperience(res.data.Experiences || []);
         setCertificates(res.data.Certificates || []);
+        console.log('Profile picture URL from API:', res.data.profilePicture);
       }
     } catch (error: any) {
+      console.error('Load profile error:', error);
       toast.error(error?.response?.data?.message || 'Failed to load profile');
     } finally {
       setLoading(false);
@@ -209,8 +213,15 @@ export default function StudentProfilePage() {
         const res = await uploadProfilePicture(file);
         toast.success('Profile picture uploaded successfully');
         setProfileImageFile(null);
+        
+        // Update the profile state immediately with the new profile picture URL
+        if (res.success && res.profilePicture) {
+          setProfile(prev => prev ? { ...prev, profilePicture: res.profilePicture } : prev);
+          setProfileImageRefresh(Date.now()); // Force image refresh
+        }
       }
-      loadProfile(); // Reload profile to show updated data
+      // Reload profile to ensure all data is fresh
+      await loadProfile();
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Upload failed');
     }
@@ -345,11 +356,18 @@ export default function StudentProfilePage() {
                   <div className="relative">
                     {profile.profilePicture ? (
                       <img 
-                        src={getFileUrl(profile.profilePicture) || ''} 
+                        src={getFileUrl(profile.profilePicture, true) || ''} 
                         alt="Profile" 
                         className="h-16 w-16 rounded-2xl object-cover ring-1 ring-[#E3EAF1]"
+                        onLoad={() => {
+                          console.log('Profile picture loaded successfully:', getFileUrl(profile.profilePicture));
+                        }}
                         onError={(e) => {
-                          console.error('Failed to load profile picture:', profile.profilePicture);
+                          console.error('Failed to load profile picture:', {
+                            originalUrl: profile.profilePicture,
+                            constructedUrl: getFileUrl(profile.profilePicture),
+                            error: e
+                          });
                           e.currentTarget.style.display = 'none';
                         }}
                       />

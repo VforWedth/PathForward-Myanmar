@@ -28,8 +28,14 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
-    cb(null, `${name}-${uniqueSuffix}${ext}`);
+    const name = path.basename(file.originalname, ext)
+      .replace(/[^a-zA-Z0-9]/g, '-') // Replace special characters with dashes
+      .replace(/-+/g, '-') // Replace multiple dashes with single dash
+      .replace(/^-|-$/g, ''); // Remove leading/trailing dashes
+    
+    const filename = `${name || 'file'}-${uniqueSuffix}${ext}`;
+    console.log('Generated filename:', filename);
+    cb(null, filename);
   }
 });
 
