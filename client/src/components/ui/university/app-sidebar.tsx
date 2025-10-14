@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { Users, Building2, FileCheck2, ClipboardList, Command } from "lucide-react";
+import { Users, Building2, FileCheck2, ClipboardList, Command, Link as LinkIcon } from "lucide-react";
 
 import {
   Sidebar,
@@ -31,11 +31,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   const role = user?.role ?? "university";
 
-  // Only the four core navigation links
+  // Navigation links
   const navItems = withActive(
     [
       { title: "Manage Students", url: "/university/students", icon: Users },
       { title: "Company Connections", url: "/university/companies", icon: Building2 },
+      { title: "Connection Management", url: "/university/connections", icon: LinkIcon },
       { title: "Employment Tracking", url: "/university/employment", icon: FileCheck2 },
       { title: "University Registration", url: "/university/registration", icon: ClipboardList },
     ],

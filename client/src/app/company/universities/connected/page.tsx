@@ -71,9 +71,12 @@ export default function ConnectedUniversitiesPage() {
         if (data.success) {
           setConnections(data.data);
         }
+      } else {
+        toast.error('Failed to fetch connections');
       }
     } catch (error) {
       console.error('Error fetching connections:', error);
+      toast.error('Error loading connections');
     } finally {
       setIsLoading(false);
     }
@@ -181,6 +184,17 @@ export default function ConnectedUniversitiesPage() {
             </Breadcrumb>
 
             <div className="ml-auto pr-4 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsLoading(true);
+                  fetchConnections();
+                  fetchStats();
+                }}
+                disabled={isLoading}
+                className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm disabled:bg-gray-400"
+              >
+                {isLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
               <Link
                 href="/company/universities"
                 className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"

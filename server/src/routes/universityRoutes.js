@@ -5,7 +5,10 @@ const {
   getStudents,
   verifyStudent,
   connectCompany,
+  getConnectionRequests,
+  updateConnectionRequest,
   getConnectedCompanies,
+  getJobPosts,
   getEmploymentStats,
   generateReport,
   disconnectCompany
@@ -28,7 +31,10 @@ router.post('/verify-student/:studentId', verifyStudent);
 
 // Company connection routes
 router.post('/connect-company/:companyId', connectCompany);
+router.get('/connection-requests', getConnectionRequests);
+router.put('/connection-requests/:connectionId', updateConnectionRequest);
 router.get('/connected-companies', getConnectedCompanies);
+router.get('/job-posts', getJobPosts);
 router.delete('/disconnect-company/:companyId', disconnectCompany);
 
 // Analytics and reporting routes

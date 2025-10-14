@@ -43,6 +43,7 @@ interface Company {
   partnershipStatus: "pending" | "approved" | "rejected";
   contactEmail: string;
   jobsCount: number;
+  connectionId?: string;
 }
 
 interface Job {
@@ -73,83 +74,109 @@ export default function UniversityCompanies() {
       return;
     }
 
-    // Mock data
-    const mockCompanies: Company[] = [
-      {
-        id: "1",
-        name: "Tech Solutions Myanmar",
-        industry: "Technology",
-        location: "Yangon",
-        website: "https://techsolutions.mm",
-        description: "Leading software development company in Myanmar",
-        partnershipStatus: "approved",
-        contactEmail: "partnership@techsolutions.mm",
-        jobsCount: 8,
-      },
-      {
-        id: "2",
-        name: "Digital Innovations Co.",
-        industry: "E-commerce",
-        location: "Mandalay",
-        website: "https://digitalinnovations.mm",
-        description: "Innovative e-commerce platform serving Myanmar market",
-        partnershipStatus: "pending",
-        contactEmail: "hr@digitalinnovations.mm",
-        jobsCount: 5,
-      },
-      {
-        id: "3",
-        name: "Myanmar FinTech",
-        industry: "Finance",
-        location: "Yangon",
-        website: "https://myanmarfintech.mm",
-        description: "Financial technology solutions provider",
-        partnershipStatus: "approved",
-        contactEmail: "careers@myanmarfintech.mm",
-        jobsCount: 12,
-      },
-    ];
-
-    const mockJobs: Job[] = [
-      {
-        id: "1",
-        title: "Frontend Developer Intern",
-        company: "Tech Solutions Myanmar",
-        type: "Internship",
-        location: "Yangon",
-        salary: "$300 - $500",
-        postedDate: "2024-01-15",
-        deadline: "2024-02-15",
-        requirements: ["React", "JavaScript", "CSS"],
-      },
-      {
-        id: "2",
-        title: "Backend Engineer",
-        company: "Myanmar FinTech",
-        type: "Full-time",
-        location: "Yangon",
-        salary: "$1,500 - $2,500",
-        postedDate: "2024-01-14",
-        deadline: "2024-02-14",
-        requirements: ["Node.js", "Python", "MongoDB"],
-      },
-      {
-        id: "3",
-        title: "UI/UX Designer",
-        company: "Digital Innovations Co.",
-        type: "Part-time",
-        location: "Remote",
-        salary: "$800 - $1,200",
-        postedDate: "2024-01-12",
-        deadline: "2024-02-12",
-        requirements: ["Figma", "Adobe XD", "User Research"],
-      },
-    ];
-
-    setCompanies(mockCompanies);
-    setJobs(mockJobs);
-    setIsLoading(false);
+    fetchData();
   }, [user, router]);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setCompanies([]); // Clear previous data
+      setJobs([]); // Clear previous data
+      
+      // Fetch connection requests (pending)
+      const requestsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        if (requestsData.success) {
+          const pendingCompanies = requestsData.connections.map((conn: any) => ({
+            id: conn.company.id,
+            name: conn.company.companyName,
+            industry: conn.company.industry,
+            location: conn.company.location,
+            website: conn.company.website,
+            description: conn.company.description,
+            partnershipStatus: "pending" as const,
+            contactEmail: conn.company.user.email,
+            jobsCount: 0,
+            connectionId: conn.id
+          }));
+          setCompanies(prev => [...prev, ...pendingCompanies]);
+        }
+      }
+
+      // Fetch connected companies
+      const connectedResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connected-companies`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (connectedResponse.ok) {
+        const connectedData = await connectedResponse.json();
+        if (connectedData.success) {
+          const activeCompanies = connectedData.connections.map((conn: any) => ({
+            id: conn.company.id,
+            name: conn.company.companyName,
+            industry: conn.company.industry,
+            location: conn.company.location,
+            website: conn.company.website,
+            description: conn.company.description,
+            partnershipStatus: conn.status === 'active' ? "approved" as const : "inactive" as const,
+            contactEmail: conn.company.user.email,
+            jobsCount: 0,
+            connectionId: conn.id
+          }));
+          setCompanies(prev => [...prev, ...activeCompanies]);
+        }
+      }
+
+      // Fetch job posts from connected companies
+      const jobsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/job-posts`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (jobsResponse.ok) {
+        const jobsData = await jobsResponse.json();
+        if (jobsData.success) {
+          const jobPosts = jobsData.jobs.map((job: any) => ({
+            id: job.id,
+            title: job.title,
+            company: job.company.companyName,
+            type: job.type,
+            location: job.location,
+            salary: job.salary,
+            postedDate: new Date(job.createdAt).toISOString().split('T')[0],
+            deadline: job.deadline,
+            requirements: job.requirements || [],
+            status: job.status
+          }));
+          setJobs(jobPosts);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Error loading data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusColor = (status: Company["partnershipStatus"]) => {
     switch (status) {
@@ -178,26 +205,70 @@ export default function UniversityCompanies() {
     );
   };
 
-  const handleApprovePartnership = (companyId: string) => {
-    const updatedCompanies = companies.map((c) =>
-      c.id === companyId ? { ...c, partnershipStatus: "approved" as Company["partnershipStatus"] } : c
-    );
-    setCompanies(updatedCompanies);
-    if (selectedCompany?.id === companyId) {
-      setSelectedCompany({ ...selectedCompany, partnershipStatus: "approved" as Company["partnershipStatus"] });
+  const handleApprovePartnership = async (company: Company) => {
+    if (!company.connectionId) {
+      toast.error("Connection ID not found");
+      return;
     }
-    toast.success("Partnership approved successfully!");
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests/${company.connectionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ action: 'approve' })
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success("Partnership approved successfully!");
+        fetchData(); // Refresh data
+      } else {
+        toast.error(data.message || "Failed to approve partnership");
+      }
+    } catch (error) {
+      console.error('Error approving partnership:', error);
+      toast.error("Error approving partnership");
+    }
   };
 
-  const handleRejectPartnership = (companyId: string) => {
-    const updatedCompanies = companies.map((c) =>
-      c.id === companyId ? { ...c, partnershipStatus: "rejected" as Company["partnershipStatus"] } : c
-    );
-    setCompanies(updatedCompanies);
-    if (selectedCompany?.id === companyId) {
-      setSelectedCompany({ ...selectedCompany, partnershipStatus: "rejected" as Company["partnershipStatus"] });
+  const handleRejectPartnership = async (company: Company) => {
+    if (!company.connectionId) {
+      toast.error("Connection ID not found");
+      return;
     }
-    toast.info("Partnership request rejected");
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests/${company.connectionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ action: 'reject' })
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.info("Partnership request rejected");
+        fetchData(); // Refresh data
+      } else {
+        toast.error(data.message || "Failed to reject partnership");
+      }
+    } catch (error) {
+      console.error('Error rejecting partnership:', error);
+      toast.error("Error rejecting partnership");
+    }
   };
 
   const handleInitiatePartnership = () => {
@@ -348,14 +419,14 @@ export default function UniversityCompanies() {
                         {company.partnershipStatus === "pending" && (
                           <>
                             <button
-                              onClick={() => handleApprovePartnership(company.id)}
+                              onClick={() => handleApprovePartnership(company)}
                               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                             >
                               <Check className="h-4 w-4" />
                               Approve Partnership
                             </button>
                             <button
-                              onClick={() => handleRejectPartnership(company.id)}
+                              onClick={() => handleRejectPartnership(company)}
                               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                             >
                               <XCircle className="h-4 w-4" />
@@ -596,14 +667,14 @@ export default function UniversityCompanies() {
                   {selectedCompany.partnershipStatus === "pending" && (
                     <>
                       <button
-                        onClick={() => handleApprovePartnership(selectedCompany.id)}
+                        onClick={() => handleApprovePartnership(selectedCompany)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                       >
                         <Check className="h-4 w-4" />
                         Approve Partnership
                       </button>
                       <button
-                        onClick={() => handleRejectPartnership(selectedCompany.id)}
+                        onClick={() => handleRejectPartnership(selectedCompany)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                       >
                         <XCircle className="h-4 w-4" />
