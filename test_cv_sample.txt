@@ -1,0 +1,19 @@
+This is a sample CV file for testing upload functionality.
+
+JOHN DOE
+Software Developer
+
+EDUCATION:
+- Bachelor of Computer Science, University of Technology (2020-2024)
+
+EXPERIENCE:
+- Junior Developer at Tech Company (2023-Present)
+
+SKILLS:
+- JavaScript, React, Node.js
+- Python, Django
+- Database Management
+
+CONTACT:
+Email: john.doe@email.com
+Phone: +95 9 123 456 789
