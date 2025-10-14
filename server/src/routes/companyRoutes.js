@@ -7,6 +7,7 @@ const companyController = require('../controllers/companyController');
 const jobController = require('../controllers/jobController');
 const applicantController = require('../controllers/applicantController');
 const feedbackController = require('../controllers/feedbackController');
+const universityConnectionController = require('../controllers/universityConnectionController');
 
 // Public routes
 router.post('/register', companyController.registerCompany);
@@ -44,5 +45,13 @@ router.get('/feedback/stats', feedbackController.getFeedbackStats);
 router.get('/feedback/:id', feedbackController.getFeedbackById);
 router.put('/feedback/:id', feedbackController.updateFeedback);
 router.delete('/feedback/:id', feedbackController.deleteFeedback);
+
+// University connection routes
+router.get('/universities', universityConnectionController.getAvailableUniversities);
+router.get('/universities/connected', universityConnectionController.getConnectedUniversities);
+router.get('/universities/stats', universityConnectionController.getConnectionStats);
+router.post('/universities/:id/connect', universityConnectionController.requestConnection);
+router.delete('/universities/:id/disconnect', universityConnectionController.disconnectUniversity);
+router.get('/universities/:id/students', universityConnectionController.getUniversityStudents);
 
 module.exports = router;

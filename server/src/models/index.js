@@ -70,6 +70,10 @@ Company.belongsToMany(University, {
   otherKey: 'universityId'
 });
 
+// Direct associations for easier querying
+UniversityCompanyConnection.belongsTo(University, { foreignKey: 'universityId' });
+UniversityCompanyConnection.belongsTo(Company, { foreignKey: 'companyId' });
+
 // ActivityLog Relationships
 User.hasMany(ActivityLog, { foreignKey: 'adminId', onDelete: 'CASCADE' });
 ActivityLog.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });

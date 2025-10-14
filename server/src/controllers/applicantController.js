@@ -8,7 +8,7 @@ const { Op } = require('sequelize');
  */
 exports.getApplicants = async (req, res) => {
   try {
-    const { status, position, search, jobId } = req.query;
+    const { status, position, search, jobId, city, major, university } = req.query;
 
     const company = await Company.findOne({
       where: { userId: req.user.id }
@@ -122,11 +122,13 @@ exports.getApplicants = async (req, res) => {
       })
     );
 
-    // Apply search filter if provided
+    // Apply advanced filters
     let filteredApplications = enrichedApplications;
+
+    // Search filter
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredApplications = enrichedApplications.filter(app => {
+      filteredApplications = filteredApplications.filter(app => {
         const name = app.applicant?.name?.toLowerCase() || '';
         const email = app.applicant?.email?.toLowerCase() || '';
         const skills = app.applicant?.skills?.join(' ').toLowerCase() || '';
@@ -136,10 +138,31 @@ exports.getApplicants = async (req, res) => {
       });
     }
 
-    // Filter by position if provided
+    // Position filter
     if (position && position !== 'all') {
       filteredApplications = filteredApplications.filter(app =>
         app.Job?.title === position
+      );
+    }
+
+    // City/Location filter
+    if (city && city !== 'all') {
+      filteredApplications = filteredApplications.filter(app =>
+        app.applicant?.location?.toLowerCase().includes(city.toLowerCase())
+      );
+    }
+
+    // Major filter (students only)
+    if (major && major !== 'all') {
+      filteredApplications = filteredApplications.filter(app =>
+        app.applicant?.major?.toLowerCase().includes(major.toLowerCase())
+      );
+    }
+
+    // University filter (students only)
+    if (university && university !== 'all') {
+      filteredApplications = filteredApplications.filter(app =>
+        app.applicant?.university?.toLowerCase().includes(university.toLowerCase())
       );
     }
 
