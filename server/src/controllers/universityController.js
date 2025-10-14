@@ -353,11 +353,9 @@ const getConnectionRequests = async (req, res) => {
       include: [
         {
           model: Company,
-          as: 'company',
           include: [
             {
               model: User,
-              as: 'user',
               attributes: ['email', 'phone', 'isVerified']
             }
           ]
@@ -408,8 +406,7 @@ const updateConnectionRequest = async (req, res) => {
       },
       include: [
         {
-          model: Company,
-          as: 'company'
+          model: Company
         }
       ]
     });
@@ -484,11 +481,9 @@ const getConnectedCompanies = async (req, res) => {
       include: [
         {
           model: Company,
-          as: 'company',
           include: [
             {
               model: User,
-              as: 'user',
               attributes: ['email', 'phone', 'isVerified']
             }
           ]

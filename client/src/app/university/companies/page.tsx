@@ -97,14 +97,14 @@ export default function UniversityCompanies() {
         const requestsData = await requestsResponse.json();
         if (requestsData.success) {
           const pendingCompanies = requestsData.connections.map((conn: any) => ({
-            id: conn.company.id,
-            name: conn.company.companyName,
-            industry: conn.company.industry,
-            location: conn.company.location,
-            website: conn.company.website,
-            description: conn.company.description,
+            id: conn.Company.id,
+            name: conn.Company.companyName,
+            industry: conn.Company.industry,
+            location: conn.Company.location,
+            website: conn.Company.website,
+            description: conn.Company.description,
             partnershipStatus: "pending" as const,
-            contactEmail: conn.company.user.email,
+            contactEmail: conn.Company.User.email,
             jobsCount: 0,
             connectionId: conn.id
           }));
@@ -126,14 +126,14 @@ export default function UniversityCompanies() {
         const connectedData = await connectedResponse.json();
         if (connectedData.success) {
           const activeCompanies = connectedData.connections.map((conn: any) => ({
-            id: conn.company.id,
-            name: conn.company.companyName,
-            industry: conn.company.industry,
-            location: conn.company.location,
-            website: conn.company.website,
-            description: conn.company.description,
+            id: conn.Company.id,
+            name: conn.Company.companyName,
+            industry: conn.Company.industry,
+            location: conn.Company.location,
+            website: conn.Company.website,
+            description: conn.Company.description,
             partnershipStatus: conn.status === 'active' ? "approved" as const : "inactive" as const,
-            contactEmail: conn.company.user.email,
+            contactEmail: conn.Company.User.email,
             jobsCount: 0,
             connectionId: conn.id
           }));
@@ -157,7 +157,7 @@ export default function UniversityCompanies() {
           const jobPosts = jobsData.jobs.map((job: any) => ({
             id: job.id,
             title: job.title,
-            company: job.company.companyName,
+            company: job.Company.companyName,
             type: job.type,
             location: job.location,
             salary: job.salary,

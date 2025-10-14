@@ -35,14 +35,14 @@ interface ConnectionRequest {
   status: 'pending' | 'active' | 'rejected';
   createdAt: string;
   connectedAt?: string;
-  company: {
+  Company: {
     id: string;
     companyName: string;
     industry: string;
     location: string;
     website: string;
     description: string;
-    user: {
+    User: {
       email: string;
       isVerified: boolean;
     };
@@ -297,31 +297,31 @@ export default function UniversityConnections() {
                     <div key={request.id} className="p-6 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-800">{request.company.companyName}</h4>
+                          <h4 className="text-lg font-semibold text-gray-800">{request.Company.companyName}</h4>
 
                           <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-700">
                             <span className="inline-flex items-center gap-1.5">
                               <Building2 className="h-4 w-4 text-gray-500" />
-                              {request.company.industry}
+                              {request.Company.industry}
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <MapPin className="h-4 w-4 text-gray-500" />
-                              {request.company.location}
+                              {request.Company.location}
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <Globe className="h-4 w-4 text-gray-500" />
                               <a
-                                href={request.company.website}
+                                href={request.Company.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline"
                               >
-                                {request.company.website}
+                                {request.Company.website}
                               </a>
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <Mail className="h-4 w-4 text-gray-500" />
-                              {request.company.user.email}
+                              {request.Company.User.email}
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <CalendarDays className="h-4 w-4 text-gray-500" />
@@ -329,7 +329,7 @@ export default function UniversityConnections() {
                             </span>
                           </div>
 
-                          <p className="mt-3 text-gray-700">{request.company.description}</p>
+                          <p className="mt-3 text-gray-700">{request.Company.description}</p>
                         </div>
 
                         <div className="flex items-center space-x-4">
@@ -359,7 +359,7 @@ export default function UniversityConnections() {
                           {processingId === request.id ? 'Processing...' : 'Reject'}
                         </button>
                         <button
-                          onClick={() => window.open(`mailto:${request.company.user.email}?subject=Partnership Inquiry&body=Hello ${request.company.companyName},`, "_blank")}
+                          onClick={() => window.open(`mailto:${request.Company.User.email}?subject=Partnership Inquiry&body=Hello ${request.Company.companyName},`, "_blank")}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
                           <Mail className="h-4 w-4" />
@@ -393,31 +393,31 @@ export default function UniversityConnections() {
                     <div key={connection.id} className="p-6 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-800">{connection.company.companyName}</h4>
+                          <h4 className="text-lg font-semibold text-gray-800">{connection.Company.companyName}</h4>
 
                           <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-700">
                             <span className="inline-flex items-center gap-1.5">
                               <Building2 className="h-4 w-4 text-gray-500" />
-                              {connection.company.industry}
+                              {connection.Company.industry}
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <MapPin className="h-4 w-4 text-gray-500" />
-                              {connection.company.location}
+                              {connection.Company.location}
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <Globe className="h-4 w-4 text-gray-500" />
                               <a
-                                href={connection.company.website}
+                                href={connection.Company.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline"
                               >
-                                {connection.company.website}
+                                {connection.Company.website}
                               </a>
                             </span>
                             <span className="inline-flex items-center gap-1.5">
                               <Mail className="h-4 w-4 text-gray-500" />
-                              {connection.company.user.email}
+                              {connection.Company.User.email}
                             </span>
                             {connection.connectedAt && (
                               <span className="inline-flex items-center gap-1.5">
@@ -427,7 +427,7 @@ export default function UniversityConnections() {
                             )}
                           </div>
 
-                          <p className="mt-3 text-gray-700">{connection.company.description}</p>
+                          <p className="mt-3 text-gray-700">{connection.Company.description}</p>
                         </div>
 
                         <div className="flex items-center space-x-4">
@@ -441,14 +441,14 @@ export default function UniversityConnections() {
 
                       <div className="flex flex-wrap gap-3">
                         <button
-                          onClick={() => window.open(`mailto:${connection.company.user.email}?subject=Partnership Inquiry&body=Hello ${connection.company.companyName},`, "_blank")}
+                          onClick={() => window.open(`mailto:${connection.Company.User.email}?subject=Partnership Inquiry&body=Hello ${connection.Company.companyName},`, "_blank")}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
                           <Mail className="h-4 w-4" />
                           Contact
                         </button>
                         <button
-                          onClick={() => router.push(`/university/companies?tab=jobs&company=${connection.company.id}`)}
+                          onClick={() => router.push(`/university/companies?tab=jobs&company=${connection.Company.id}`)}
                           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                         >
                           <Users className="h-4 w-4" />
