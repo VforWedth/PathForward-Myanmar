@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
+import AuthGuard from '@/components/AuthGuard';
 
 import { AppSidebar } from '@/components/ui/company/app-sidebar';
 import {
@@ -51,8 +52,8 @@ export default function CompanyDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Only fetch data if user is authenticated and has company role
     if (!user || user.role !== 'company') {
-      router.push('/login');
       return;
     }
 
@@ -125,16 +126,14 @@ export default function CompanyDashboard() {
     fetchDashboardData();
   }, [user, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading dashboard...</div>
-      </div>
-    );
-  }
-
   return (
-    <SidebarProvider>
+    <AuthGuard requiredRole="company">
+      {isLoading ? (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+          <div className="text-gray-600">Loading dashboard...</div>
+        </div>
+      ) : (
+        <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -362,5 +361,7 @@ export default function CompanyDashboard() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+      )}
+    </AuthGuard>
   );
 }

@@ -19,6 +19,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useAuthStore } from "@/store/authStore"
 
 const companyNav = {
   user: {
@@ -57,6 +58,8 @@ const companyNav = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, logout } = useAuthStore();
+  
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -75,11 +78,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <NavUser
   user={{
-    name: "Aung Aung",
-    email: "aung@example.com",
+    name: user?.email?.split('@')[0] || "Company User",
+    email: user?.email || "company@example.com",
     avatar: logo.src, // or leave undefined for initials
   }}
-  onLogout={() => console.log("logout")}
+  onLogout={logout}
   onProfile={() => console.log("profile")}
 />
       </SidebarFooter>

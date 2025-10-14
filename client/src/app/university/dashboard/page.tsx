@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import AuthGuard from "@/components/AuthGuard";
 
 // shadcn/ui sidebar primitives
 import {
@@ -20,13 +21,7 @@ export default function UniversityDashboard() {
   const { user, logout } = useAuthStore();
   const [activeTab] = useState("overview");
 
-  useEffect(() => {
-    if (!user || user.role !== "university") {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  if (!user || user.role !== "university") return null;
+  // AuthGuard will handle authentication and role checking
 
   // Mock data
   const universityStats = {
@@ -44,7 +39,8 @@ export default function UniversityDashboard() {
   ];
 
   return (
-    <SidebarProvider>
+    <AuthGuard requiredRole="university">
+      <SidebarProvider>
       {/* Left rail */}
       <AppSidebar />
 
@@ -181,6 +177,7 @@ export default function UniversityDashboard() {
         </main>
       </SidebarInset>
     </SidebarProvider>
+    </AuthGuard>
   );
 }
 

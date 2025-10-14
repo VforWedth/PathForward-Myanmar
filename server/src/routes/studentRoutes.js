@@ -3,6 +3,11 @@ const { protect, authorize } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 
 const {
+  getDashboard,
+  getActivity,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
   getProfile,
   updateProfile,
   uploadCV,
@@ -19,7 +24,9 @@ const {
   deleteCertificate,
   getMyFeedback,
   submitReview,
-  getMyReviews
+  getMyReviews,
+  getCertificates,
+  findPeers
 } = require('../controllers/studentController');
 
 const router = express.Router();
@@ -27,6 +34,13 @@ const router = express.Router();
 // All routes require authentication and student role
 router.use(protect);
 router.use(authorize('student'));
+
+// Dashboard routes
+router.get('/dashboard', getDashboard);
+router.get('/activity', getActivity);
+router.get('/notifications', getNotifications);
+router.put('/notifications/:id/read', markNotificationRead);
+router.put('/notifications/read-all', markAllNotificationsRead);
 
 // Profile routes
 router.get('/profile', getProfile);
@@ -56,5 +70,8 @@ router.delete('/certificate/:id', deleteCertificate);
 router.get('/feedback', getMyFeedback);
 router.post('/reviews', submitReview);
 router.get('/reviews', getMyReviews);
+
+// Peer finder route
+router.get('/peers', findPeers);
 
 module.exports = router;

@@ -34,6 +34,14 @@ export const uploadProfilePicture = async (file: File) => {
   return response.data;
 };
 
+export const uploadCSV = async (file: File) => {
+  const formData = new FormData();
+  formData.append('csvFile', file);
+  const response = await api.post('/student/upload-csv', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data;
+};
 // Education Management
 export const addEducation = async (data: any) => {
   const response = await api.post('/student/education', data);

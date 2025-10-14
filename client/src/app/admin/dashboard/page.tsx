@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import AuthGuard from '@/components/AuthGuard';
 
 // Types
 interface User {
@@ -181,11 +182,7 @@ export default function AdminDashboard() {
   const [confirmAction, setConfirmAction] = useState<{ type: string; id: number; data: any } | null>(null);
   const [editUserData, setEditUserData] = useState<Partial<User>>({});
 
-  useEffect(() => {
-    if (!user || user.role !== 'admin') {
-      router.push('/login');
-    }    
-  }, [user, router]);
+  // AuthGuard will handle authentication and role checking
 
   // Modal Handlers
   const handleEditUser = (user: User) => {
@@ -676,7 +673,8 @@ export default function AdminDashboard() {
   // ... (rest of the component remains the same)
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <AuthGuard requiredRole="admin">
+      <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
@@ -773,10 +771,11 @@ export default function AdminDashboard() {
       </div>
 
       {/* Modals */}
-      {showUserModal && <UserEditModal />}
-      {showVerificationModal && <VerificationDetailsModal />}
-      {showJobModal && <JobDetailsModal />}
-      {showConfirmModal && <ConfirmationModal />}
-    </div>
+        {showUserModal && <UserEditModal />}
+        {showVerificationModal && <VerificationDetailsModal />}
+        {showJobModal && <JobDetailsModal />}
+        {showConfirmModal && <ConfirmationModal />}
+      </div>
+    </AuthGuard>
   );
 }

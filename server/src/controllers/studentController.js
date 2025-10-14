@@ -1,5 +1,289 @@
 const { Student, User, University, Education, Experience, Certificate } = require('../models');
 
+// @desc    Get student dashboard data
+// @route   GET /api/student/dashboard
+// @access  Private (Student)
+const getDashboard = async (req, res) => {
+  try {
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { Application, Activity, QuizAttempt, Quiz } = require('../models');
+    const { Op } = require('sequelize');
+
+    // Get application stats
+    const totalApplications = await Application.count({
+      where: { studentId: student.id }
+    });
+
+    const interviewsCount = await Application.count({
+      where: {
+        studentId: student.id,
+        status: 'interview'
+      }
+    });
+
+    const offersCount = await Application.count({
+      where: {
+        studentId: student.id,
+        status: 'offer'
+      }
+    });
+
+    // Get quiz/certificate stats
+    const totalQuizzesTaken = await QuizAttempt.count({
+      where: { studentId: student.id }
+    });
+
+    const certificatesEarned = await QuizAttempt.count({
+      where: {
+        studentId: student.id,
+        certificateIssued: true
+      }
+    });
+
+    // Get recent certificates
+    const recentCertificates = await QuizAttempt.findAll({
+      where: {
+        studentId: student.id,
+        certificateIssued: true
+      },
+      include: [{
+        model: Quiz,
+        attributes: ['id', 'title', 'category', 'difficulty']
+      }],
+      limit: 3,
+      order: [['completedAt', 'DESC']]
+    });
+
+    // Get recent activity (last 10 items)
+    const recentActivity = await Activity.findAll({
+      where: { studentId: student.id },
+      limit: 10,
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Get unread notifications count
+    const { Notification } = require('../models');
+    const unreadNotifications = await Notification.count({
+      where: {
+        userId: req.user.id,
+        isRead: false
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          applications: totalApplications,
+          interviews: interviewsCount,
+          offers: offersCount,
+          quizzesTaken: totalQuizzesTaken,
+          certificates: certificatesEarned
+        },
+        recentActivity,
+        recentCertificates,
+        alertsCount: unreadNotifications
+      }
+    });
+  } catch (error) {
+    console.error('Get dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get student recent activity
+// @route   GET /api/student/activity
+// @access  Private (Student)
+const getActivity = async (req, res) => {
+  try {
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { Activity, Company, Job } = require('../models');
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const activities = await Activity.findAll({
+      where: { studentId: student.id },
+      include: [
+        {
+          model: Company,
+          attributes: ['id', 'name', 'logo'],
+          required: false
+        },
+        {
+          model: Job,
+          attributes: ['id', 'title'],
+          required: false
+        }
+      ],
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+
+    const totalCount = await Activity.count({
+      where: { studentId: student.id }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        activities,
+        pagination: {
+          total: totalCount,
+          limit,
+          offset,
+          hasMore: offset + limit < totalCount
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get activity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get student notifications
+// @route   GET /api/student/notifications
+// @access  Private (Student)
+const getNotifications = async (req, res) => {
+  try {
+    const { Notification } = require('../models');
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const notifications = await Notification.findAll({
+      where: { userId: req.user.id },
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+
+    const totalCount = await Notification.count({
+      where: { userId: req.user.id }
+    });
+
+    const unreadCount = await Notification.count({
+      where: {
+        userId: req.user.id,
+        isRead: false
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        notifications,
+        unreadCount,
+        pagination: {
+          total: totalCount,
+          limit,
+          offset,
+          hasMore: offset + limit < totalCount
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Mark notification as read
+// @route   PUT /api/student/notifications/:id/read
+// @access  Private (Student)
+const markNotificationRead = async (req, res) => {
+  try {
+    const { Notification } = require('../models');
+
+    const notification = await Notification.findOne({
+      where: {
+        id: req.params.id,
+        userId: req.user.id
+      }
+    });
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    await notification.update({ isRead: true });
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read'
+    });
+  } catch (error) {
+    console.error('Mark notification read error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Mark all notifications as read
+// @route   PUT /api/student/notifications/read-all
+// @access  Private (Student)
+const markAllNotificationsRead = async (req, res) => {
+  try {
+    const { Notification } = require('../models');
+
+    await Notification.update(
+      { isRead: true },
+      {
+        where: {
+          userId: req.user.id,
+          isRead: false
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'All notifications marked as read'
+    });
+  } catch (error) {
+    console.error('Mark all notifications read error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get student profile
 // @route   GET /api/student/profile
 // @access  Private (Student)
@@ -130,6 +414,15 @@ const uploadCV = async (req, res) => {
 
     const cvUrl = `/uploads/cv/${req.file.filename}`;
     await student.update({ cvUrl });
+
+    // Log activity
+    const { Activity } = require('../models');
+    await Activity.create({
+      studentId: student.id,
+      type: 'cv_upload',
+      title: 'Uploaded CV',
+      description: 'Your CV is now visible to recruiters.'
+    });
 
     res.json({
       success: true,
@@ -737,7 +1030,206 @@ const getMyReviews = async (req, res) => {
   }
 };
 
+// @desc    Get student certificates
+// @route   GET /api/student/certificates
+// @access  Private (Student)
+const getCertificates = async (req, res) => {
+  try {
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { QuizAttempt, Quiz } = require('../models');
+
+    const certificates = await QuizAttempt.findAll({
+      where: {
+        studentId: student.id,
+        certificateIssued: true
+      },
+      include: [{
+        model: Quiz,
+        attributes: ['id', 'title', 'category', 'difficulty', 'passingScore']
+      }],
+      order: [['completedAt', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: certificates
+    });
+  } catch (error) {
+    console.error('Get certificates error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Find peer students for collaboration
+// @route   GET /api/student/peers
+// @access  Private (Student)
+const findPeers = async (req, res) => {
+  try {
+    const currentStudent = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!currentStudent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { Op } = require('sequelize');
+    const {
+      search,
+      email,
+      skills,
+      availability,
+      minRating,
+      location,
+      limit = 20,
+      offset = 0
+    } = req.query;
+
+    // Build where clause for filtering
+    let whereClause = {
+      id: { [Op.ne]: currentStudent.id } // Exclude current student
+      // Removed verificationStatus filter to show all students
+    };
+
+    // Search filter
+    if (search) {
+      whereClause[Op.or] = [
+        { firstName: { [Op.iLike]: `%${search}%` } },
+        { lastName: { [Op.iLike]: `%${search}%` } },
+        { bio: { [Op.iLike]: `%${search}%` } },
+        { major: { [Op.iLike]: `%${search}%` } }
+      ];
+    }
+
+    // Email filter
+    if (email) {
+      // Add email search to the User model include
+      whereClause['$User.email$'] = { [Op.iLike]: `%${email}%` };
+    }
+
+    // Skills filter
+    if (skills) {
+      const skillArray = Array.isArray(skills) ? skills : [skills];
+      whereClause.skills = { [Op.overlap]: skillArray };
+    }
+
+    // Availability filter
+    if (availability) {
+      const availabilityArray = Array.isArray(availability) ? availability : [availability];
+      whereClause.status = { [Op.in]: availabilityArray };
+    }
+
+    // Location filter
+    if (location) {
+      whereClause.location = { [Op.iLike]: `%${location}%` };
+    }
+
+    // Find peers with pagination
+    const peers = await Student.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          attributes: ['email', 'isVerified', 'createdAt']
+        },
+        {
+          model: University,
+          attributes: ['id', 'universityName', 'location']
+        },
+        {
+          model: Education,
+          attributes: ['id', 'institution', 'degree', 'fieldOfStudy'],
+          limit: 1,
+          order: [['endDate', 'DESC']]
+        },
+        {
+          model: Experience,
+          attributes: ['id', 'company', 'position', 'description'],
+          limit: 1,
+          order: [['endDate', 'DESC']]
+        }
+      ],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']]
+    });
+
+    // Calculate rating for each peer (mock for now - you can implement real rating system)
+    const peersWithRating = peers.rows.map(peer => {
+      // Mock rating calculation based on profile completeness and verification
+      let rating = 3.0; // Base rating
+      
+      if (peer.User.isVerified) rating += 0.5;
+      if (peer.skills && peer.skills.length > 0) rating += 0.3;
+      if (peer.bio) rating += 0.2;
+      if (peer.portfolioUrl) rating += 0.2;
+      if (peer.cvUrl) rating += 0.2;
+      if (peer.Educations && peer.Educations.length > 0) rating += 0.3;
+      if (peer.Experiences && peer.Experiences.length > 0) rating += 0.3;
+      
+      // Cap at 5.0
+      rating = Math.min(rating, 5.0);
+
+      return {
+        ...peer.toJSON(),
+        rating: Math.round(rating * 10) / 10, // Round to 1 decimal
+        projectsCompleted: peer.Experiences ? peer.Experiences.length : 0,
+        name: `${peer.firstName} ${peer.lastName}`,
+        avatar: peer.profilePicture || '👨‍💻', // Default avatar
+        projectInterests: peer.skills || [], // Use skills as project interests
+        experience: peer.Experiences && peer.Experiences.length > 0 
+          ? `${peer.Experiences.length} project${peer.Experiences.length > 1 ? 's' : ''}`
+          : 'New to platform'
+      };
+    });
+
+    // Apply rating filter if specified
+    let filteredPeers = peersWithRating;
+    if (minRating) {
+      filteredPeers = peersWithRating.filter(peer => peer.rating >= parseFloat(minRating));
+    }
+
+    res.json({
+      success: true,
+      data: {
+        peers: filteredPeers,
+        pagination: {
+          total: peers.count,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: parseInt(offset) + parseInt(limit) < peers.count
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Find peers error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
+  getDashboard,
+  getActivity,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
   getProfile,
   updateProfile,
   uploadCV,
@@ -754,5 +1246,7 @@ module.exports = {
   deleteCertificate,
   getMyFeedback,
   submitReview,
-  getMyReviews
+  getMyReviews,
+  getCertificates,
+  findPeers
 };
