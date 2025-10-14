@@ -40,6 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'react-hot-toast';
+import { getFileUrl } from '@/lib/utils';
 
 // API imports
 import {
@@ -344,9 +345,13 @@ export default function StudentProfilePage() {
                   <div className="relative">
                     {profile.profilePicture ? (
                       <img 
-                        src={profile.profilePicture} 
+                        src={getFileUrl(profile.profilePicture) || ''} 
                         alt="Profile" 
                         className="h-16 w-16 rounded-2xl object-cover ring-1 ring-[#E3EAF1]"
+                        onError={(e) => {
+                          console.error('Failed to load profile picture:', profile.profilePicture);
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                     ) : (
                       <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#F5EFEB] ring-1 ring-[#E3EAF1]">

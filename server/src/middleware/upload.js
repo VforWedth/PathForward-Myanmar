@@ -3,7 +3,8 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure upload directories exist
-const uploadDirs = ['./uploads', './uploads/cv', './uploads/profile'];
+const uploadBase = path.resolve(__dirname, '../../uploads');
+const uploadDirs = [uploadBase, path.join(uploadBase, 'cv'), path.join(uploadBase, 'profile')];
 
 uploadDirs.forEach(dir => {
   if (!fs.existsSync(dir)) {
@@ -14,12 +15,12 @@ uploadDirs.forEach(dir => {
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    let uploadPath = './uploads';
+    let uploadPath = uploadBase;
 
     if (file.fieldname === 'cv') {
-      uploadPath = './uploads/cv';
+      uploadPath = path.join(uploadBase, 'cv');
     } else if (file.fieldname === 'profilePicture') {
-      uploadPath = './uploads/profile';
+      uploadPath = path.join(uploadBase, 'profile');
     }
 
     cb(null, uploadPath);
@@ -34,18 +35,28 @@ const storage = multer.diskStorage({
 
 // File filter
 const fileFilter = (req, file, cb) => {
+  console.log('File filter check:', {
+    fieldname: file.fieldname,
+    originalname: file.originalname,
+    mimetype: file.mimetype
+  });
+
   const allowedTypes = {
     cv: ['.pdf', '.doc', '.docx'],
-    profilePicture: ['.jpg', '.jpeg', '.png', '.gif']
+    profilePicture: ['.jpg', '.jpeg', '.png', '.gif', '.webp']
   };
 
   const ext = path.extname(file.originalname).toLowerCase();
   const fieldname = file.fieldname;
 
+  console.log('Extension check:', { ext, fieldname, allowed: allowedTypes[fieldname] });
+
   if (allowedTypes[fieldname] && allowedTypes[fieldname].includes(ext)) {
+    console.log('File accepted');
     cb(null, true);
   } else {
-    cb(new Error(`Invalid file type for ${fieldname}`), false);
+    console.log('File rejected');
+    cb(new Error(`Invalid file type for ${fieldname}. Got ${ext}, expected one of: ${allowedTypes[fieldname]?.join(', ')}`), false);
   }
 };
 

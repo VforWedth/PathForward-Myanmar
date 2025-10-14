@@ -151,6 +151,11 @@ const uploadCV = async (req, res) => {
 // @access  Private (Student)
 const uploadProfilePicture = async (req, res) => {
   try {
+    console.log('Profile picture upload attempt:', {
+      file: req.file,
+      user: req.user?.id
+    });
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -168,12 +173,16 @@ const uploadProfilePicture = async (req, res) => {
     }
 
     const profilePicture = `/uploads/profile/${req.file.filename}`;
+    console.log('Saving profile picture URL:', profilePicture);
+    console.log('File saved to:', req.file.path);
+    
     await student.update({ profilePicture });
 
     res.json({
       success: true,
       message: 'Profile picture uploaded successfully',
-      profilePicture
+      profilePicture,
+      filePath: req.file.path
     });
   } catch (error) {
     console.error('Upload profile picture error:', error);

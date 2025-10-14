@@ -25,7 +25,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (uploaded files)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+const uploadsPath = path.resolve(__dirname, '../uploads');
+console.log('Static files served from:', uploadsPath);
+
+// Add logging middleware for uploads
+app.use('/uploads', (req, res, next) => {
+  console.log('Static file request:', {
+    url: req.url,
+    method: req.method,
+    fullPath: path.join(uploadsPath, req.url)
+  });
+  next();
+});
+
+app.use('/uploads', express.static(uploadsPath));
 
 // Routes
 app.use('/api/auth', authRoutes);
