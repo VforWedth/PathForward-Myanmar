@@ -25,38 +25,35 @@ The student profile page has been completely redesigned and enhanced with full e
 - **Visual Feedback**: Profile picture updates in real-time
 - **Supported Formats**: All image formats (jpg, png, gif, etc.)
 
-### 3. **CSV Upload Functionality**
-- **Bulk Profile Update**: Upload CSV file to update multiple profile fields at once
-- **Automatic Processing**: CSV data is parsed and applied to profile automatically
-- **Supported Fields**: firstName, lastName, major, year, location, jobPreference, portfolioUrl, bio, skills
-- **Skills Parsing**: Comma-separated skills are automatically converted to array
-- **Error Handling**: Comprehensive error messages for invalid CSV files
+### 3. **Enhanced CV/Resume Upload**
+- **Professional Upload Interface**: Modern, user-friendly CV upload section
+- **Document Support**: PDF, DOC, DOCX files up to 10MB
+- **File Size Validation**: Automatic validation with user-friendly error messages
+- **Upload Status**: Clear indicators showing whether CV is uploaded or not
+- **Download Option**: Easy access to download existing CV
+- **Replace Functionality**: Simple CV replacement with new uploads
+- **Upload Guidelines**: Built-in tips for better CV management
+- **Instant Feedback**: Success/error notifications with toast messages
 
-### 4. **CV/Resume Upload**
-- **Document Upload**: Support for PDF, DOC, DOCX files
-- **Download Option**: Download existing CV if available
-- **Status Indicator**: Shows whether CV is uploaded or not
-- **Instant Feedback**: Success/error notifications
-
-### 5. **Education Management**
+### 4. **Education Management**
 - **Add Education**: Dynamic form to add educational background
 - **Edit/Delete**: Modify or remove education entries
 - **Current Status**: Mark if currently studying
 - **Comprehensive Fields**: Institution, degree, field of study, dates, grades
 
-### 6. **Experience Management**
+### 5. **Experience Management**
 - **Add Experience**: Add work experience entries
 - **Edit/Delete**: Modify or remove experience entries
 - **Current Status**: Mark if currently working
 - **Detailed Information**: Company, position, description, dates
 
-### 7. **Certificate Management**
+### 6. **Certificate Management**
 - **Add Certificates**: Add professional certifications
 - **Edit/Delete**: Modify or remove certificates
 - **Credential Links**: Support for credential URLs and IDs
 - **Expiry Tracking**: Optional expiry date tracking
 
-### 8. **Save Functionality**
+### 7. **Save Functionality**
 - **Save Changes Button**: Prominent save button in edit mode
 - **Loading States**: Visual feedback during save operations
 - **Success Notifications**: Toast notifications for successful updates
@@ -66,25 +63,11 @@ The student profile page has been completely redesigned and enhanced with full e
 
 ### Backend Changes
 
-#### New Controller Function
-```javascript
-// CSV Upload Handler
-const uploadCSV = async (req, res) => {
-  // Processes CSV files and updates student profile
-  // Supports all major profile fields
-  // Includes comprehensive error handling
-}
-```
-
-#### New API Endpoint
-```javascript
-// Route: POST /api/student/upload-csv
-router.post('/upload-csv', upload.single('csvFile'), uploadCSV);
-```
-
-#### Dependencies Added
-- `csv-parser`: For parsing CSV files
-- File cleanup and error handling
+#### Enhanced CV Upload
+- Enhanced CV upload functionality with file size validation
+- Improved user interface with upload guidelines
+- Better error handling and user feedback
+- Professional upload interface design
 
 ### Frontend Changes
 
@@ -93,12 +76,10 @@ router.post('/upload-csv', upload.single('csvFile'), uploadCSV);
 - **Features**: Full editing interface with all requested functionality
 - **UI/UX**: Modern, responsive design with smooth animations
 
-#### New API Functions
-```typescript
-export const uploadCSV = async (file: File) => {
-  // Handles CSV file upload to backend
-}
-```
+#### Enhanced File Upload
+- Improved CV upload with file size validation
+- Better user experience with upload guidelines
+- Enhanced error handling and success feedback
 
 #### Toast Notifications
 - Added `react-hot-toast` for user feedback
@@ -110,20 +91,19 @@ export const uploadCSV = async (file: File) => {
 ```
 server/
 ├── src/
-│   ├── controllers/studentController.js  # Added uploadCSV function
-│   └── routes/studentRoutes.js          # Added CSV upload route
+│   ├── controllers/studentController.js  # Enhanced CV upload functionality
+│   └── routes/studentRoutes.js          # Maintained CV upload route
 client/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx                   # Added toast notifications
-│   │   └── student/profile/page.tsx     # Complete rewrite
-│   └── lib/studentApi.ts                # Added uploadCSV function
+│   │   └── student/profile/page.tsx     # Complete rewrite with enhanced CV upload
+│   └── lib/studentApi.ts                # Enhanced file upload functions
 └── package.json                         # Added react-hot-toast
 ```
 
 ### New Files
 ```
-sample_student_profile.csv               # Example CSV format
 STUDENT_PROFILE_UPDATE_SUMMARY.md       # This documentation
 ```
 
@@ -141,24 +121,23 @@ STUDENT_PROFILE_UPDATE_SUMMARY.md       # This documentation
 - **Progressive Enhancement**: Features work independently
 - **Accessibility**: Proper labels and keyboard navigation
 
-## 📊 CSV Upload Format
+## 📄 CV Upload Features
 
-### Required CSV Structure
-```csv
-firstName,lastName,major,year,location,jobPreference,portfolioUrl,bio,skills
-John,Doe,Computer Science,3,Yangon,remote,https://johndoe.dev,"Bio text","JavaScript,React,Python"
-```
+### Supported File Formats
+- **PDF**: Preferred format for professional documents
+- **DOC**: Microsoft Word documents
+- **DOCX**: Modern Microsoft Word format
 
-### Supported Fields
-- `firstName`: Student's first name
-- `lastName`: Student's last name
-- `major`: Field of study
-- `year`: Year of study (number)
-- `location`: Current location
-- `jobPreference`: onsite, remote, ojt, or hybrid
-- `portfolioUrl`: Portfolio website URL
-- `bio`: Personal description
-- `skills`: Comma-separated list of skills
+### File Requirements
+- **Maximum Size**: 10MB per file
+- **File Validation**: Automatic format and size checking
+- **Upload Guidelines**: Built-in tips for better CV management
+
+### CV Upload Benefits
+- **Professional Presentation**: Showcase your qualifications effectively
+- **Easy Access**: Download your CV anytime for applications
+- **Version Control**: Replace with updated versions easily
+- **Instant Feedback**: Real-time upload status and error handling
 
 ## 🔒 Security & Validation
 
@@ -190,11 +169,11 @@ John,Doe,Computer Science,3,Yangon,remote,https://johndoe.dev,"Bio text","JavaSc
 3. Select image file
 4. Image uploads automatically
 
-#### CSV Upload
-1. Prepare CSV file with proper format
-2. Go to CSV Upload section
-3. Select CSV file
-4. Profile updates automatically
+#### CV Upload
+1. Navigate to the CV Upload section
+2. Click on the file input or drag and drop your CV
+3. Select PDF, DOC, or DOCX file (max 10MB)
+4. CV uploads automatically with instant feedback
 
 #### Managing Education/Experience/Certificates
 1. Enter edit mode
@@ -207,14 +186,14 @@ John,Doe,Computer Science,3,Yangon,remote,https://johndoe.dev,"Bio text","JavaSc
 
 ### For Students
 - **Complete Control**: Full editing capabilities for all profile fields
-- **Efficiency**: Bulk updates via CSV upload
+- **Efficiency**: Easy CV upload and management
 - **Professional Presentation**: Enhanced profile with images and structured data
 - **Easy Management**: Simple interface for complex data
 
 ### For System
 - **Data Completeness**: Encourages comprehensive profile information
 - **User Engagement**: Interactive and engaging interface
-- **Scalability**: Efficient bulk operations
+- **Scalability**: Efficient file upload operations
 - **Maintainability**: Clean, well-structured code
 
 ## 🔄 Future Enhancements
@@ -228,17 +207,16 @@ John,Doe,Computer Science,3,Yangon,remote,https://johndoe.dev,"Bio text","JavaSc
 
 ### Technical Improvements
 - **Image Optimization**: Automatic image compression and resizing
-- **Batch Operations**: Multiple file uploads
-- **Version Control**: Track profile changes over time
-- **Advanced Validation**: More sophisticated data validation
+- **CV Preview**: In-browser CV preview functionality
+- **Version Control**: Track CV and profile changes over time
+- **Advanced Validation**: More sophisticated file and data validation
 
 ## ✅ Testing Checklist
 
 ### Functionality Tests
 - [x] Profile editing works correctly
 - [x] Profile image upload functions
-- [x] CSV upload processes data correctly
-- [x] CV upload works properly
+- [x] CV upload processes files correctly
 - [x] Education management functions
 - [x] Experience management functions
 - [x] Certificate management functions
@@ -257,7 +235,7 @@ John,Doe,Computer Science,3,Yangon,remote,https://johndoe.dev,"Bio text","JavaSc
 ## 📞 Support
 
 ### Common Issues
-1. **CSV Upload Fails**: Ensure CSV format matches the required structure
+1. **CV Upload Fails**: Ensure file is PDF, DOC, or DOCX and under 10MB
 2. **Image Upload Issues**: Check file size and format
 3. **Save Errors**: Verify all required fields are filled
 4. **Loading Issues**: Check internet connection and try refreshing

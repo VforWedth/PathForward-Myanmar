@@ -7,7 +7,6 @@ const {
   updateProfile,
   uploadCV,
   uploadProfilePicture,
-  uploadCSV,
   updateStatus,
   addEducation,
   updateEducation,
@@ -37,7 +36,6 @@ router.put('/status', updateStatus);
 // File upload routes
 router.post('/upload-cv', upload.single('cv'), uploadCV);
 router.post('/upload-picture', upload.single('profilePicture'), uploadProfilePicture);
-router.post('/upload-csv', upload.single('csvFile'), uploadCSV);
 
 // Education routes
 router.post('/education', addEducation);

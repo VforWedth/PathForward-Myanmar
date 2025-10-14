@@ -47,7 +47,6 @@ import {
   updateProfile,
   uploadCV,
   uploadProfilePicture,
-  uploadCSV,
   updateStatus,
   addEducation,
   updateEducation,
@@ -99,7 +98,6 @@ export default function StudentProfilePage() {
   // File uploads
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
   
   // Education, Experience, Certificates
   const [education, setEducation] = useState<any[]>([]);
@@ -200,7 +198,7 @@ export default function StudentProfilePage() {
     updateProfileField('skills', profile.skills.filter((s) => s !== skillToRemove));
   };
 
-  const handleFileUpload = async (type: 'cv' | 'picture' | 'csv', file: File) => {
+  const handleFileUpload = async (type: 'cv' | 'picture', file: File) => {
     try {
       if (type === 'cv') {
         const res = await uploadCV(file);
@@ -210,10 +208,6 @@ export default function StudentProfilePage() {
         const res = await uploadProfilePicture(file);
         toast.success('Profile picture uploaded successfully');
         setProfileImageFile(null);
-      } else if (type === 'csv') {
-        const res = await uploadCSV(file);
-        toast.success('Profile updated from CSV successfully');
-        setCsvFile(null);
       }
       loadProfile(); // Reload profile to show updated data
     } catch (error: any) {
@@ -869,68 +863,64 @@ export default function StudentProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-[#2F4156]">
-                  <FileUp className="h-5 w-5" /> CV / Resume
+                  <FileUp className="h-5 w-5" /> CV / Resume Upload
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {profile.cvUrl ? (
-                  <Badge className="mb-3 bg-emerald-600 text-white">CV on file</Badge>
-                ) : (
-                  <p className="mb-3 text-sm text-red-600">No CV uploaded</p>
-                )}
-                <div className="rounded-xl border border-dashed border-[#C8D9E6] bg-[#F5EFEB]/40 p-4 text-center">
-                  <Upload className="mx-auto h-6 w-6 text-[#567C8D]" />
-                  <p className="mt-2 text-sm text-[#2F4156]">Upload your CV</p>
-                  <Input 
-                    type="file" 
-                    accept=".pdf,.doc,.docx" 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setCvFile(file);
-                        handleFileUpload('cv', file);
-                      }
-                    }} 
-                    className="mt-3" 
-                  />
-                  {profile.cvUrl && (
-                    <Button asChild variant="secondary" className="mt-2 w-full">
-                      <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
-                        <FileDown className="mr-2 h-4 w-4" /> Download CV
-                      </a>
-                    </Button>
+                <div className="space-y-4">
+                  {profile.cvUrl ? (
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-600 text-white">CV Uploaded</Badge>
+                      <Button asChild variant="outline" size="sm">
+                        <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
+                          <FileDown className="mr-2 h-4 w-4" /> Download
+                        </a>
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-600 flex items-center gap-2">
+                      <FileUp className="h-4 w-4" />
+                      No CV uploaded yet
+                    </p>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* CSV Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-[#2F4156]">
-                  <FileText className="h-5 w-5" /> CSV Upload
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-3 text-sm text-[#567C8D]">Upload CSV to bulk update profile</p>
-                <div className="rounded-xl border border-dashed border-[#C8D9E6] bg-[#F5EFEB]/40 p-4 text-center">
-                  <Upload className="mx-auto h-6 w-6 text-[#567C8D]" />
-                  <p className="mt-2 text-sm text-[#2F4156]">Choose CSV file</p>
-                  <Input 
-                    type="file" 
-                    accept=".csv" 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setCsvFile(file);
-                        handleFileUpload('csv', file);
-                      }
-                    }} 
-                    className="mt-3" 
-                  />
-                  <p className="mt-2 text-xs text-[#567C8D]">
-                    CSV should contain columns: firstName, lastName, major, year, location, jobPreference, portfolioUrl, bio, skills
-                  </p>
+                  
+                  <div className="rounded-xl border border-dashed border-[#C8D9E6] bg-[#F5EFEB]/40 p-6 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="rounded-full bg-emerald-100 p-3">
+                        <Upload className="h-6 w-6 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#2F4156]">
+                          {profile.cvUrl ? 'Replace your CV' : 'Upload your CV'}
+                        </p>
+                        <p className="text-xs text-[#567C8D] mt-1">
+                          PDF, DOC, or DOCX files up to 10MB
+                        </p>
+                      </div>
+                      <Input 
+                        type="file" 
+                        accept=".pdf,.doc,.docx" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Validate file size (10MB limit)
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast.error('File size must be less than 10MB');
+                              return;
+                            }
+                            setCvFile(file);
+                            handleFileUpload('cv', file);
+                          }
+                        }} 
+                        className="w-full" 
+                      />
+                      <div className="text-xs text-[#567C8D] space-y-1">
+                        <p>• Keep your CV up to date for better job matches</p>
+                        <p>• Ensure your contact information is current</p>
+                        <p>• Include relevant skills and experience</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

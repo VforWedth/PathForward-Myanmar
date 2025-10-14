@@ -185,106 +185,6 @@ const uploadProfilePicture = async (req, res) => {
   }
 };
 
-// @desc    Upload CSV data (bulk profile update)
-// @route   POST /api/student/upload-csv
-// @access  Private (Student)
-const uploadCSV = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'No CSV file uploaded'
-      });
-    }
-
-    const student = await Student.findOne({ where: { userId: req.user.id } });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student profile not found'
-      });
-    }
-
-    const fs = require('fs');
-    const csv = require('csv-parser');
-    const path = require('path');
-
-    const results = [];
-    const filePath = req.file.path;
-
-    // Read and parse CSV file
-    fs.createReadStream(filePath)
-      .pipe(csv())
-      .on('data', (data) => results.push(data))
-      .on('end', async () => {
-        try {
-          // Process CSV data - assuming it contains profile updates
-          if (results.length > 0) {
-            const csvData = results[0]; // Take first row as profile data
-            
-            // Map CSV columns to profile fields
-            const updateData = {};
-            if (csvData.firstName) updateData.firstName = csvData.firstName;
-            if (csvData.lastName) updateData.lastName = csvData.lastName;
-            if (csvData.major) updateData.major = csvData.major;
-            if (csvData.year) updateData.year = parseInt(csvData.year);
-            if (csvData.location) updateData.location = csvData.location;
-            if (csvData.jobPreference) updateData.jobPreference = csvData.jobPreference;
-            if (csvData.portfolioUrl) updateData.portfolioUrl = csvData.portfolioUrl;
-            if (csvData.bio) updateData.bio = csvData.bio;
-            if (csvData.skills) {
-              // Parse skills as comma-separated values
-              updateData.skills = csvData.skills.split(',').map(skill => skill.trim());
-            }
-
-            // Update student profile
-            await student.update(updateData);
-
-            // Clean up uploaded file
-            fs.unlinkSync(filePath);
-
-            res.json({
-              success: true,
-              message: 'Profile updated successfully from CSV',
-              data: updateData
-            });
-          } else {
-            fs.unlinkSync(filePath);
-            res.status(400).json({
-              success: false,
-              message: 'CSV file is empty or invalid'
-            });
-          }
-        } catch (error) {
-          fs.unlinkSync(filePath);
-          console.error('CSV processing error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Error processing CSV file',
-            error: error.message
-          });
-        }
-      })
-      .on('error', (error) => {
-        fs.unlinkSync(filePath);
-        console.error('CSV read error:', error);
-        res.status(500).json({
-          success: false,
-          message: 'Error reading CSV file',
-          error: error.message
-        });
-      });
-
-  } catch (error) {
-    console.error('Upload CSV error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
-  }
-};
 
 // @desc    Update student status
 // @route   PUT /api/student/status
@@ -843,7 +743,6 @@ module.exports = {
   updateProfile,
   uploadCV,
   uploadProfilePicture,
-  uploadCSV,
   updateStatus,
   addEducation,
   updateEducation,
