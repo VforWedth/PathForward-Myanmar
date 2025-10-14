@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { Users, Building2, FileCheck2, ClipboardList, Command, Link as LinkIcon } from "lucide-react";
+import { Users, Building2, FileCheck2, ClipboardList, Command, Link as LinkIcon, LayoutDashboard } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import {
   Sidebar,
@@ -27,13 +28,44 @@ function withActive<T extends { url: string }>(items: T[], pathname: string): (T
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const [universityName, setUniversityName] = useState("PathForward");
 
   const role = user?.role ?? "university";
+
+  // Fetch university name
+  useEffect(() => {
+    const fetchUniversityProfile = async () => {
+      if (user && user.role === 'university') {
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/profile`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.university?.universityName) {
+              setUniversityName(data.university.universityName);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching university profile:', error);
+        }
+      }
+    };
+
+    fetchUniversityProfile();
+  }, [user]);
 
   // Navigation links
   const navItems = withActive(
     [
+      { title: "Dashboard", url: "/university/dashboard", icon: LayoutDashboard },
       { title: "Manage Students", url: "/university/students", icon: Users },
       { title: "Company Connections", url: "/university/companies", icon: Building2 },
       { title: "Connection Management", url: "/university/connections", icon: LinkIcon },
@@ -44,7 +76,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   );
 
   const sidebarUser = {
-    name: user?.id ?? "University Admin",
+    name: user?.email?.split('@')[0] ?? "University Admin",
     email: user?.email ?? "",
     avatar: "/avatars/placeholder.png",
   };
@@ -60,7 +92,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   <Command className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">PathForward</span>
+                  <span className="truncate font-medium">{universityName}</span>
                   <span className="truncate text-xs">University Portal</span>
                 </div>
               </Link>
@@ -92,7 +124,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser user={sidebarUser} />
+        <NavUser user={sidebarUser} onLogout={logout} />
       </SidebarFooter>
     </Sidebar>
   );

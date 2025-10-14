@@ -69,6 +69,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('token');
     set({ user: null, token: null, isAuthenticated: false });
+    // Redirect to login with success message
+    window.location.href = '/login?message=Successfully logged out';
   },
 
   checkAuth: async () => {

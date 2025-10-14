@@ -156,6 +156,18 @@ export default function CompanyDashboard() {
               </BreadcrumbList>
             </Breadcrumb>
 
+            <div className="ml-auto flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">Company Admin</p>
+                <p className="text-sm text-gray-500">{user?.email}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </header>
 
