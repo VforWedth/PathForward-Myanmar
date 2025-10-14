@@ -55,6 +55,9 @@ Review.belongsTo(Company, { foreignKey: 'companyId' });
 Company.hasMany(Feedback, { foreignKey: 'companyId', onDelete: 'CASCADE' });
 Feedback.belongsTo(Company, { foreignKey: 'companyId' });
 
+Job.hasMany(Feedback, { foreignKey: 'jobId', onDelete: 'SET NULL' });
+Feedback.belongsTo(Job, { foreignKey: 'jobId' });
+
 // University-Company Connection
 University.belongsToMany(Company, {
   through: UniversityCompanyConnection,

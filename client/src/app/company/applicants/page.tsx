@@ -61,46 +61,51 @@ export default function CompanyApplicants() {
       return;
     }
 
-    // mock data — replace with API call
-    const mockApplicants: Applicant[] = [
-      {
-        id: '1',
-        name: 'Aung Aung',
-        email: 'aung@example.com',
-        position: 'Frontend Developer',
-        status: 'pending',
-        appliedDate: '2024-01-15',
-        skills: ['React', 'TypeScript', 'Next.js'],
-        experience: '2 years',
-        education: 'B.Sc Computer Science',
-      },
-      {
-        id: '2',
-        name: 'Mi Mi',
-        email: 'mimi@example.com',
-        position: 'Backend Developer',
-        status: 'reviewed',
-        appliedDate: '2024-01-14',
-        skills: ['Node.js', 'Python', 'MongoDB'],
-        experience: '3 years',
-        education: 'B.E Software Engineering',
-      },
-      {
-        id: '3',
-        name: 'Ko Ko',
-        email: 'koko@example.com',
-        position: 'Frontend Developer',
-        status: 'accepted',
-        appliedDate: '2024-01-12',
-        skills: ['Vue.js', 'JavaScript', 'CSS'],
-        experience: '1 year',
-        education: 'B.Tech Information Technology',
-      },
-    ];
+    const fetchApplicants = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filters.status !== 'all') params.append('status', filters.status);
+        if (filters.position !== 'all') params.append('position', filters.position);
+        if (filters.search) params.append('search', filters.search);
 
-    setApplicants(mockApplicants);
-    setIsLoading(false);
-  }, [user, router]);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/applicants?${params.toString()}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Map backend data to frontend format
+            const formattedApplicants = data.data.map((app: any) => ({
+              id: app.id,
+              name: app.applicant?.name || 'Unknown',
+              email: app.applicant?.email || '',
+              position: app.position || app.Job?.title || 'Unknown',
+              status: app.status,
+              appliedDate: new Date(app.createdAt).toLocaleDateString(),
+              skills: app.applicant?.skills || [],
+              experience: app.applicant?.experience || 'Not specified',
+              education: app.applicant?.education || 'Not specified',
+            }));
+            setApplicants(formattedApplicants);
+          }
+        } else {
+          console.error('Failed to fetch applicants');
+        }
+      } catch (error) {
+        console.error('Error fetching applicants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApplicants();
+  }, [user, router, filters]);
 
   // positions for filter (from data)
   const positionOptions = useMemo(() => {
@@ -123,19 +128,40 @@ export default function CompanyApplicants() {
     });
   }, [applicants, filters]);
 
-  const updateApplicationStatus = (applicantId: string, status: Applicant['status']) => {
-    setApplicants(prev => prev.map(app => (app.id === applicantId ? { ...app, status } : app)));
-    if (selectedApplicant?.id === applicantId) {
-      setSelectedApplicant(prev => (prev ? { ...prev, status } : prev));
-    }
+  const updateApplicationStatus = async (applicantId: string, status: Applicant['status']) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/applicants/${applicantId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ status })
+        }
+      );
 
-    const statusMessages: Record<Applicant['status'], string> = {
-      accepted: 'Application accepted successfully!',
-      rejected: 'Application rejected.',
-      reviewed: 'Application marked as reviewed.',
-      pending: 'Application status updated to pending.',
-    };
-    toast.success(statusMessages[status]);
+      if (response.ok) {
+        setApplicants(prev => prev.map(app => (app.id === applicantId ? { ...app, status } : app)));
+        if (selectedApplicant?.id === applicantId) {
+          setSelectedApplicant(prev => (prev ? { ...prev, status } : prev));
+        }
+
+        const statusMessages: Record<Applicant['status'], string> = {
+          accepted: 'Application accepted successfully!',
+          rejected: 'Application rejected.',
+          reviewed: 'Application marked as reviewed.',
+          pending: 'Application status updated to pending.',
+        };
+        toast.success(statusMessages[status]);
+      } else {
+        toast.error('Failed to update application status');
+      }
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error('Failed to update application status');
+    }
   };
 
   const getStatusColor = (status: Applicant['status']) => {
