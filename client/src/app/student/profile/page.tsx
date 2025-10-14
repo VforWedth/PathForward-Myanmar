@@ -211,17 +211,36 @@ export default function StudentProfilePage() {
         setCvFile(null);
       } else if (type === 'picture') {
         const res = await uploadProfilePicture(file);
+        console.log('Profile picture upload response:', res);
         toast.success('Profile picture uploaded successfully');
         setProfileImageFile(null);
         
         // Update the profile state immediately with the new profile picture URL
         if (res.success && res.profilePicture) {
-          setProfile(prev => prev ? { ...prev, profilePicture: res.profilePicture } : prev);
+          console.log('Updating profile with new picture URL:', res.profilePicture);
+          
+          // Force immediate state update
+          setProfile(prev => {
+            if (!prev) return prev;
+            const updated = { ...prev, profilePicture: res.profilePicture };
+            console.log('Profile state updated:', updated);
+            return updated;
+          });
+          
           setProfileImageRefresh(Date.now()); // Force image refresh
+        } else {
+          console.error('Upload response missing profilePicture URL:', res);
         }
       }
+      
       // Reload profile to ensure all data is fresh
+      console.log('Reloading profile after upload...');
       await loadProfile();
+      
+      // Log final state after reload
+      setTimeout(() => {
+        console.log('Final profile state after reload:', profile);
+      }, 100);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Upload failed');
     }
@@ -360,15 +379,16 @@ export default function StudentProfilePage() {
                         alt="Profile" 
                         className="h-16 w-16 rounded-2xl object-cover ring-1 ring-[#E3EAF1]"
                         onLoad={() => {
-                          console.log('Profile picture loaded successfully:', getFileUrl(profile.profilePicture));
+                          console.log('Profile picture loaded successfully:', getFileUrl(profile.profilePicture, true));
                         }}
                         onError={(e) => {
                           console.error('Failed to load profile picture:', {
                             originalUrl: profile.profilePicture,
-                            constructedUrl: getFileUrl(profile.profilePicture),
+                            constructedUrl: getFileUrl(profile.profilePicture, true),
                             error: e
                           });
-                          e.currentTarget.style.display = 'none';
+                          // Don't hide the image, just show fallback
+                          e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGNUVGRUIiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyRjQxNTYiIHN0cm9rZS13aWR0aD0iMiI+CjxwYXRoIGQ9Im0yMCAyMS0xLTFtLTMuNS0zLjVhNyA3IDAgMSAxIDAtOS45OTkgNyA3IDAgMCAxIDAgOS45OTlaIi8+CjxwYXRoIGQ9Im05IDlhMyAzIDAgMSAwIDYgMGEzIDMgMCAwIDAtNiAwIi8+Cjwvc3ZnPgo8L3N2Zz4K';
                         }}
                       />
                     ) : (
@@ -401,6 +421,12 @@ export default function StudentProfilePage() {
                     <p className="text-sm text-[#567C8D]">
                       {profile.major} • {profile.University?.universityName || 'No University'}
                     </p>
+                    {/* Debug info - remove this later */}
+                    {profile.profilePicture && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Picture URL: {profile.profilePicture}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
