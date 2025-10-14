@@ -19,7 +19,6 @@ const getProfile = async (req, res) => {
       include: [
         {
           model: User,
-          as: 'user',
           attributes: ['email', 'phone', 'isVerified', 'isActive']
         }
       ]
@@ -146,7 +145,6 @@ const getStudents = async (req, res) => {
       include: [
         {
           model: User,
-          as: 'user',
           attributes: ['email', 'phone', 'isVerified', 'isActive'],
           where: userWhereConditions
         }
@@ -198,8 +196,7 @@ const verifyStudent = async (req, res) => {
     const student = await Student.findByPk(studentId, {
       include: [
         {
-          model: User,
-          as: 'user'
+          model: User
         }
       ]
     });
@@ -592,11 +589,9 @@ const getEmploymentStats = async (req, res) => {
       include: [
         {
           model: Job,
-          as: 'job',
           include: [
             {
               model: Company,
-              as: 'company',
               attributes: ['id', 'companyName', 'industry', 'location']
             }
           ]
@@ -713,20 +708,16 @@ const generateReport = async (req, res) => {
       include: [
         {
           model: User,
-          as: 'user',
           attributes: ['email', 'isVerified']
         },
         {
           model: Application,
-          as: 'applications',
           include: [
             {
               model: Job,
-              as: 'job',
               include: [
                 {
                   model: Company,
-                  as: 'company',
                   attributes: ['companyName', 'industry']
                 }
               ]
@@ -866,12 +857,10 @@ const getJobPosts = async (req, res) => {
       include: [
         {
           model: Company,
-          as: 'company',
           attributes: ['id', 'companyName', 'industry', 'location'],
           include: [
             {
               model: User,
-              as: 'user',
               attributes: ['email', 'isVerified']
             }
           ]
