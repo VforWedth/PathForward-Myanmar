@@ -1,4 +1,3 @@
-// app/register/university/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -11,16 +10,11 @@ import {
   University,
   Mail,
   Lock,
-  ShieldCheck,
   MapPin,
   Phone,
   Globe,
-  BadgeCheck,
-  Calendar,
-  Users,
   Loader2,
   CheckCircle2,
-  Info,
 } from "lucide-react";
 
 interface RegistrationForm {
@@ -28,13 +22,11 @@ interface RegistrationForm {
   email: string;
   password: string;
   confirmPassword: string;
-  address: string;
+  location: string;
   phone: string;
   website: string;
-  accreditation: string;
-  establishedYear: string;
-  totalStudents: string;
   description: string;
+  supportedMajors: string[];
 }
 
 export default function UniversityRegistration() {
@@ -44,26 +36,40 @@ export default function UniversityRegistration() {
     email: "",
     password: "",
     confirmPassword: "",
-    address: "",
+    location: "",
     phone: "",
     website: "",
-    accreditation: "",
-    establishedYear: "",
-    totalStudents: "",
     description: "",
+    supportedMajors: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [verificationStep, setVerificationStep] = useState<1 | 2>(1);
+  const [currentMajor, setCurrentMajor] = useState("");
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const addMajor = () => {
+    if (currentMajor.trim() && !formData.supportedMajors.includes(currentMajor.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        supportedMajors: [...prev.supportedMajors, currentMajor.trim()]
+      }));
+      setCurrentMajor("");
+    }
+  };
+
+  const removeMajor = (major: string) => {
+    setFormData(prev => ({
+      ...prev,
+      supportedMajors: prev.supportedMajors.filter(m => m !== major)
     }));
   };
 
@@ -73,13 +79,18 @@ export default function UniversityRegistration() {
       return false;
     }
 
-    if (formData.password.length < 8) {
-      toast.error("Password must be at least 8 characters long");
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters long");
       return false;
     }
 
     if (!formData.email.includes("@") || !formData.email.includes(".")) {
       toast.error("Please enter a valid email address");
+      return false;
+    }
+
+    if (!formData.universityName.trim()) {
+      toast.error("University name is required");
       return false;
     }
 
@@ -94,15 +105,47 @@ export default function UniversityRegistration() {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      
+      const registrationData = {
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        role: 'university',
+        universityName: formData.universityName,
+        location: formData.location,
+        description: formData.description,
+        website: formData.website,
+        supportedMajors: formData.supportedMajors
+      };
 
-      // In a real app, send to your backend here
-      // await api.registerUniversity(formData)
+      console.log('Sending university registration:', registrationData);
 
-      toast.success("Registration submitted for verification!");
-      setVerificationStep(2);
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      const data = await response.json();
+
+      console.log('University registration response:', data);
+
+      if (response.ok && data.success) {
+        toast.success(data.message || "Registration submitted for verification!");
+        setVerificationStep(2);
+        
+        // Store token and redirect after success
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
+      } else {
+        toast.error(data.message || "Registration failed. Please try again.");
+      }
     } catch (error) {
+      console.error('Registration error:', error);
       toast.error("Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
@@ -127,15 +170,15 @@ export default function UniversityRegistration() {
             </p>
 
             <div className="space-y-3">
-              <Link
-                href="/login"
-                className="block w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center"
+              <button
+                onClick={() => router.push('/university/dashboard')}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
-                Back to Login
-              </Link>
+                Go to Dashboard
+              </button>
               <button
                 onClick={() => setVerificationStep(1)}
-                className="block w-full px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+                className="w-full px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
               >
                 Edit Registration
               </button>
@@ -153,8 +196,7 @@ export default function UniversityRegistration() {
           Register Your University
         </h2>
         <p className="text-center text-gray-600 mb-8">
-          Complete the form below to request access to the University
-          Portal.
+          Complete the form below to request access to the University Portal.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -204,10 +246,11 @@ export default function UniversityRegistration() {
                   type="password"
                   name="password"
                   required
+                  minLength={6}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Minimum 8 characters"
+                  placeholder="Minimum 6 characters"
                 />
               </div>
             </div>
@@ -231,58 +274,19 @@ export default function UniversityRegistration() {
             </div>
           </div>
 
-          {/* Year + Total Students */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-2">
-                Established Year
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="number"
-                  name="establishedYear"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  value={formData.establishedYear}
-                  onChange={handleChange}
-                  placeholder="e.g., 1990"
-                  min={1900}
-                  max={new Date().getFullYear()}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 mb-2">
-                Total Students
-              </label>
-              <div className="relative">
-                <Users className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="number"
-                  name="totalStudents"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  value={formData.totalStudents}
-                  onChange={handleChange}
-                  placeholder="Approximate number"
-                  min={0}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Address */}
+          {/* Location */}
           <div>
-            <label className="block text-gray-700 mb-2">Address</label>
+            <label className="block text-gray-700 mb-2">Location *</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                name="address"
+                name="location"
+                required
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                value={formData.address}
+                value={formData.location}
                 onChange={handleChange}
-                placeholder="Full university address"
+                placeholder="City, State, Country"
               />
             </div>
           </div>
@@ -320,66 +324,59 @@ export default function UniversityRegistration() {
             </div>
           </div>
 
-          {/* Accreditation */}
+          {/* Supported Majors */}
           <div>
-            <label className="block text-gray-700 mb-2">Accreditation</label>
-            <div className="relative">
-              <ShieldCheck className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <label className="block text-gray-700 mb-2">Supported Majors</label>
+            <div className="flex gap-2 mb-2">
               <input
                 type="text"
-                name="accreditation"
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                placeholder="e.g., MOE, International Accreditation"
-                value={formData.accreditation}
-                onChange={handleChange}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                value={currentMajor}
+                onChange={(e) => setCurrentMajor(e.target.value)}
+                placeholder="Add a major (e.g., Computer Science)"
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMajor())}
               />
+              <button
+                type="button"
+                onClick={addMajor}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Add
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.supportedMajors.map((major) => (
+                <span
+                  key={major}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                >
+                  {major}
+                  <button
+                    type="button"
+                    onClick={() => removeMajor(major)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
           </div>
 
           {/* Description */}
           <div>
             <label className="block text-gray-700 mb-2">
-              University Description
+              University Description *
             </label>
             <textarea
               name="description"
               rows={4}
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               placeholder="Describe your university, programs offered, achievements, and mission..."
               value={formData.description}
               onChange={handleChange}
             />
-          </div>
-
-          {/* Process box */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Info className="h-4 w-4 text-blue-700" />
-              <h4 className="font-semibold text-blue-800">
-                Registration Process
-              </h4>
-            </div>
-            <ul className="text-sm text-blue-700 space-y-2">
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="h-4 w-4 mt-0.5" />
-                <span>Submit your registration details</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="h-4 w-4 mt-0.5" />
-                <span>Our team will verify your university information</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="h-4 w-4 mt-0.5" />
-                <span>
-                  You&apos;ll receive an approval email within 1–2 business
-                  days
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="h-4 w-4 mt-0.5" />
-                <span>Once approved, you can access the portal</span>
-              </li>
-            </ul>
           </div>
 
           <button

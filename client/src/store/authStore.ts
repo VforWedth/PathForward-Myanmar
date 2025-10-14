@@ -40,6 +40,12 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('token', token);
       console.log('Login successful, user role:', user.role);
       set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
+
+      // Add a small delay to prevent rapid state updates
+      setTimeout(() => {
+      set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
+    }, 100);
+    
       return user;
     } catch (error: any) {
       set({ isLoading: false });

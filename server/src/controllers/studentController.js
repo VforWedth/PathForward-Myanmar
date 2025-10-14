@@ -737,6 +737,94 @@ const getMyReviews = async (req, res) => {
   }
 };
 
+// @desc    Get jobs from companies connected to student's university
+// @route   GET /api/student/jobs
+// @access  Private (Student)
+const getJobsFromConnectedCompanies = async (req, res) => {
+  try {
+    const { major, experienceLevel, workMode, jobType } = req.query;
+
+    // Get student profile
+    const student = await Student.findOne({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: University,
+          attributes: ['id', 'universityName']
+        }
+      ]
+    });
+
+    if (!student || !student.universityId) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found or university not assigned'
+      });
+    }
+
+    // Get connected companies to the student's university
+    const { UniversityCompanyConnection, Job, Company } = require('../models');
+    const connections = await UniversityCompanyConnection.findAll({
+      where: {
+        universityId: student.universityId,
+        status: 'active'
+      }
+    });
+
+    const connectedCompanyIds = connections.map(conn => conn.companyId);
+
+    // Build where clause for job filtering
+    const whereClause = {
+      status: 'active',
+      [Op.or]: [
+        { isPublic: true }, // Public jobs
+        { targetUniversities: { [Op.contains]: [student.universityId] } }, // Jobs targeted to this university
+        { companyId: connectedCompanyIds } // Jobs from connected companies
+      ]
+    };
+
+    // Add filters if provided
+    if (major) {
+      whereClause.majorsPreferred = { [Op.contains]: [major] };
+    }
+    if (experienceLevel) {
+      whereClause.experienceLevel = experienceLevel;
+    }
+    if (workMode) {
+      whereClause.workMode = workMode;
+    }
+    if (jobType) {
+      whereClause.jobType = jobType;
+    }
+
+    // Get jobs
+    const jobs = await Job.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Company,
+          as: 'company',
+          attributes: ['id', 'companyName', 'industry', 'location', 'website']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      count: jobs.length,
+      data: jobs
+    });
+  } catch (error) {
+    console.error('Get jobs from connected companies error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -754,5 +842,6 @@ module.exports = {
   deleteCertificate,
   getMyFeedback,
   submitReview,
-  getMyReviews
+  getMyReviews,
+  getJobsFromConnectedCompanies
 };

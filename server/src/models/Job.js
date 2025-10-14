@@ -70,6 +70,16 @@ const Job = sequelize.define('Job', {
   numberOfPositions: {
     type: DataTypes.INTEGER,
     defaultValue: 1
+  },
+  targetUniversities: {
+    type: DataTypes.ARRAY(DataTypes.UUID),
+    defaultValue: [],
+    comment: 'Array of university IDs that can see this job posting'
+  },
+  isPublic: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    comment: 'If true, job is visible to all. If false, only target universities can see it'
   }
 }, {
   timestamps: true,

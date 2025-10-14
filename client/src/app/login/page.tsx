@@ -36,12 +36,6 @@ export default function Login() {
     } else if (user?.role === 'freelancer') {
       router.push('/freelancer/dashboard');
     }
-   else if (user?.role === 'university') {
-      router.push('/university/dashboard'); // Add this line
-    }
-     else if (user?.role === 'freelancer') {
-      router.push('/freelancer/dashboard'); // Add this line
-    }
   }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {

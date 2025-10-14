@@ -182,7 +182,7 @@ export default function AdminDashboard() {
   const [editUserData, setEditUserData] = useState<Partial<User>>({});
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== 'freelancer') {
       router.push('/login');
     }    
   }, [user, router]);

@@ -6,7 +6,9 @@ const { generateToken } = require('../utils/jwt');
 // @access  Public
 const register = async (req, res) => {
   try {
-    const { email, password, phone, role, profileData } = req.body;
+    const { email, password, phone, role, ...profileData } = req.body;
+
+    console.log('Registration request received:', { email, role, profileData });
 
     // Check if user exists
     const existingUser = await User.findOne({ where: { email } });
@@ -17,13 +19,37 @@ const register = async (req, res) => {
       });
     }
 
+    // Validate required fields based on role
+    if (role === 'university' && !profileData.universityName) {
+      return res.status(400).json({
+        success: false,
+        message: 'University name is required'
+      });
+    }
+
+    if (role === 'company' && !profileData.companyName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Company name is required'
+      });
+    }
+
+    if (role === 'student' && (!profileData.firstName || !profileData.lastName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'First name and last name are required'
+      });
+    }
+
     // Create user
     const user = await User.create({
       email,
       password,
-      phone,
+      phone: phone || null,
       role
     });
+
+    console.log('User created:', user.id);
 
     // Create role-specific profile
     let profile;
@@ -31,48 +57,104 @@ const register = async (req, res) => {
       case 'student':
         profile = await Student.create({
           userId: user.id,
-          ...profileData
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          major: profileData.major,
+          year: profileData.year,
+          location: profileData.location,
+          universityId: profileData.universityId,
+          jobPreference: profileData.jobPreference || 'onsite',
+          bio: profileData.bio,
+          skills: profileData.skills || [],
+          status: 'available',
+          verificationStatus: 'pending'
         });
         break;
+
       case 'company':
         profile = await Company.create({
           userId: user.id,
-          ...profileData
+          companyName: profileData.companyName,
+          industry: profileData.industry,
+          location: profileData.location || profileData.address,
+          description: profileData.description,
+          website: profileData.website,
+          companySize: profileData.companySize || profileData.size,
+          verificationStatus: 'pending'
         });
         break;
+
       case 'university':
         profile = await University.create({
           userId: user.id,
-          ...profileData
+          universityName: profileData.universityName,
+          location: profileData.location || profileData.address,
+          description: profileData.description,
+          website: profileData.website,
+          supportedMajors: profileData.supportedMajors || [],
+          verificationStatus: 'pending'
         });
         break;
+
       case 'freelancer':
         profile = await Freelancer.create({
           userId: user.id,
-          ...profileData
+          firstName: profileData.firstName,
+          lastName: profileData.lastName,
+          skills: profileData.skills || [],
+          location: profileData.location,
+          bio: profileData.bio,
+          verificationStatus: 'pending'
         });
         break;
     }
+
+    console.log(`${role} profile created:`, profile.id);
 
     // Generate token
     const token = generateToken(user.id, user.role);
 
     res.status(201).json({
       success: true,
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} registration successful. Account pending verification.`,
       token,
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
         isVerified: user.isVerified
+      },
+      profile: {
+        id: profile.id,
+        name: profile.companyName || profile.universityName || `${profile.firstName} ${profile.lastName}`
       }
     });
+
   } catch (error) {
     console.error('Register error:', error);
+    
+    // Handle Sequelize validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const messages = error.errors.map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: messages
+      });
+    }
+
+    // Handle unique constraint errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        message: 'A record with this information already exists'
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Server error during registration',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
@@ -154,6 +236,13 @@ const getMe = async (req, res) => {
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ['password'] }
     });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     // Get role-specific profile
     let profile;

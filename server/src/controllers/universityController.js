@@ -383,6 +383,175 @@ const getConnectedCompanies = async (req, res) => {
   }
 };
 
+// @desc    Approve connection with a company
+// @route   PUT /api/university/approve-connection/:companyId
+// @access  Private (University)
+const approveConnection = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    const university = await University.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!university) {
+      return res.status(404).json({
+        success: false,
+        message: 'University profile not found'
+      });
+    }
+
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId: university.id,
+        companyId: companyId,
+        status: 'pending'
+      }
+    });
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        message: 'Connection request not found or already processed'
+      });
+    }
+
+    await connection.update({ status: 'active' });
+
+    res.json({
+      success: true,
+      message: 'Connection approved successfully',
+      connection
+    });
+  } catch (error) {
+    console.error('Approve connection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Reject connection with a company
+// @route   PUT /api/university/reject-connection/:companyId
+// @access  Private (University)
+const rejectConnection = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    const university = await University.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!university) {
+      return res.status(404).json({
+        success: false,
+        message: 'University profile not found'
+      });
+    }
+
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId: university.id,
+        companyId: companyId,
+        status: 'pending'
+      }
+    });
+
+    if (!connection) {
+      return res.status(404).json({
+        success: false,
+        message: 'Connection request not found or already processed'
+      });
+    }
+
+    await connection.update({ status: 'inactive' });
+
+    res.json({
+      success: true,
+      message: 'Connection rejected',
+      connection
+    });
+  } catch (error) {
+    console.error('Reject connection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get jobs from connected companies
+// @route   GET /api/university/jobs
+// @access  Private (University)
+const getJobsFromConnectedCompanies = async (req, res) => {
+  try {
+    const university = await University.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!university) {
+      return res.status(404).json({
+        success: false,
+        message: 'University profile not found'
+      });
+    }
+
+    // Get connected companies
+    const connections = await UniversityCompanyConnection.findAll({
+      where: {
+        universityId: university.id,
+        status: 'active'
+      },
+      include: [
+        {
+          model: Company,
+          as: 'company',
+          attributes: ['id', 'companyName']
+        }
+      ]
+    });
+
+    const connectedCompanyIds = connections.map(conn => conn.companyId);
+
+    // Get jobs from connected companies
+    const { Job } = require('../models');
+    const jobs = await Job.findAll({
+      where: {
+        [Op.or]: [
+          { isPublic: true }, // Public jobs
+          { targetUniversities: { [Op.contains]: [university.id] } }, // Jobs targeted to this university
+          { companyId: connectedCompanyIds } // Jobs from connected companies (if not restricted)
+        ],
+        status: 'active'
+      },
+      include: [
+        {
+          model: Company,
+          as: 'company',
+          attributes: ['id', 'companyName', 'industry', 'location']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      count: jobs.length,
+      data: jobs
+    });
+  } catch (error) {
+    console.error('Get jobs from connected companies error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Get employment statistics
 // @route   GET /api/university/employment-stats
 // @access  Private (University)
@@ -733,6 +902,9 @@ module.exports = {
   verifyStudent,
   connectCompany,
   getConnectedCompanies,
+  approveConnection,
+  rejectConnection,
+  getJobsFromConnectedCompanies,
   getEmploymentStats,
   generateReport,
   disconnectCompany

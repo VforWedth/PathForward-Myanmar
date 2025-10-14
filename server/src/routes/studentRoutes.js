@@ -19,7 +19,8 @@ const {
   deleteCertificate,
   getMyFeedback,
   submitReview,
-  getMyReviews
+  getMyReviews,
+  getJobsFromConnectedCompanies
 } = require('../controllers/studentController');
 
 const router = express.Router();
@@ -51,6 +52,9 @@ router.delete('/experience/:id', deleteExperience);
 router.post('/certificate', addCertificate);
 router.put('/certificate/:id', updateCertificate);
 router.delete('/certificate/:id', deleteCertificate);
+
+// Job routes
+router.get('/jobs', getJobsFromConnectedCompanies);
 
 // Feedback & Review routes
 router.get('/feedback', getMyFeedback);

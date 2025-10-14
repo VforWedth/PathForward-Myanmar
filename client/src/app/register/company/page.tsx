@@ -1,4 +1,3 @@
-// app/register/company/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -12,10 +11,10 @@ interface RegistrationForm {
   password: string;
   confirmPassword: string;
   industry: string;
-  size: string;
+  companySize: string;
   website: string;
   description: string;
-  address: string;
+  location: string;
   phone: string;
 }
 
@@ -27,10 +26,10 @@ export default function CompanyRegistration() {
     password: '',
     confirmPassword: '',
     industry: '',
-    size: '',
+    companySize: '',
     website: '',
     description: '',
-    address: '',
+    location: '',
     phone: '',
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -38,8 +37,15 @@ export default function CompanyRegistration() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
       return;
     }
 
@@ -47,19 +53,48 @@ export default function CompanyRegistration() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${API_URL}/company/register`, {
+      
+      const registrationData = {
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        role: 'company',
+        companyName: formData.companyName,
+        industry: formData.industry,
+        location: formData.location,
+        description: formData.description,
+        website: formData.website,
+        companySize: formData.companySize
+      };
+
+      console.log('Sending registration data:', registrationData);
+
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
       });
 
       const data = await response.json();
 
+      console.log('Registration response:', data);
+
       if (response.ok && data.success) {
         toast.success(data.message || 'Registration submitted for verification!');
         setVerificationStep(2);
+        
+        // Store token and redirect after success
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          // Optional: Redirect to dashboard after delay
+          setTimeout(() => {
+            router.push('/company/dashboard');
+          }, 3000);
+        }
       } else {
-        toast.error(data.message || 'Registration failed');
+        toast.error(data.message || `Registration failed: ${data.errors ? data.errors.join(', ') : 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -67,6 +102,14 @@ export default function CompanyRegistration() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   if (verificationStep === 2) {
@@ -82,14 +125,22 @@ export default function CompanyRegistration() {
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Pending</h2>
             <p className="text-gray-600 mb-6">
               Your company registration has been submitted for verification. 
-              You'll receive an email once your account is approved.
+              You'll receive an email once your account is approved. You can still login to view your pending status.
             </p>
-            <Link
-              href="/login"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Back to Login
-            </Link>
+            <div className="space-y-3">
+              <button
+                onClick={() => router.push('/company/dashboard')}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Go to Dashboard
+              </button>
+              <Link
+                href="/login"
+                className="block w-full px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition text-center"
+              >
+                Back to Login
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -109,27 +160,32 @@ export default function CompanyRegistration() {
               <label className="block text-gray-700 mb-2">Company Name *</label>
               <input
                 type="text"
+                name="companyName"
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                onChange={handleChange}
               />
             </div>
             
             <div>
               <label className="block text-gray-700 mb-2">Industry *</label>
               <select
+                name="industry"
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                onChange={handleChange}
               >
                 <option value="">Select Industry</option>
-                <option value="technology">Technology</option>
-                <option value="finance">Finance</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="education">Education</option>
-                <option value="manufacturing">Manufacturing</option>
+                <option value="Technology">Technology</option>
+                <option value="Finance">Finance</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Education">Education</option>
+                <option value="Manufacturing">Manufacturing</option>
+                <option value="Retail">Retail</option>
+                <option value="Hospitality">Hospitality</option>
+                <option value="Other">Other</option>
               </select>
             </div>
           </div>
@@ -138,10 +194,11 @@ export default function CompanyRegistration() {
             <label className="block text-gray-700 mb-2">Email *</label>
             <input
               type="email"
+              name="email"
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={handleChange}
             />
           </div>
 
@@ -150,10 +207,13 @@ export default function CompanyRegistration() {
               <label className="block text-gray-700 mb-2">Password *</label>
               <input
                 type="password"
+                name="password"
                 required
+                minLength={6}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={handleChange}
+                placeholder="At least 6 characters"
               />
             </div>
             
@@ -161,21 +221,24 @@ export default function CompanyRegistration() {
               <label className="block text-gray-700 mb-2">Confirm Password *</label>
               <input
                 type="password"
+                name="confirmPassword"
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={handleChange}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2">Company Size</label>
+              <label className="block text-gray-700 mb-2">Company Size *</label>
               <select
+                name="companySize"
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                value={formData.companySize}
+                onChange={handleChange}
               >
                 <option value="">Select Size</option>
                 <option value="1-10">1-10 employees</option>
@@ -190,47 +253,56 @@ export default function CompanyRegistration() {
               <label className="block text-gray-700 mb-2">Phone</label>
               <input
                 type="tel"
+                name="phone"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={handleChange}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 mb-2">Location *</label>
+            <input
+              type="text"
+              name="location"
+              required
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              value={formData.location}
+              onChange={handleChange}
+              placeholder="City, State, Country"
+            />
           </div>
 
           <div>
             <label className="block text-gray-700 mb-2">Website</label>
             <input
               type="url"
+              name="website"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              onChange={handleChange}
+              placeholder="https://example.com"
             />
           </div>
 
           <div>
-            <label className="block text-gray-700 mb-2">Address</label>
-            <input
-              type="text"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-700 mb-2">Company Description</label>
+            <label className="block text-gray-700 mb-2">Company Description *</label>
             <textarea
+              name="description"
               rows={4}
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={handleChange}
+              placeholder="Describe your company, services, and mission..."
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
+            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Submitting...' : 'Register Company'}
           </button>

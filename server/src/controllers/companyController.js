@@ -353,4 +353,175 @@ exports.getRecentActivity = async (req, res) => {
   }
 };
 
+// @desc    Get company analytics and employment tracking
+// @route   GET /api/company/analytics
+// @access  Private (Company)
+exports.getCompanyAnalytics = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const { Op } = require('sequelize');
+
+    const company = await Company.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company profile not found'
+      });
+    }
+
+    // Build date filter
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.createdAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
+    // Get job statistics
+    const totalJobs = await Job.count({
+      where: { 
+        companyId: company.id,
+        ...dateFilter
+      }
+    });
+
+    const activeJobs = await Job.count({
+      where: { 
+        companyId: company.id,
+        status: 'active',
+        ...dateFilter
+      }
+    });
+
+    // Get application statistics
+    const totalApplications = await Application.count({
+      include: [
+        {
+          model: Job,
+          as: 'job',
+          where: { companyId: company.id },
+          attributes: []
+        }
+      ],
+      where: dateFilter
+    });
+
+    const acceptedApplications = await Application.count({
+      include: [
+        {
+          model: Job,
+          as: 'job',
+          where: { companyId: company.id },
+          attributes: []
+        }
+      ],
+      where: {
+        status: 'accepted',
+        ...dateFilter
+      }
+    });
+
+    const pendingApplications = await Application.count({
+      include: [
+        {
+          model: Job,
+          as: 'job',
+          where: { companyId: company.id },
+          attributes: []
+        }
+      ],
+      where: {
+        status: 'pending',
+        ...dateFilter
+      }
+    });
+
+    // Get applications by university
+    const applicationsByUniversity = await Application.findAll({
+      include: [
+        {
+          model: Job,
+          as: 'job',
+          where: { companyId: company.id },
+          attributes: []
+        },
+        {
+          model: Student,
+          as: 'student',
+          include: [
+            {
+              model: University,
+              as: 'university',
+              attributes: ['universityName']
+            }
+          ],
+          attributes: ['universityId']
+        }
+      ],
+      attributes: [
+        [sequelize.col('student.university.universityName'), 'universityName'],
+        [sequelize.fn('COUNT', sequelize.col('Application.id')), 'applicationCount']
+      ],
+      group: ['student.universityId', 'student.university.universityName'],
+      order: [[sequelize.fn('COUNT', sequelize.col('Application.id')), 'DESC']],
+      where: dateFilter,
+      raw: true
+    });
+
+    // Get hiring trends by month
+    const hiringTrends = await Application.findAll({
+      include: [
+        {
+          model: Job,
+          as: 'job',
+          where: { companyId: company.id },
+          attributes: []
+        }
+      ],
+      where: {
+        status: 'accepted',
+        ...dateFilter
+      },
+      attributes: [
+        [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('Application.createdAt')), 'month'],
+        [sequelize.fn('COUNT', sequelize.col('Application.id')), 'hiredCount']
+      ],
+      group: [sequelize.fn('DATE_TRUNC', 'month', sequelize.col('Application.createdAt'))],
+      order: [[sequelize.fn('DATE_TRUNC', 'month', sequelize.col('Application.createdAt')), 'ASC']],
+      raw: true
+    });
+
+    // Calculate success rate
+    const successRate = totalApplications > 0 
+      ? ((acceptedApplications / totalApplications) * 100).toFixed(2)
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalJobs,
+          activeJobs,
+          totalApplications,
+          acceptedApplications,
+          pendingApplications,
+          successRate: parseFloat(successRate)
+        },
+        applicationsByUniversity,
+        hiringTrends
+      }
+    });
+  } catch (error) {
+    console.error('Get company analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = exports;

@@ -73,83 +73,82 @@ export default function UniversityCompanies() {
       return;
     }
 
-    // Mock data
-    const mockCompanies: Company[] = [
-      {
-        id: "1",
-        name: "Tech Solutions Myanmar",
-        industry: "Technology",
-        location: "Yangon",
-        website: "https://techsolutions.mm",
-        description: "Leading software development company in Myanmar",
-        partnershipStatus: "approved",
-        contactEmail: "partnership@techsolutions.mm",
-        jobsCount: 8,
-      },
-      {
-        id: "2",
-        name: "Digital Innovations Co.",
-        industry: "E-commerce",
-        location: "Mandalay",
-        website: "https://digitalinnovations.mm",
-        description: "Innovative e-commerce platform serving Myanmar market",
-        partnershipStatus: "pending",
-        contactEmail: "hr@digitalinnovations.mm",
-        jobsCount: 5,
-      },
-      {
-        id: "3",
-        name: "Myanmar FinTech",
-        industry: "Finance",
-        location: "Yangon",
-        website: "https://myanmarfintech.mm",
-        description: "Financial technology solutions provider",
-        partnershipStatus: "approved",
-        contactEmail: "careers@myanmarfintech.mm",
-        jobsCount: 12,
-      },
-    ];
-
-    const mockJobs: Job[] = [
-      {
-        id: "1",
-        title: "Frontend Developer Intern",
-        company: "Tech Solutions Myanmar",
-        type: "Internship",
-        location: "Yangon",
-        salary: "$300 - $500",
-        postedDate: "2024-01-15",
-        deadline: "2024-02-15",
-        requirements: ["React", "JavaScript", "CSS"],
-      },
-      {
-        id: "2",
-        title: "Backend Engineer",
-        company: "Myanmar FinTech",
-        type: "Full-time",
-        location: "Yangon",
-        salary: "$1,500 - $2,500",
-        postedDate: "2024-01-14",
-        deadline: "2024-02-14",
-        requirements: ["Node.js", "Python", "MongoDB"],
-      },
-      {
-        id: "3",
-        title: "UI/UX Designer",
-        company: "Digital Innovations Co.",
-        type: "Part-time",
-        location: "Remote",
-        salary: "$800 - $1,200",
-        postedDate: "2024-01-12",
-        deadline: "2024-02-12",
-        requirements: ["Figma", "Adobe XD", "User Research"],
-      },
-    ];
-
-    setCompanies(mockCompanies);
-    setJobs(mockJobs);
-    setIsLoading(false);
+    fetchConnectedCompanies();
+    fetchJobsFromConnectedCompanies();
   }, [user, router]);
+
+  const fetchConnectedCompanies = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connected-companies`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Transform the API data to match our interface
+          const transformedCompanies: Company[] = data.connections.map((connection: any) => ({
+            id: connection.Company.id,
+            name: connection.Company.companyName,
+            industry: connection.Company.industry || 'Technology',
+            location: connection.Company.location || 'Yangon',
+            website: connection.Company.website || '#',
+            description: connection.Company.description || 'No description available',
+            partnershipStatus: connection.status === 'active' ? 'approved' : 
+                             connection.status === 'pending' ? 'pending' : 'rejected',
+            contactEmail: connection.Company.User?.email || 'contact@company.com',
+            jobsCount: 0 // Will be updated when we fetch jobs
+          }));
+          setCompanies(transformedCompanies);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching connected companies:', error);
+      toast.error('Failed to load connected companies');
+    }
+  };
+
+  const fetchJobsFromConnectedCompanies = async () => {
+    try {
+      // Fetch jobs from connected companies specifically
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/jobs`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const transformedJobs: Job[] = data.data.map((job: any) => ({
+            id: job.id,
+            title: job.title,
+            company: job.Company?.companyName || 'Unknown Company',
+            type: job.type,
+            location: job.location,
+            salary: job.salary || 'Not specified',
+            postedDate: new Date(job.createdAt).toLocaleDateString(),
+            deadline: job.deadline ? new Date(job.deadline).toLocaleDateString() : 'No deadline',
+            requirements: job.requirements || []
+          }));
+          setJobs(transformedJobs);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      toast.error('Failed to load jobs');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusColor = (status: Company["partnershipStatus"]) => {
     switch (status) {
@@ -178,26 +177,78 @@ export default function UniversityCompanies() {
     );
   };
 
-  const handleApprovePartnership = (companyId: string) => {
-    const updatedCompanies = companies.map((c) =>
-      c.id === companyId ? { ...c, partnershipStatus: "approved" as Company["partnershipStatus"] } : c
-    );
-    setCompanies(updatedCompanies);
-    if (selectedCompany?.id === companyId) {
-      setSelectedCompany({ ...selectedCompany, partnershipStatus: "approved" as Company["partnershipStatus"] });
+  const handleApprovePartnership = async (companyId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/approve-connection/${companyId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Update local state
+          const updatedCompanies = companies.map((c) =>
+            c.id === companyId ? { ...c, partnershipStatus: "approved" as Company["partnershipStatus"] } : c
+          );
+          setCompanies(updatedCompanies);
+          if (selectedCompany?.id === companyId) {
+            setSelectedCompany({ ...selectedCompany, partnershipStatus: "approved" as Company["partnershipStatus"] });
+          }
+          toast.success("Partnership approved successfully!");
+        } else {
+          toast.error(data.message || 'Failed to approve partnership');
+        }
+      } else {
+        toast.error('Failed to approve partnership');
+      }
+    } catch (error) {
+      console.error('Error approving partnership:', error);
+      toast.error('Error approving partnership');
     }
-    toast.success("Partnership approved successfully!");
   };
 
-  const handleRejectPartnership = (companyId: string) => {
-    const updatedCompanies = companies.map((c) =>
-      c.id === companyId ? { ...c, partnershipStatus: "rejected" as Company["partnershipStatus"] } : c
-    );
-    setCompanies(updatedCompanies);
-    if (selectedCompany?.id === companyId) {
-      setSelectedCompany({ ...selectedCompany, partnershipStatus: "rejected" as Company["partnershipStatus"] });
+  const handleRejectPartnership = async (companyId: string) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/reject-connection/${companyId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Update local state
+          const updatedCompanies = companies.map((c) =>
+            c.id === companyId ? { ...c, partnershipStatus: "rejected" as Company["partnershipStatus"] } : c
+          );
+          setCompanies(updatedCompanies);
+          if (selectedCompany?.id === companyId) {
+            setSelectedCompany({ ...selectedCompany, partnershipStatus: "rejected" as Company["partnershipStatus"] });
+          }
+          toast.info("Partnership request rejected");
+        } else {
+          toast.error(data.message || 'Failed to reject partnership');
+        }
+      } else {
+        toast.error('Failed to reject partnership');
+      }
+    } catch (error) {
+      console.error('Error rejecting partnership:', error);
+      toast.error('Error rejecting partnership');
     }
-    toast.info("Partnership request rejected");
   };
 
   const handleInitiatePartnership = () => {

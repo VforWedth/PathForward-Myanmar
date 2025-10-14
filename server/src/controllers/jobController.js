@@ -21,7 +21,9 @@ exports.createJob = async (req, res) => {
       skillsRequired,
       majorsPreferred,
       experienceLevel,
-      numberOfPositions
+      numberOfPositions,
+      targetUniversities,
+      isPublic
     } = req.body;
 
     // Validate required fields
@@ -53,6 +55,26 @@ exports.createJob = async (req, res) => {
       });
     }
 
+    // Validate target universities if provided
+    if (targetUniversities && targetUniversities.length > 0) {
+      // Check if company is connected to these universities
+      const { UniversityCompanyConnection } = require('../models');
+      const connections = await UniversityCompanyConnection.findAll({
+        where: {
+          companyId: company.id,
+          universityId: targetUniversities,
+          status: 'active'
+        }
+      });
+      
+      if (connections.length !== targetUniversities.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'You can only post jobs to universities you are connected with'
+        });
+      }
+    }
+
     // Create job
     const job = await Job.create({
       companyId: company.id,
@@ -68,6 +90,8 @@ exports.createJob = async (req, res) => {
       experienceLevel: experienceLevel || 'entry',
       numberOfPositions: numberOfPositions || 1,
       deadline: applicationDeadline ? new Date(applicationDeadline) : null,
+      targetUniversities: targetUniversities || [],
+      isPublic: isPublic !== false, // Default to true unless explicitly set to false
       status: 'active'
     });
 
