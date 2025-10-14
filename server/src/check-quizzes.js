@@ -1,6 +1,6 @@
-// server/check-quizzes.js
-const { sequelize } = require('./src/config/database');
-const { Quiz, Question } = require('./src/models');
+// server/src/check-quizzes.js
+const { sequelize } = require('./config/database');
+const { Quiz, Question } = require('./models');
 
 async function checkQuizzes() {
   try {
