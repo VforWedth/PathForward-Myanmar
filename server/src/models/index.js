@@ -12,6 +12,9 @@ const Education = require('./Education');
 const Experience = require('./Experience');
 const Certificate = require('./Certificate');
 const ActivityLog = require('./ActivityLog');
+const Quiz = require('./Quiz');
+const Question = require('./Question');
+const QuizAttempt = require('./QuizAttempt');
 
 // User Relationships
 User.hasOne(Student, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -78,6 +81,19 @@ UniversityCompanyConnection.belongsTo(Company, { foreignKey: 'companyId' });
 User.hasMany(ActivityLog, { foreignKey: 'adminId', onDelete: 'CASCADE' });
 ActivityLog.belongsTo(User, { foreignKey: 'adminId', as: 'admin' });
 
+// Quiz Relationships
+Quiz.hasMany(Question, { foreignKey: 'quizId', onDelete: 'CASCADE' });
+Question.belongsTo(Quiz, { foreignKey: 'quizId' });
+
+Quiz.hasMany(QuizAttempt, { foreignKey: 'quizId', onDelete: 'CASCADE' });
+QuizAttempt.belongsTo(Quiz, { foreignKey: 'quizId' });
+
+Student.hasMany(QuizAttempt, { foreignKey: 'studentId', onDelete: 'CASCADE' });
+QuizAttempt.belongsTo(Student, { foreignKey: 'studentId' });
+
+User.hasMany(Quiz, { foreignKey: 'createdBy', onDelete: 'SET NULL' });
+Quiz.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+
 module.exports = {
   User,
   Student,
@@ -92,5 +108,8 @@ module.exports = {
   Education,
   Experience,
   Certificate,
-  ActivityLog
+  ActivityLog,
+  Quiz,
+  Question,
+  QuizAttempt
 };

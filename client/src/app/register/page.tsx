@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 
 export default function Register() {
   const router = useRouter();
-  const { register, isLoading } = useAuthStore();
+  const { register, user, isLoading } = useAuthStore();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
