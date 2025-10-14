@@ -392,4 +392,271 @@ exports.getConnectionStats = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Post job specifically for connected universities
+ * @route   POST /api/company/universities/:id/jobs
+ * @access  Private (Company)
+ */
+exports.postUniversityJob = async (req, res) => {
+  try {
+    const { id: universityId } = req.params;
+    const {
+      title,
+      description,
+      requirements,
+      location,
+      type,
+      salary,
+      deadline,
+      workMode,
+      skills
+    } = req.body;
+
+    const company = await Company.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company profile not found'
+      });
+    }
+
+    // Check if company is connected to this university
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId,
+        companyId: company.id,
+        status: 'active'
+      }
+    });
+
+    if (!connection) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not connected to this university or connection not active'
+      });
+    }
+
+    // Create job with university-specific flag
+    const job = await Job.create({
+      companyId: company.id,
+      title,
+      description,
+      requirements: requirements || [],
+      location,
+      type: type || 'full-time',
+      salary,
+      deadline: deadline ? new Date(deadline) : null,
+      workMode: workMode || 'onsite',
+      skills: skills || [],
+      isUniversitySpecific: true,
+      targetUniversityId: universityId,
+      status: 'active'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Job posted successfully for university',
+      data: job
+    });
+  } catch (error) {
+    console.error('Post university job error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get jobs posted for specific university
+ * @route   GET /api/company/universities/:id/jobs
+ * @access  Private (Company)
+ */
+exports.getUniversityJobs = async (req, res) => {
+  try {
+    const { id: universityId } = req.params;
+
+    const company = await Company.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company profile not found'
+      });
+    }
+
+    // Check if company is connected to this university
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId,
+        companyId: company.id,
+        status: 'active'
+      }
+    });
+
+    if (!connection) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not connected to this university or connection not active'
+      });
+    }
+
+    const jobs = await Job.findAll({
+      where: {
+        companyId: company.id,
+        targetUniversityId: universityId,
+        isUniversitySpecific: true
+      },
+      include: [
+        {
+          model: University,
+          as: 'targetUniversity',
+          attributes: ['id', 'universityName', 'location']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      count: jobs.length,
+      data: jobs
+    });
+  } catch (error) {
+    console.error('Get university jobs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get analytics for university partnership
+ * @route   GET /api/company/universities/:id/analytics
+ * @access  Private (Company)
+ */
+exports.getUniversityAnalytics = async (req, res) => {
+  try {
+    const { id: universityId } = req.params;
+
+    const company = await Company.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company profile not found'
+      });
+    }
+
+    // Check if company is connected to this university
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId,
+        companyId: company.id,
+        status: 'active'
+      }
+    });
+
+    if (!connection) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not connected to this university or connection not active'
+      });
+    }
+
+    // Get jobs posted for this university
+    const jobs = await Job.findAll({
+      where: {
+        companyId: company.id,
+        targetUniversityId: universityId,
+        isUniversitySpecific: true
+      }
+    });
+
+    const jobIds = jobs.map(job => job.id);
+
+    // Get applications for these jobs
+    const applications = await Application.findAll({
+      where: {
+        jobId: { [Op.in]: jobIds }
+      },
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          include: [
+            {
+              model: University,
+              as: 'university',
+              attributes: ['universityName']
+            }
+          ]
+        }
+      ]
+    });
+
+    // Calculate analytics
+    const totalJobs = jobs.length;
+    const totalApplications = applications.length;
+    const acceptedApplications = applications.filter(app => app.status === 'accepted').length;
+    const pendingApplications = applications.filter(app => app.status === 'pending').length;
+    const rejectedApplications = applications.filter(app => app.status === 'rejected').length;
+
+    // Applications by major
+    const applicationsByMajor = {};
+    applications.forEach(app => {
+      const major = app.student?.major || 'Unknown';
+      applicationsByMajor[major] = (applicationsByMajor[major] || 0) + 1;
+    });
+
+    // Applications by year
+    const applicationsByYear = {};
+    applications.forEach(app => {
+      const year = app.student?.year || 'Unknown';
+      applicationsByYear[year] = (applicationsByYear[year] || 0) + 1;
+    });
+
+    // Recent activity
+    const recentApplications = applications
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalJobs,
+          totalApplications,
+          acceptedApplications,
+          pendingApplications,
+          rejectedApplications,
+          successRate: totalApplications > 0 ? (acceptedApplications / totalApplications * 100).toFixed(2) : 0
+        },
+        demographics: {
+          byMajor: applicationsByMajor,
+          byYear: applicationsByYear
+        },
+        recentActivity: recentApplications
+      }
+    });
+  } catch (error) {
+    console.error('Get university analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = exports;
