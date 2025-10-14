@@ -24,8 +24,22 @@ const QuizAttempt = sequelize.define('QuizAttempt', {
     }
   },
   answers: {
-    type: DataTypes.JSONB, // Array of {questionId, answer, isCorrect, points}
-    defaultValue: []
+    type: process.env.DB_DIALECT === 'sqlite' ? DataTypes.TEXT : DataTypes.JSONB, // Array of {questionId, answer, isCorrect, points}
+    defaultValue: process.env.DB_DIALECT === 'sqlite' ? '[]' : [],
+    get() {
+      const val = this.getDataValue('answers');
+      if (process.env.DB_DIALECT === 'sqlite' && val) {
+        return JSON.parse(val);
+      }
+      return val || [];
+    },
+    set(val) {
+      if (process.env.DB_DIALECT === 'sqlite') {
+        this.setDataValue('answers', JSON.stringify(val));
+      } else {
+        this.setDataValue('answers', val);
+      }
+    }
   },
   score: {
     type: DataTypes.INTEGER, // percentage

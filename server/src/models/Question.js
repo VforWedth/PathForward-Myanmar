@@ -25,9 +25,23 @@ const Question = sequelize.define('Question', {
   },
   // For multiple choice questions
   options: {
-    type: DataTypes.ARRAY(DataTypes.STRING),
+    type: process.env.DB_DIALECT === 'sqlite' ? DataTypes.TEXT : DataTypes.ARRAY(DataTypes.STRING),
     allowNull: true,
-    defaultValue: []
+    defaultValue: process.env.DB_DIALECT === 'sqlite' ? '[]' : [],
+    get() {
+      const val = this.getDataValue('options');
+      if (process.env.DB_DIALECT === 'sqlite') {
+        return val ? JSON.parse(val) : [];
+      }
+      return val || [];
+    },
+    set(val) {
+      if (process.env.DB_DIALECT === 'sqlite') {
+        this.setDataValue('options', JSON.stringify(val));
+      } else {
+        this.setDataValue('options', val);
+      }
+    }
   },
   correctAnswer: {
     type: DataTypes.STRING, // For MCQ: option index (0,1,2,3), For coding: expected output or test cases
@@ -39,8 +53,22 @@ const Question = sequelize.define('Question', {
     allowNull: true
   },
   testCases: {
-    type: DataTypes.JSONB, // Array of {input, expectedOutput}
-    allowNull: true
+    type: process.env.DB_DIALECT === 'sqlite' ? DataTypes.TEXT : DataTypes.JSONB, // Array of {input, expectedOutput}
+    allowNull: true,
+    get() {
+      const val = this.getDataValue('testCases');
+      if (process.env.DB_DIALECT === 'sqlite' && val) {
+        return JSON.parse(val);
+      }
+      return val;
+    },
+    set(val) {
+      if (process.env.DB_DIALECT === 'sqlite') {
+        this.setDataValue('testCases', JSON.stringify(val));
+      } else {
+        this.setDataValue('testCases', val);
+      }
+    }
   },
   language: {
     type: DataTypes.STRING, // python, java, javascript, etc.
