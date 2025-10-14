@@ -164,10 +164,11 @@ export default function UniversityCompanies() {
             salary: job.salaryRange || job.salary,
             postedDate: new Date(job.createdAt).toISOString().split('T')[0],
             deadline: job.deadline,
-            requirements: job.requirements || [],
+            requirements: job.skillsRequired || [],
             status: job.status
           }));
           console.log('Formatted university jobs:', jobPosts); // Debug log
+          console.log('Sample job requirements:', jobPosts[0]?.requirements); // Debug log
           setJobs(jobPosts);
         }
       } else {
@@ -506,15 +507,19 @@ export default function UniversityCompanies() {
                       <div className="mt-4">
                         <h5 className="font-semibold text-gray-700 mb-2">Requirements:</h5>
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {job.requirements.map((req, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm"
-                            >
-                              <BadgeCheck className="h-3 w-3" />
-                              {req}
-                            </span>
-                          ))}
+                          {Array.isArray(job.requirements) && job.requirements.length > 0 ? (
+                            job.requirements.map((req, i) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm"
+                              >
+                                <BadgeCheck className="h-3 w-3" />
+                                {req}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-500 text-sm">No specific requirements listed</span>
+                          )}
                         </div>
                       </div>
 
