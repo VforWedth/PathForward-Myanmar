@@ -153,21 +153,25 @@ export default function UniversityCompanies() {
 
       if (jobsResponse.ok) {
         const jobsData = await jobsResponse.json();
+        console.log('University jobs API response:', jobsData); // Debug log
         if (jobsData.success) {
           const jobPosts = jobsData.jobs.map((job: any) => ({
             id: job.id,
             title: job.title,
             company: job.Company.companyName,
-            type: job.type,
+            type: job.jobType || job.type,
             location: job.location,
-            salary: job.salary,
+            salary: job.salaryRange || job.salary,
             postedDate: new Date(job.createdAt).toISOString().split('T')[0],
             deadline: job.deadline,
             requirements: job.requirements || [],
             status: job.status
           }));
+          console.log('Formatted university jobs:', jobPosts); // Debug log
           setJobs(jobPosts);
         }
+      } else {
+        console.error('Failed to fetch university jobs:', jobsResponse.status, jobsResponse.statusText);
       }
 
     } catch (error) {
