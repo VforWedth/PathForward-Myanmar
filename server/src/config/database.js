@@ -10,6 +10,15 @@ const sequelize = new Sequelize(
     port: process.env.DB_PORT,
     dialect: 'postgres',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
+
+    // SSL configuration for cloud databases (Supabase, Heroku, etc.)
+    dialectOptions: {
+      ssl: process.env.DB_HOST && process.env.DB_HOST.includes('supabase.co') ? {
+        require: true,
+        rejectUnauthorized: false
+      } : false
+    },
+
     pool: {
       max: 5,
       min: 0,

@@ -32,6 +32,9 @@ interface Applicant {
   skills: string[];
   experience: string;
   education: string;
+  location?: string;
+  major?: string;
+  university?: string;
 }
 
 type FilterStatus = 'all' | Applicant['status'];
@@ -46,10 +49,16 @@ export default function CompanyApplicants() {
     status: FilterStatus;
     position: 'all' | string;
     search: string;
+    city: 'all' | string;
+    major: 'all' | string;
+    university: 'all' | string;
   }>({
     status: 'all',
     position: 'all',
     search: '',
+    city: 'all',
+    major: 'all',
+    university: 'all',
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,51 +70,83 @@ export default function CompanyApplicants() {
       return;
     }
 
-    // mock data — replace with API call
-    const mockApplicants: Applicant[] = [
-      {
-        id: '1',
-        name: 'Aung Aung',
-        email: 'aung@example.com',
-        position: 'Frontend Developer',
-        status: 'pending',
-        appliedDate: '2024-01-15',
-        skills: ['React', 'TypeScript', 'Next.js'],
-        experience: '2 years',
-        education: 'B.Sc Computer Science',
-      },
-      {
-        id: '2',
-        name: 'Mi Mi',
-        email: 'mimi@example.com',
-        position: 'Backend Developer',
-        status: 'reviewed',
-        appliedDate: '2024-01-14',
-        skills: ['Node.js', 'Python', 'MongoDB'],
-        experience: '3 years',
-        education: 'B.E Software Engineering',
-      },
-      {
-        id: '3',
-        name: 'Ko Ko',
-        email: 'koko@example.com',
-        position: 'Frontend Developer',
-        status: 'accepted',
-        appliedDate: '2024-01-12',
-        skills: ['Vue.js', 'JavaScript', 'CSS'],
-        experience: '1 year',
-        education: 'B.Tech Information Technology',
-      },
-    ];
+    const fetchApplicants = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filters.status !== 'all') params.append('status', filters.status);
+        if (filters.position !== 'all') params.append('position', filters.position);
+        if (filters.search) params.append('search', filters.search);
+        if (filters.city !== 'all') params.append('city', filters.city);
+        if (filters.major !== 'all') params.append('major', filters.major);
+        if (filters.university !== 'all') params.append('university', filters.university);
 
-    setApplicants(mockApplicants);
-    setIsLoading(false);
-  }, [user, router]);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/applicants?${params.toString()}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            // Map backend data to frontend format
+            const formattedApplicants = data.data.map((app: any) => ({
+              id: app.id,
+              name: app.applicant?.name || 'Unknown',
+              email: app.applicant?.email || '',
+              position: app.position || app.Job?.title || 'Unknown',
+              status: app.status,
+              appliedDate: new Date(app.createdAt).toLocaleDateString(),
+              skills: app.applicant?.skills || [],
+              experience: app.applicant?.experience || 'Not specified',
+              education: app.applicant?.education || 'Not specified',
+              location: app.applicant?.location,
+              major: app.applicant?.major,
+              university: app.applicant?.university,
+            }));
+            setApplicants(formattedApplicants);
+          }
+        } else {
+          console.error('Failed to fetch applicants');
+        }
+      } catch (error) {
+        console.error('Error fetching applicants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApplicants();
+  }, [user, router, filters]);
 
   // positions for filter (from data)
   const positionOptions = useMemo(() => {
     const set = new Set<string>();
     applicants.forEach(a => set.add(a.position));
+    return Array.from(set).sort();
+  }, [applicants]);
+
+  // cities for filter (from data)
+  const cityOptions = useMemo(() => {
+    const set = new Set<string>();
+    applicants.forEach(a => { if (a.location) set.add(a.location); });
+    return Array.from(set).sort();
+  }, [applicants]);
+
+  // majors for filter (from data)
+  const majorOptions = useMemo(() => {
+    const set = new Set<string>();
+    applicants.forEach(a => { if (a.major) set.add(a.major); });
+    return Array.from(set).sort();
+  }, [applicants]);
+
+  // universities for filter (from data)
+  const universityOptions = useMemo(() => {
+    const set = new Set<string>();
+    applicants.forEach(a => { if (a.university) set.add(a.university); });
     return Array.from(set).sort();
   }, [applicants]);
 
@@ -123,19 +164,40 @@ export default function CompanyApplicants() {
     });
   }, [applicants, filters]);
 
-  const updateApplicationStatus = (applicantId: string, status: Applicant['status']) => {
-    setApplicants(prev => prev.map(app => (app.id === applicantId ? { ...app, status } : app)));
-    if (selectedApplicant?.id === applicantId) {
-      setSelectedApplicant(prev => (prev ? { ...prev, status } : prev));
-    }
+  const updateApplicationStatus = async (applicantId: string, status: Applicant['status']) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/applicants/${applicantId}/status`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ status })
+        }
+      );
 
-    const statusMessages: Record<Applicant['status'], string> = {
-      accepted: 'Application accepted successfully!',
-      rejected: 'Application rejected.',
-      reviewed: 'Application marked as reviewed.',
-      pending: 'Application status updated to pending.',
-    };
-    toast.success(statusMessages[status]);
+      if (response.ok) {
+        setApplicants(prev => prev.map(app => (app.id === applicantId ? { ...app, status } : app)));
+        if (selectedApplicant?.id === applicantId) {
+          setSelectedApplicant(prev => (prev ? { ...prev, status } : prev));
+        }
+
+        const statusMessages: Record<Applicant['status'], string> = {
+          accepted: 'Application accepted successfully!',
+          rejected: 'Application rejected.',
+          reviewed: 'Application marked as reviewed.',
+          pending: 'Application status updated to pending.',
+        };
+        toast.success(statusMessages[status]);
+      } else {
+        toast.error('Failed to update application status');
+      }
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error('Failed to update application status');
+    }
   };
 
   const getStatusColor = (status: Applicant['status']) => {
@@ -201,7 +263,7 @@ export default function CompanyApplicants() {
             {/* Filters */}
             <div className="bg-white p-6 rounded-lg shadow-md mb-6">
               <h3 className="text-lg font-semibold mb-4">Filter Applicants</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select
@@ -247,6 +309,59 @@ export default function CompanyApplicants() {
                     onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
                     aria-label="Search applicants"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                  <select
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                    value={filters.city}
+                    onChange={(e) => setFilters(f => ({ ...f, city: e.target.value }))}
+                    aria-label="Filter by city"
+                  >
+                    <option value="all">All Cities</option>
+                    {cityOptions.map(city => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
+                  <select
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                    value={filters.major}
+                    onChange={(e) => setFilters(f => ({ ...f, major: e.target.value }))}
+                    aria-label="Filter by major"
+                  >
+                    <option value="all">All Majors</option>
+                    {majorOptions.map(major => (
+                      <option key={major} value={major}>
+                        {major}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">University</label>
+                  <select
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                    value={filters.university}
+                    onChange={(e) => setFilters(f => ({ ...f, university: e.target.value }))}
+                    aria-label="Filter by university"
+                  >
+                    <option value="all">All Universities</option>
+                    {universityOptions.map(uni => (
+                      <option key={uni} value={uni}>
+                        {uni}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

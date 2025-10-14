@@ -13,7 +13,8 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  isInitialized: boolean;
+  login: (email: string, password: string) => Promise<User>;
   register: (data: any) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -24,6 +25,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   isLoading: false,
   isAuthenticated: false,
+  isInitialized: false, 
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
@@ -31,8 +33,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
 
+      if (!user || !user.role) {
+        throw new Error('Invalid response from server');
+      }
+
       localStorage.setItem('token', token);
-      set({ user, token, isAuthenticated: true, isLoading: false });
+      console.log('Login successful, user role:', user.role);
+      set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
+      return user;
     } catch (error: any) {
       set({ isLoading: false });
       throw new Error(error.response?.data?.message || 'Login failed');
@@ -45,8 +53,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       const response = await api.post('/auth/register', data);
       const { token, user } = response.data;
 
+      if (!user || !user.role) {
+        throw new Error('Invalid response from server');
+      }
+
       localStorage.setItem('token', token);
-      set({ user, token, isAuthenticated: true, isLoading: false });
+      console.log('Registration successful, user role:', user.role);
+      set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
     } catch (error: any) {
       set({ isLoading: false });
       throw new Error(error.response?.data?.message || 'Registration failed');
@@ -61,16 +74,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkAuth: async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      set({ isAuthenticated: false, user: null });
+      set({ isAuthenticated: false, user: null, isInitialized: true });
       return;
     }
 
     try {
       const response = await api.get('/auth/me');
-      set({ user: response.data.user, isAuthenticated: true, token });
+      set({ user: response.data.user, isAuthenticated: true, token, isInitialized: true });
     } catch (error) {
       localStorage.removeItem('token');
-      set({ user: null, token: null, isAuthenticated: false });
+      set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
     }
   },
 }));

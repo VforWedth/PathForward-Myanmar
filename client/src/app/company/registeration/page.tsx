@@ -42,23 +42,27 @@ export default function CompanyRegistration() {
       toast.error('Passwords do not match');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      const response = await fetch('/api/company/register', {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/company/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      
-      if (response.ok) {
-        toast.success('Registration submitted for verification!');
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Registration submitted for verification!');
         setVerificationStep(2);
       } else {
-        throw new Error('Registration failed');
+        toast.error(data.message || 'Registration failed');
       }
     } catch (error) {
+      console.error('Registration error:', error);
       toast.error('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
