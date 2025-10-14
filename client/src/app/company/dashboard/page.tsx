@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
 
-import { AppSidebar } from '@/components/ui/app-sidebar';
+import { AppSidebar } from '@/components/ui/company/app-sidebar';
 import {
   Breadcrumb,
   BreadcrumbItem,

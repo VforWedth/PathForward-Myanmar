@@ -1,0 +1,98 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { Users, Building2, FileCheck2, ClipboardList, Command } from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { NavUser } from "@/components/ui/university/nav-user";
+
+/** Helper to mark active link */
+function withActive<T extends { url: string }>(items: T[], pathname: string): (T & { isActive?: boolean })[] {
+  return items.map((it) => ({
+    ...it,
+    isActive: pathname === it.url || pathname.startsWith(it.url),
+  }));
+}
+
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname();
+  const { user } = useAuthStore();
+
+  const role = user?.role ?? "university";
+
+  // Only the four core navigation links
+  const navItems = withActive(
+    [
+      { title: "Manage Students", url: "/university/students", icon: Users },
+      { title: "Company Connections", url: "/university/companies", icon: Building2 },
+      { title: "Employment Tracking", url: "/university/employment", icon: FileCheck2 },
+      { title: "University Registration", url: "/university/registration", icon: ClipboardList },
+    ],
+    pathname
+  );
+
+  const sidebarUser = {
+    name: user?.id ?? "University Admin",
+    email: user?.email ?? "",
+    avatar: "/avatars/placeholder.png",
+  };
+
+  return (
+    <Sidebar variant="inset" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <Link href="/university">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Command className="size-4" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-medium">PathForward</span>
+                  <span className="truncate text-xs">University Portal</span>
+                </div>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <nav className="px-2 py-4 space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.url}
+                href={item.url}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  item.isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/20"
+                }`}
+              >
+                <Icon className="size-4" />
+                {item.title}
+              </Link>
+            );
+          })}
+        </nav>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <NavUser user={sidebarUser} />
+      </SidebarFooter>
+    </Sidebar>
+  );
+}

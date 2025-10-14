@@ -19,6 +19,9 @@ export default function Login() {
     } else if (user?.role === 'company') {
       router.push('/company/dashboard');
     }
+   else if (user?.role === 'university') {
+      router.push('/university/dashboard'); // Add this line
+    }
   }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {

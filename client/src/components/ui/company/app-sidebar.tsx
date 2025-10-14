@@ -11,7 +11,7 @@ import {
 import logo from "@/media/logo.png";
 import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
-import { TeamSwitcher } from "./team-switcher"
+import { TeamSwitcher } from "../team-switcher"
 import {
   Sidebar,
   SidebarContent,
