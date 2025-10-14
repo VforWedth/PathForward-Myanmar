@@ -30,6 +30,12 @@ interface DashboardStats {
   feedbackGiven: number;
 }
 
+interface CompanyProfile {
+  companyName: string;
+  industry: string;
+  verificationStatus: string;
+}
+
 export default function CompanyDashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -40,6 +46,7 @@ export default function CompanyDashboard() {
     pendingApplications: 0,
     feedbackGiven: 0
   });
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -48,26 +55,74 @@ export default function CompanyDashboard() {
       router.push('/login');
       return;
     }
-    
-    // Mock data - replace with actual API calls
-    const mockStats: DashboardStats = {
-      totalJobs: 12,
-      activeJobs: 8,
-      totalApplicants: 45,
-      pendingApplications: 15,
-      feedbackGiven: 23
+
+    const fetchDashboardData = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const authHeaders = {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        };
+
+        // Fetch company profile
+        const profileResponse = await fetch(`${API_URL}/company/profile`, {
+          headers: authHeaders
+        });
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.success) {
+            setCompanyProfile({
+              companyName: profileData.data.companyName,
+              industry: profileData.data.industry || 'Not specified',
+              verificationStatus: profileData.data.verificationStatus
+            });
+          }
+        }
+
+        // Fetch dashboard stats
+        const statsResponse = await fetch(`${API_URL}/company/dashboard/stats`, {
+          headers: authHeaders
+        });
+
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          if (statsData.success) {
+            setStats(statsData.data);
+          }
+        }
+
+        // Fetch recent activity
+        const activityResponse = await fetch(`${API_URL}/company/dashboard/activity`, {
+          headers: authHeaders
+        });
+
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          if (activityData.success) {
+            // Format activity data for display
+            const formattedActivity = activityData.data.map((item: any) => ({
+              ...item,
+              time: new Date(item.time).toLocaleString()
+            }));
+            setRecentActivity(formattedActivity);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Set default values on error
+        setStats({
+          totalJobs: 0,
+          activeJobs: 0,
+          totalApplicants: 0,
+          pendingApplications: 0,
+          feedbackGiven: 0
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
-    
-    const mockActivity = [
-      { id: 1, type: 'application', message: 'New application for Frontend Developer', time: '2 hours ago' },
-      { id: 2, type: 'job', message: 'Job "Backend Engineer" published', time: '1 day ago' },
-      { id: 3, type: 'feedback', message: 'Feedback submitted for Aung Aung', time: '2 days ago' },
-      { id: 4, type: 'application', message: 'Application status updated', time: '3 days ago' }
-    ];
-    
-    setStats(mockStats);
-    setRecentActivity(mockActivity);
-    setIsLoading(false);
+
+    fetchDashboardData();
   }, [user, router]);
 
   if (isLoading) {
@@ -109,12 +164,29 @@ export default function CompanyDashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-800 mb-2">
-            {/* Welcome back, {user?.name || 'Company'}! */}
-            Welcome back!
+            Welcome back{companyProfile ? `, ${companyProfile.companyName}` : ''}!
           </h2>
           <p className="text-gray-600">
             Manage your job postings, applicants, and student feedback from your dashboard.
           </p>
+          {companyProfile && (
+            <div className="mt-2 flex items-center gap-4">
+              <span className="text-sm text-gray-500">
+                Industry: <span className="font-medium">{companyProfile.industry}</span>
+              </span>
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                companyProfile.verificationStatus === 'approved'
+                  ? 'bg-green-100 text-green-800'
+                  : companyProfile.verificationStatus === 'pending'
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
+              }`}>
+                {companyProfile.verificationStatus === 'approved' ? '✓ Verified' :
+                 companyProfile.verificationStatus === 'pending' ? '⏳ Pending Verification' :
+                 '✗ Not Verified'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Quick Stats */}

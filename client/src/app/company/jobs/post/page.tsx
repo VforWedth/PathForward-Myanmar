@@ -28,6 +28,7 @@ interface JobForm {
   requirements: string;
   location: string;
   type: 'full-time' | 'part-time' | 'contract' | 'internship';
+  workMode: 'onsite' | 'remote' | 'ojt' | 'hybrid';
   salary: string;
   category: string;
   applicationDeadline: string;
@@ -43,6 +44,7 @@ export default function PostJob() {
     requirements: '',
     location: '',
     type: 'full-time',
+    workMode: 'onsite',
     salary: '',
     category: '',
     applicationDeadline: '',
@@ -85,24 +87,37 @@ export default function PostJob() {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // You would POST here with trimmed form
       const payload = {
-        ...formData,
         title: formData.title.trim(),
         location: formData.location.trim(),
         description: formData.description.trim(),
         requirements: formData.requirements.trim(),
         salary: formData.salary.trim(),
         category: formData.category.trim(),
+        type: formData.type,
+        workMode: formData.workMode,
+        applicationDeadline: formData.applicationDeadline,
       };
-      console.log('POST /api/jobs => ', payload);
 
-      toast.success('Job posted successfully!');
-      router.push('/company/jobs');
-    } catch {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Job posted successfully!');
+        router.push('/company/jobs');
+      } else {
+        toast.error(data.message || 'Failed to post job');
+      }
+    } catch (error) {
+      console.error('Post job error:', error);
       toast.error('Failed to post job. Please try again.');
     } finally {
       setIsLoading(false);
@@ -205,6 +220,25 @@ export default function PostJob() {
                   </div>
 
                   <div>
+                    <label className="block text-gray-700 mb-2">Work Mode *</label>
+                    <select
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      value={formData.workMode}
+                      onChange={(e) =>
+                        setFormData({ ...formData, workMode: e.target.value as JobForm['workMode'] })
+                      }
+                    >
+                      <option value="onsite">Onsite</option>
+                      <option value="remote">Remote</option>
+                      <option value="ojt">On-Job Training (OJT)</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
                     <label className="block text-gray-700 mb-2">Salary Range</label>
                     <input
                       type="text"
@@ -213,6 +247,24 @@ export default function PostJob() {
                       value={formData.salary}
                       onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-2">Category *</label>
+                    <select
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    >
+                      <option value="">Select Category</option>
+                      <option value="engineering">Engineering</option>
+                      <option value="design">Design</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="sales">Sales</option>
+                      <option value="finance">Finance</option>
+                      <option value="hr">Human Resources</option>
+                    </select>
                   </div>
                 </div>
 
@@ -240,37 +292,17 @@ export default function PostJob() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Category *</label>
-                    <select
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      <option value="engineering">Engineering</option>
-                      <option value="design">Design</option>
-                      <option value="marketing">Marketing</option>
-                      <option value="sales">Sales</option>
-                      <option value="finance">Finance</option>
-                      <option value="hr">Human Resources</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 mb-2">Application Deadline *</label>
-                    <input
-                      type="date"
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.applicationDeadline}
-                      onChange={(e) =>
-                        setFormData({ ...formData, applicationDeadline: e.target.value })
-                      }
-                    />
-                  </div>
+                <div>
+                  <label className="block text-gray-700 mb-2">Application Deadline *</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    value={formData.applicationDeadline}
+                    onChange={(e) =>
+                      setFormData({ ...formData, applicationDeadline: e.target.value })
+                    }
+                  />
                 </div>
 
                 <div className="flex space-x-4 pt-6">

@@ -74,45 +74,33 @@ export default function CompanyFeedback() {
       return;
     }
 
-    // Mock data - replace with API call
-    const mockFeedbacks: StudentFeedback[] = [
-      {
-        id: '1',
-        studentId: 's1',
-        studentName: 'Aung Aung',
-        position: 'Frontend Intern',
-        rating: 4,
-        feedback:
-          'Excellent problem-solving skills and quick learner. Showed great initiative in projects.',
-        submittedDate: '2024-01-10',
-        interviewPerformance: 'Confident and articulate with clear communication',
-        technicalSkills:
-          'Strong React knowledge, good understanding of modern JavaScript',
-        communication:
-          'Clear and effective communicator, good at explaining technical concepts',
-        strengths: 'Fast learner, proactive, good team player',
-        areasForImprovement:
-          'Could benefit from more experience with state management',
-      },
-      {
-        id: '2',
-        studentId: 's2',
-        studentName: 'Mi Mi',
-        position: 'Backend Developer',
-        rating: 5,
-        feedback: 'Outstanding technical skills and professional attitude.',
-        submittedDate: '2024-01-08',
-        interviewPerformance: 'Very professional and well-prepared',
-        technicalSkills: 'Expert in Node.js and database design',
-        communication:
-          'Excellent communication skills, both technical and non-technical',
-        strengths: 'Strong technical foundation, reliable, great problem-solver',
-        areasForImprovement: 'None noted',
-      },
-    ];
+    const fetchFeedback = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/feedback`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
 
-    setFeedbacks(mockFeedbacks);
-    setIsLoading(false);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setFeedbacks(data.data);
+          }
+        } else {
+          console.error('Failed to fetch feedback');
+        }
+      } catch (error) {
+        console.error('Error fetching feedback:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeedback();
   }, [user, router]);
 
   const handleSubmitFeedback = async (e: React.FormEvent) => {
@@ -123,25 +111,49 @@ export default function CompanyFeedback() {
       return;
     }
 
-    const newFeedback: StudentFeedback = {
-      id: Date.now().toString(),
-      studentId: formData.studentId,
-      studentName: formData.studentName,
-      position: formData.position,
-      rating: formData.rating,
-      feedback: formData.feedback,
-      submittedDate: new Date().toISOString().split('T')[0],
-      interviewPerformance: formData.interviewPerformance,
-      technicalSkills: formData.technicalSkills,
-      communication: formData.communication,
-      strengths: formData.strengths,
-      areasForImprovement: formData.areasForImprovement,
-    };
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/feedback`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(formData)
+        }
+      );
 
-    setFeedbacks((prev) => [newFeedback, ...prev]);
-    toast.success('Feedback submitted successfully!');
-    setShowFeedbackForm(false);
-    resetForm();
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Feedback submitted successfully!');
+        setShowFeedbackForm(false);
+        resetForm();
+
+        // Refresh feedback list
+        const refreshResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/feedback`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          if (refreshData.success) {
+            setFeedbacks(refreshData.data);
+          }
+        }
+      } else {
+        toast.error(data.message || 'Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast.error('Failed to submit feedback. Please try again.');
+    }
   };
 
   const resetForm = () => {
@@ -293,6 +305,9 @@ export default function CompanyFeedback() {
                             setFormData({ ...formData, studentName: e.target.value })
                           }
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Note: Student ID is optional. Feedback can be submitted without linking to a specific student.
+                        </p>
                       </div>
 
                       <div>
