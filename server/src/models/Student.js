@@ -74,6 +74,14 @@ const Student = sequelize.define('Student', {
   profilePicture: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  verificationStatus: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    defaultValue: 'pending'
+  },
+  rejectionReason: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   timestamps: true,

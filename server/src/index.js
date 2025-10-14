@@ -6,6 +6,7 @@ const { sequelize, testConnection } = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const companyRoutes = require('./routes/companyRoutes');
+const universityRoutes = require('./routes/universityRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 
@@ -30,6 +31,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/company', companyRoutes);
+app.use('/api/university', universityRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/student', studentRoutes);
 
