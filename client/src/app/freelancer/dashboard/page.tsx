@@ -1,660 +1,782 @@
-// app/freelancer/dashboard/page.tsx
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/authStore";
-import { toast } from "react-toastify";
-import {
-  NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuContent,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu"; // <- your shadcn nav menu file
-import {
-  Bell,
-  Briefcase,
-  LayoutDashboard,
-  Lightbulb,
-  LogOut,
-  Send,
-} from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 
-type Tabs = "overview" | "jobs" | "projects" | "applications";
+// Types
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'user' | 'company' | 'university' | 'admin';
+  status: 'active' | 'pending' | 'suspended';
+  joinDate: string;
+  phone?: string;
+  company?: string;
+  website?: string;
+}
 
-interface Job {
-  id: string;
+interface Verification {
+  id: number;
+  name: string;
+  type: 'company' | 'university';
+  submittedDate: string;
+  documents: string[];
+  contactEmail: string;
+  description?: string;
+}
+
+interface JobPost {
+  id: number;
   title: string;
   company: string;
-  type: "full-time" | "part-time" | "contract" | "freelance";
-  location: string;
-  salary: string;
-  description: string;
-  requirements: string[];
-  skills: string[];
+  status: 'active' | 'pending' | 'rejected';
   postedDate: string;
-  deadline: string;
-  status: "open" | "closed";
-}
-
-interface ProjectIdea {
-  id: string;
-  title: string;
+  applications: number;
   description: string;
-  skillsRequired: string[];
-  partnersNeeded: number;
-  currentPartners: number;
-  status: "planning" | "recruiting" | "in-progress" | "completed";
-  createdBy: string;
-  createdAt: string;
-  fileUrl?: string;
+  location: string;
+  salary?: string;
+  requirements: string[];
 }
 
-/** ---------- Top Navigation (uses shadcn NavigationMenu) ---------- */
-function FreelancerNav({
-  activeTab,
-  onTabChange,
-  onLogout,
-  userName = "Freelancer",
-}: {
-  activeTab: Tabs;
-  onTabChange: (t: Tabs) => void;
-  onLogout: () => void;
-  userName?: string;
-}) {
-  return (
-    <nav className="bg-background border-b">
-      <div className="mx-auto max-w-7xl px-4">
-        <div className="h-16 flex items-center justify-between">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-md bg-primary/10 grid place-items-center">
-              <Briefcase className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-lg font-semibold">Freelancer Dashboard</span>
-          </div>
-
-          {/* Center menu (desktop) */}
-          <div className="hidden md:block">
-            <NavigationMenu>
-              <NavigationMenuList>
-                <TopLink
-                  icon={<LayoutDashboard className="h-4 w-4" />}
-                  label="Overview"
-                  isActive={activeTab === "overview"}
-                  onClick={() => onTabChange("overview")}
-                />
-
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger
-                    className={
-                      activeTab === "jobs" ? "bg-accent text-accent-foreground gap-2" : "gap-2"
-                    }
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    Browse Jobs
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent className="p-3">
-                    <div className="grid min-w-[360px] gap-2 md:grid-cols-2">
-                      <MenuCard title="All Jobs" desc="See everything new" onClick={() => onTabChange("jobs")} />
-                      <MenuCard title="Saved" desc="Your favorites" onClick={() => onTabChange("applications")} />
-                      <MenuCard title="Filters" desc="Contract • Remote • Rate" onClick={() => onTabChange("jobs")} />
-                      <MenuCard title="Applications" desc="Track status" onClick={() => onTabChange("applications")} />
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-
-                <TopLink
-                  icon={<Lightbulb className="h-4 w-4" />}
-                  label="Project Ideas"
-                  isActive={activeTab === "projects"}
-                  onClick={() => onTabChange("projects")}
-                />
-
-                <TopLink
-                  icon={<Send className="h-4 w-4" />}
-                  label="My Applications"
-                  isActive={activeTab === "applications"}
-                  onClick={() => onTabChange("applications")}
-                />
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
-
-          {/* Right controls */}
-          <div className="flex items-center gap-3">
-            <button
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border hover:bg-accent"
-              aria-label="Notifications"
-              title="Notifications"
-            >
-              <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-destructive px-1 text-[10px] font-medium text-destructive-foreground grid place-items-center">
-                3
-              </span>
-            </button>
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border">
-              <div className="h-6 w-6 rounded-full bg-primary/15 grid place-items-center text-xs font-semibold text-primary">
-                {userName?.[0]?.toUpperCase() ?? "F"}
-              </div>
-              <span className="text-sm">{userName}</span>
-            </div>
-            <button
-              onClick={onLogout}
-              className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-2 text-destructive-foreground hover:opacity-90"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-
-            {/* Mobile collapsible menu */}
-            <div className="md:hidden">
-              <NavigationMenu>
-                <NavigationMenuList>
-                  <NavigationMenuItem>
-                    <NavigationMenuTrigger>Menu</NavigationMenuTrigger>
-                    <NavigationMenuContent className="p-2">
-                      <div className="flex flex-col min-w-[220px]">
-                        <MobileLink label="Overview" onClick={() => onTabChange("overview")} />
-                        <MobileLink label="Browse Jobs" onClick={() => onTabChange("jobs")} />
-                        <MobileLink label="Project Ideas" onClick={() => onTabChange("projects")} />
-                        <MobileLink label="My Applications" onClick={() => onTabChange("applications")} />
-                      </div>
-                    </NavigationMenuContent>
-                  </NavigationMenuItem>
-                </NavigationMenuList>
-              </NavigationMenu>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
+interface Activity {
+  id: number;
+  action: string;
+  user: string;
+  timestamp: string;
+  details?: string;
+  ipAddress?: string;
 }
 
-function TopLink({
-  icon,
-  label,
-  isActive,
-  onClick,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  isActive?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <NavigationMenuItem>
-      <NavigationMenuLink asChild active={isActive} className="cursor-pointer">
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            onClick();
-          }}
-          className={[
-            "inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium transition-colors",
-            "bg-background hover:bg-accent hover:text-accent-foreground",
-            isActive ? "bg-accent/60 text-accent-foreground" : "",
-          ].join(" ")}
-        >
-          {icon}
-          {label}
-        </button>
-      </NavigationMenuLink>
-    </NavigationMenuItem>
-  );
-}
+// Mock data
+const mockAnalytics = {
+  totalUsers: 1250,
+  activeUsers: 892,
+  pendingVerifications: 23,
+  totalJobs: 456,
+  newRegistrations: 15,
+};
 
-function MenuCard({
-  title,
-  desc,
-  onClick,
-}: {
-  title: string;
-  desc?: string;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-md border p-3 text-left hover:bg-accent hover:text-accent-foreground transition"
-    >
-      <div className="text-sm font-semibold">{title}</div>
-      {desc ? <div className="text-xs text-muted-foreground mt-1">{desc}</div> : null}
-    </button>
-  );
-}
+const mockUsers: User[] = [
+  { 
+    id: 1, 
+    name: 'John Doe', 
+    email: 'john@example.com', 
+    role: 'user', 
+    status: 'active', 
+    joinDate: '2023-01-15',
+    phone: '+1 234-567-8900'
+  },
+  { 
+    id: 2, 
+    name: 'Tech Corp', 
+    email: 'admin@techcorp.com', 
+    role: 'company', 
+    status: 'pending', 
+    joinDate: '2023-02-20',
+    phone: '+1 234-567-8901',
+    company: 'Tech Corp',
+    website: 'https://techcorp.com'
+  },
+  { 
+    id: 3, 
+    name: 'State University', 
+    email: 'admin@stateuniversity.edu', 
+    role: 'university', 
+    status: 'active', 
+    joinDate: '2023-03-10',
+    phone: '+1 234-567-8902',
+    company: 'State University',
+    website: 'https://stateuniversity.edu'
+  },
+];
 
-function MobileLink({
-  label,
-  onClick,
-}: {
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={(e) => {
-        e.preventDefault();
-        onClick();
-      }}
-      className="rounded-md px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-    >
-      {label}
-    </button>
-  );
-}
+const mockPendingVerifications: Verification[] = [
+  { 
+    id: 1, 
+    name: 'Tech Corp', 
+    type: 'company', 
+    submittedDate: '2023-10-01',
+    documents: ['business_license.pdf', 'tax_certificate.pdf'],
+    contactEmail: 'legal@techcorp.com',
+    description: 'Technology company specializing in software development'
+  },
+  { 
+    id: 2, 
+    name: 'State University', 
+    type: 'university', 
+    submittedDate: '2023-10-02',
+    documents: ['accreditation_certificate.pdf', 'charter_document.pdf'],
+    contactEmail: 'registrar@stateuniversity.edu',
+    description: 'Public university with 20,000 students'
+  },
+];
 
-/** ---------- Page ---------- */
-export default function FreelancerDashboard() {
+const mockJobPosts: JobPost[] = [
+  { 
+    id: 1, 
+    title: 'Frontend Developer', 
+    company: 'Tech Corp', 
+    status: 'active', 
+    postedDate: '2023-10-01', 
+    applications: 15,
+    description: 'We are looking for a skilled Frontend Developer to join our team...',
+    location: 'Remote',
+    salary: '$80,000 - $100,000',
+    requirements: ['React', 'TypeScript', '3+ years experience']
+  },
+  { 
+    id: 2, 
+    title: 'Backend Engineer', 
+    company: 'Dev Solutions', 
+    status: 'pending', 
+    postedDate: '2023-10-02', 
+    applications: 0,
+    description: 'Backend developer needed for microservices architecture...',
+    location: 'New York, NY',
+    salary: '$90,000 - $120,000',
+    requirements: ['Node.js', 'Python', 'AWS', '5+ years experience']
+  },
+];
+
+const mockActivities: Activity[] = [
+  { 
+    id: 1, 
+    action: 'User Registration', 
+    user: 'New User', 
+    timestamp: '2023-10-05 10:30:00',
+    details: 'New user registered with email: newuser@example.com',
+    ipAddress: '192.168.1.100'
+  },
+  { 
+    id: 2, 
+    action: 'Job Post Created', 
+    user: 'Tech Corp', 
+    timestamp: '2023-10-05 09:15:00',
+    details: 'Created job: Senior Full Stack Developer',
+    ipAddress: '192.168.1.101'
+  },
+  { 
+    id: 3, 
+    action: 'Verification Submitted', 
+    user: 'State University', 
+    timestamp: '2023-10-05 08:45:00',
+    details: 'Submitted university verification documents',
+    ipAddress: '192.168.1.102'
+  },
+];
+
+export default function AdminDashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
-
-  const [activeTab, setActiveTab] = useState<Tabs>("overview");
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [projectIdeas, setProjectIdeas] = useState<ProjectIdea[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedVerification, setSelectedVerification] = useState<Verification | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobPost | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [showJobModal, setShowJobModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{ type: string; id: number; data: any } | null>(null);
+  const [editUserData, setEditUserData] = useState<Partial<User>>({});
 
   useEffect(() => {
-    if (!user || user.role !== "freelancer") {
-      router.push("/login");
-      return;
-    }
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!user || user.role !== 'admin') {
+      router.push('/login');
+    }    
   }, [user, router]);
 
-  const loadData = async () => {
-    // Mock data
-    const mockJobs: Job[] = [
-      {
-        id: "1",
-        title: "Frontend React Developer",
-        company: "Tech Solutions Inc.",
-        type: "contract",
-        location: "Remote",
-        salary: "$50-70/hr",
-        description:
-          "We are looking for an experienced React developer to join our team for a 6-month project.",
-        requirements: ["3+ years React experience", "TypeScript", "Redux", "CSS-in-JS"],
-        skills: ["React", "TypeScript", "Redux", "CSS"],
-        postedDate: "2024-01-15",
-        deadline: "2024-02-15",
-        status: "open",
-      },
-      {
-        id: "2",
-        title: "UI/UX Designer",
-        company: "Creative Studio",
-        type: "freelance",
-        location: "Remote",
-        salary: "$40-60/hr",
-        description:
-          "Looking for a talented UI/UX designer to create beautiful user interfaces for our mobile app.",
-        requirements: ["Figma", "User Research", "Prototyping", "Design Systems"],
-        skills: ["Figma", "UI/UX", "Prototyping", "User Research"],
-        postedDate: "2024-01-14",
-        deadline: "2024-02-14",
-        status: "open",
-      },
-    ];
-
-    const mockProjectIdeas: ProjectIdea[] = [
-      {
-        id: "1",
-        title: "AI-Powered Task Management App",
-        description:
-          "Building an intelligent task management application with AI-powered suggestions and automation.",
-        skillsRequired: ["React Native", "Node.js", "Machine Learning", "MongoDB"],
-        partnersNeeded: 3,
-        currentPartners: 1,
-        status: "recruiting",
-        createdBy: "John Doe",
-        createdAt: "2024-01-10",
-      },
-      {
-        id: "2",
-        title: "E-commerce Platform for Local Artisans",
-        description:
-          "Creating a platform to help local artisans sell their products online with custom storefronts.",
-        skillsRequired: ["Next.js", "Stripe", "Tailwind CSS", "PostgreSQL"],
-        partnersNeeded: 2,
-        currentPartners: 0,
-        status: "planning",
-        createdBy: "Sarah Wilson",
-        createdAt: "2024-01-12",
-      },
-    ];
-
-    setJobs(mockJobs);
-    setProjectIdeas(mockProjectIdeas);
-    setIsLoading(false);
+  // Modal Handlers
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditUserData(user);
+    setShowUserModal(true);
   };
 
-  const handleApplyJob = (jobId: string) => {
-    toast.success(`Application submitted for job #${jobId}`);
+  const handleViewVerification = (verification: Verification) => {
+    setSelectedVerification(verification);
+    setShowVerificationModal(true);
   };
 
-  const handleSaveJob = (jobId: string) => {
-    toast.info(`Job #${jobId} saved to favorites`);
+  const handleViewJob = (job: JobPost) => {
+    setSelectedJob(job);
+    setShowJobModal(true);
   };
 
-  const handleJoinProject = (projectId: string) => {
-    toast.success(`Request sent to join project #${projectId}`);
+  const handleConfirmAction = (type: string, id: number, data: any) => {
+    setConfirmAction({ type, id, data });
+    setShowConfirmModal(true);
   };
 
-  const stats = {
-    appliedJobs: 5,
-    activeProjects: 2,
-    completedProjects: 8,
-    earnings: "$12,500",
+  const executeAction = () => {
+    if (!confirmAction) return;
+
+    // Here you would typically make API calls
+    console.log(`Executing ${confirmAction.type} for ID: ${confirmAction.id}`, confirmAction.data);
+    
+    // Simulate API call
+    setTimeout(() => {
+      alert(`${confirmAction?.type} action completed successfully!`);
+      setShowConfirmModal(false);
+      setConfirmAction(null);
+    }, 1000);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">Loading...</div>
-      </div>
-    );
-  }
+  const handleSaveUser = () => {
+    // API call to update user
+    console.log('Saving user:', editUserData);
+    setShowUserModal(false);
+    setSelectedUser(null);
+    setEditUserData({});
+  };
 
-  return (
-    <div className="min-h-screen bg-muted/20">
-      {/* shadcn top nav */}
-      <FreelancerNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onLogout={logout}
-        userName={user?.name ?? "Freelancer"}
-      />
-
-      <div className="max-w-7xl mx-auto p-8">
-        {/* CONTENT */}
-        {activeTab === "overview" && (
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <StatCard
-                tone="blue"
-                label="Applied Jobs"
-                value={stats.appliedJobs}
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                }
-              />
-              <StatCard
-                tone="green"
-                label="Active Projects"
-                value={stats.activeProjects}
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                }
-              />
-              <StatCard
-                tone="purple"
-                label="Completed"
-                value={stats.completedProjects}
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                }
-              />
-              <StatCard
-                tone="yellow"
-                label="Total Earnings"
-                value={stats.earnings}
-                icon={
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                }
-              />
-
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <QuickAction
-                tone="blue"
-                title="Browse Jobs"
-                desc="Find your next freelance opportunity"
-                onClick={() => setActiveTab("jobs")}
-              />
-              <QuickAction
-                tone="green"
-                title="Project Ideas"
-                desc="Collaborate on innovative projects"
-                onClick={() => setActiveTab("projects")}
-              />
-              <QuickAction
-                tone="purple"
-                title="Post Project Idea"
-                desc="Share your idea and find partners"
-                onClick={() => router.push("/freelancer/projects/new")}
+  // Modal Components
+  const UserEditModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Edit User: {selectedUser?.name}</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input
+                type="text"
+                value={editUserData.name || ''}
+                onChange={(e) => setEditUserData({...editUserData, name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
-          </div>
-        )}
-
-        {activeTab === "jobs" && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-foreground">Available Jobs</h2>
-            <div className="grid gap-6">
-              {jobs.map((job) => (
-                <div key={job.id} className="bg-card text-card-foreground p-6 rounded-lg shadow border">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold">{job.title}</h3>
-                      <p className="text-muted-foreground">
-                        {job.company} • {job.location}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-green-600">{job.salary}</p>
-                      <p className="text-sm text-muted-foreground">{job.type}</p>
-                    </div>
-                  </div>
-
-                  <p className="mb-4">{job.description}</p>
-
-                  <div className="mb-4">
-                    <h4 className="font-semibold mb-2">Required Skills:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {job.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="px-3 py-1 rounded-full text-sm bg-primary/10 text-primary"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">
-                      Posted: {job.postedDate} • Deadline: {job.deadline}
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleSaveJob(job.id)}
-                        className="px-4 py-2 rounded-lg border hover:bg-accent hover:text-accent-foreground"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => handleApplyJob(job.id)}
-                        className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90"
-                      >
-                        Apply Now
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={editUserData.email || ''}
+                onChange={(e) => setEditUserData({...editUserData, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
             </div>
-          </div>
-        )}
 
-        {activeTab === "projects" && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-foreground">Project Ideas</h2>
-              <button
-                onClick={() => router.push("/freelancer/projects/new")}
-                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90"
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={editUserData.phone || ''}
+                onChange={(e) => setEditUserData({...editUserData, phone: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={editUserData.role || ''}
+                onChange={(e) => setEditUserData({...editUserData, role: e.target.value as User['role']})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                Post New Idea
-              </button>
+                <option value="user">User</option>
+                <option value="company">Company</option>
+                <option value="university">University</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
 
-            <div className="grid gap-6">
-              {projectIdeas.map((project) => (
-                <div key={project.id} className="bg-card text-card-foreground p-6 rounded-lg shadow border">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-xl font-semibold">{project.title}</h3>
-                      <p className="text-muted-foreground">
-                        By {project.createdBy} • {project.createdAt}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span
-                        className={[
-                          "px-3 py-1 rounded-full text-sm",
-                          project.status === "recruiting"
-                            ? "bg-green-100 text-green-800"
-                            : project.status === "planning"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-blue-100 text-blue-800",
-                        ].join(" ")}
-                      >
-                        {project.status}
-                      </span>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {project.currentPartners}/{project.partnersNeeded} partners
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="mb-4">{project.description}</p>
-
-                  <div className="mb-4">
-                    <h4 className="font-semibold mb-2">Skills Needed:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {project.skillsRequired.map((skill) => (
-                        <span
-                          key={skill}
-                          className="px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-700"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">
-                      Looking for {project.partnersNeeded - project.currentPartners} more partners
-                    </div>
-                    <button
-                      onClick={() => handleJoinProject(project.id)}
-                      disabled={project.currentPartners >= project.partnersNeeded}
-                      className={[
-                        "px-4 py-2 rounded-lg",
-                        project.currentPartners >= project.partnersNeeded
-                          ? "bg-muted text-muted-foreground cursor-not-allowed"
-                          : "bg-green-600 text-white hover:bg-green-700",
-                      ].join(" ")}
-                    >
-                      {project.currentPartners >= project.partnersNeeded ? "Full" : "Join Project"}
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={editUserData.status || ''}
+                onChange={(e) => setEditUserData({...editUserData, status: e.target.value as User['status']})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="suspended">Suspended</option>
+              </select>
             </div>
           </div>
-        )}
 
-        {activeTab === "applications" && (
-          <div className="bg-card text-card-foreground p-6 rounded-lg shadow border">
-            <h2 className="text-2xl font-bold mb-4">My Applications</h2>
-            <p className="text-muted-foreground">Your job applications will appear here.</p>
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              onClick={() => setShowUserModal(false)}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveUser}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Save Changes
+            </button>
           </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/** ---------- Tiny UI helpers ---------- */
-function StatCard({
-  tone,
-  label,
-  value,
-  icon,
-}: {
-  tone: "blue" | "green" | "purple" | "yellow";
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
-}) {
-  const toneMap: Record<string, string> = {
-    blue: "bg-blue-100 text-blue-600",
-    green: "bg-green-100 text-green-600",
-    purple: "bg-purple-100 text-purple-600",
-    yellow: "bg-yellow-100 text-yellow-600",
-  };
-
-  return (
-    <div className="bg-card text-card-foreground p-6 rounded-lg shadow border">
-      <div className="flex items-center">
-        <div className={`p-3 rounded-lg ${toneMap[tone]}`}>{icon}</div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="text-2xl font-bold">{value}</p>
         </div>
       </div>
     </div>
   );
-}
 
-function QuickAction({
-  tone,
-  title,
-  desc,
-  onClick,
-}: {
-  tone: "blue" | "green" | "purple";
-  title: string;
-  desc: string;
-  onClick: () => void;
-}) {
-  const toneMap: Record<string, string> = {
-    blue: "bg-blue-100 text-blue-600",
-    green: "bg-green-100 text-green-600",
-    purple: "bg-purple-100 text-purple-600",
-  };
+  const VerificationDetailsModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Verification Details: {selectedVerification?.name}</h3>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <p className="text-gray-900">{selectedVerification?.name}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                  ${selectedVerification?.type === 'company' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                  {selectedVerification?.type}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+              <p className="text-gray-900">{selectedVerification?.contactEmail}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <p className="text-gray-900">{selectedVerification?.description || 'No description provided'}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Submitted Documents</label>
+              <div className="space-y-2">
+                {selectedVerification?.documents.map((doc, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span className="text-sm text-gray-700">{doc}</span>
+                    <button className="text-indigo-600 hover:text-indigo-900 text-sm">Download</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Submitted Date</label>
+              <p className="text-gray-900">{selectedVerification?.submittedDate}</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              onClick={() => setShowVerificationModal(false)}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const JobDetailsModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-4">{selectedJob?.title}</h3>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                <p className="text-gray-900">{selectedJob?.company}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                  ${selectedJob?.status === 'active' ? 'bg-green-100 text-green-800' : 
+                    selectedJob?.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-red-100 text-red-800'}`}>
+                  {selectedJob?.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <p className="text-gray-900">{selectedJob?.location}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Salary</label>
+                <p className="text-gray-900">{selectedJob?.salary || 'Not specified'}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <p className="text-gray-900 whitespace-pre-line">{selectedJob?.description}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Requirements</label>
+              <ul className="list-disc list-inside space-y-1">
+                {selectedJob?.requirements.map((req, index) => (
+                  <li key={index} className="text-gray-900">{req}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Posted Date</label>
+                <p className="text-gray-900">{selectedJob?.postedDate}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Applications</label>
+                <p className="text-gray-900">{selectedJob?.applications}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <button
+              onClick={() => setShowJobModal(false)}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const ConfirmationModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-md w-full">
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-2">Confirm Action</h3>
+          <p className="text-gray-600 mb-4">
+            {confirmAction?.type === 'suspend' && 'Are you sure you want to suspend this user? They will not be able to access their account.'}
+            {confirmAction?.type === 'approve' && 'Are you sure you want to approve this verification/job?'}
+            {confirmAction?.type === 'reject' && 'Are you sure you want to reject this verification/job? This action cannot be undone.'}
+            {confirmAction?.type === 'delete' && 'Are you sure you want to delete this job post? This action cannot be undone.'}
+          </p>
+          
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={executeAction}
+              className={`px-4 py-2 text-white rounded-md ${
+                confirmAction?.type === 'suspend' || confirmAction?.type === 'reject' || confirmAction?.type === 'delete'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Rest of the component remains the same with updated action handlers...
+  const renderUserManagement = () => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold">User Management</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Join Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {mockUsers.map((user) => (
+              <tr key={user.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{user.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 
+                      user.role === 'company' ? 'bg-blue-100 text-blue-800' : 
+                      user.role === 'university' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'}`}>
+                    {user.role}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    ${user.status === 'active' ? 'bg-green-100 text-green-800' : 
+                      user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-red-100 text-red-800'}`}>
+                    {user.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{user.joinDate}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button 
+                    onClick={() => handleEditUser(user)}
+                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => handleConfirmAction('suspend', user.id, user)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Suspend
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderVerificationSystem = () => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold">Pending Verifications</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {mockPendingVerifications.map((item) => (
+              <tr key={item.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{item.name}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    ${item.type === 'company' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                    {item.type}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{item.submittedDate}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button 
+                    onClick={() => handleConfirmAction('approve', item.id, item)}
+                    className="text-green-600 hover:text-green-900 mr-3"
+                  >
+                    Approve
+                  </button>
+                  <button 
+                    onClick={() => handleConfirmAction('reject', item.id, item)}
+                    className="text-red-600 hover:text-red-900 mr-3"
+                  >
+                    Reject
+                  </button>
+                  <button 
+                    onClick={() => handleViewVerification(item)}
+                    className="text-indigo-600 hover:text-indigo-900"
+                  >
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderJobMonitoring = () => (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-semibold">Job Post Monitoring</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applications</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {mockJobPosts.map((job) => (
+              <tr key={job.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{job.title}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{job.company}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    ${job.status === 'active' ? 'bg-green-100 text-green-800' : 
+                      job.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-red-100 text-red-800'}`}>
+                    {job.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">{job.postedDate}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{job.applications}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <button 
+                    onClick={() => handleViewJob(job)}
+                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                  >
+                    View
+                  </button>
+                  {job.status === 'pending' && (
+                    <>
+                      <button 
+                        onClick={() => handleConfirmAction('approve', job.id, job)}
+                        className="text-green-600 hover:text-green-900 mr-3"
+                      >
+                        Approve
+                      </button>
+                      <button 
+                        onClick={() => handleConfirmAction('reject', job.id, job)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  <button 
+                    onClick={() => handleConfirmAction('delete', job.id, job)}
+                    className="text-red-600 hover:text-red-900 ml-3"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // ... (rest of the component remains the same)
 
   return (
-    <button
-      onClick={onClick}
-      className="bg-card text-card-foreground p-6 rounded-lg shadow border text-left hover:shadow-lg transition-shadow"
-    >
-      <div className={`p-3 rounded-lg inline-flex mb-4 ${toneMap[tone]}`}>
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2z" />
-        </svg>
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <button
+            onClick={logout}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
+      </nav>
+      
+      <div className="max-w-7xl mx-auto p-8">
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold mb-2">Welcome, Admin!</h2>
+          <p className="text-gray-600">
+            Manage your platform efficiently with the tools below.
+          </p>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="mb-8 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { id: 'dashboard', name: 'Dashboard' },
+              { id: 'users', name: 'User Management' },
+              { id: 'verification', name: 'Verification System' },
+              { id: 'jobs', name: 'Job Monitoring' },
+              { id: 'activity', name: 'Activity Tracking' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.name}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {/* Dashboard content remains the same */}
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Users</h3>
+              <p className="text-3xl font-bold text-blue-600">{mockAnalytics.totalUsers}</p>
+            </div>
+            {/* ... other dashboard cards */}
+          </div>
+        )}
+        {activeTab === 'users' && renderUserManagement()}
+        {activeTab === 'verification' && renderVerificationSystem()}
+        {activeTab === 'jobs' && renderJobMonitoring()}
+        {activeTab === 'activity' && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold">Platform Activity Tracking</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User/Entity</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {mockActivities.map((activity) => (
+                    <tr key={activity.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">{activity.action}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{activity.user}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{activity.timestamp}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <p className="text-sm text-gray-900">{activity.details}</p>
+                          <p className="text-xs text-gray-500">IP: {activity.ipAddress}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
-      <h3 className="font-semibold mb-1">{title}</h3>
-      <p className="text-sm text-muted-foreground">{desc}</p>
-    </button>
+
+      {/* Modals */}
+      {showUserModal && <UserEditModal />}
+      {showVerificationModal && <VerificationDetailsModal />}
+      {showJobModal && <JobDetailsModal />}
+      {showConfirmModal && <ConfirmationModal />}
+    </div>
   );
 }

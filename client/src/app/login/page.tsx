@@ -13,7 +13,7 @@ export default function Login() {
   // ✅ Redirect after login based on user role
   useEffect(() => {
     if (user?.role === 'admin') {
-      router.push('/dashboard');
+      router.push('/admin/dashboard');
     } else if (user?.role === 'student') {
       router.push('/student/dashboard');
     } else if (user?.role === 'company') {
