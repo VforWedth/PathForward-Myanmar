@@ -56,6 +56,7 @@ interface Job {
   postedDate: string;
   deadline: string;
   requirements: string[];
+  status: string;
 }
 
 export default function UniversityCompanies() {
