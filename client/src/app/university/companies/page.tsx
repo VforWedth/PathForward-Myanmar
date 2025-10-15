@@ -68,6 +68,10 @@ export default function UniversityCompanies() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
 
+  // Separate counters for better UX
+  const approvedCompaniesCount = companies.filter(c => c.partnershipStatus === 'approved').length;
+  const activeJobsCount = jobs.filter(j => j.status === 'active').length;
+
   useEffect(() => {
     if (!user || user.role !== "university") {
       router.push("/login");
@@ -76,6 +80,16 @@ export default function UniversityCompanies() {
 
     fetchData();
   }, [user, router]);
+
+  // Debug: Log counts when data changes
+  useEffect(() => {
+    console.log('=== DATA UPDATE ===');
+    console.log(`Total companies: ${companies.length}`);
+    console.log(`  - Pending: ${companies.filter(c => c.partnershipStatus === 'pending').length}`);
+    console.log(`  - Approved: ${approvedCompaniesCount}`);
+    console.log(`Total jobs: ${jobs.length}`);
+    console.log(`  - Active: ${activeJobsCount}`);
+  }, [companies, jobs]);
 
   const fetchData = async () => {
     try {
@@ -95,6 +109,7 @@ export default function UniversityCompanies() {
 
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json();
+        console.log('Connection requests response:', requestsData);
         if (requestsData.success) {
           const pendingCompanies = requestsData.connections.map((conn: any) => ({
             id: conn.Company.id,
@@ -108,8 +123,11 @@ export default function UniversityCompanies() {
             jobsCount: 0,
             connectionId: conn.id
           }));
+          console.log(`Found ${pendingCompanies.length} pending companies`);
           setCompanies(prev => [...prev, ...pendingCompanies]);
         }
+      } else {
+        console.error('Failed to fetch connection requests:', requestsResponse.status);
       }
 
       // Fetch connected companies
@@ -124,6 +142,7 @@ export default function UniversityCompanies() {
 
       if (connectedResponse.ok) {
         const connectedData = await connectedResponse.json();
+        console.log('Connected companies response:', connectedData);
         if (connectedData.success) {
           const activeCompanies = connectedData.connections.map((conn: any) => ({
             id: conn.Company.id,
@@ -137,8 +156,11 @@ export default function UniversityCompanies() {
             jobsCount: 0,
             connectionId: conn.id
           }));
+          console.log(`Found ${activeCompanies.length} connected companies`);
           setCompanies(prev => [...prev, ...activeCompanies]);
         }
+      } else {
+        console.error('Failed to fetch connected companies:', connectedResponse.status);
       }
 
       // Fetch job posts from connected companies
@@ -322,6 +344,18 @@ export default function UniversityCompanies() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             <h1 className="text-xl font-semibold text-gray-900">Company Connections</h1>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsLoading(true);
+                  fetchData();
+                }}
+                disabled={isLoading}
+                className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm disabled:bg-gray-400"
+              >
+                {isLoading ? 'Refreshing...' : 'Refresh Data'}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -340,7 +374,7 @@ export default function UniversityCompanies() {
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
-                    Partner Companies ({companies.length})
+                    Partner Companies ({approvedCompaniesCount})
                   </button>
                   <button
                     onClick={() => setActiveTab("jobs")}
@@ -350,7 +384,7 @@ export default function UniversityCompanies() {
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
-                    Available Jobs ({jobs.length})
+                    Available Jobs ({activeJobsCount})
                   </button>
                 </nav>
               </div>
@@ -361,7 +395,12 @@ export default function UniversityCompanies() {
               <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b">
                   <h3 className="text-xl font-semibold">Partner Companies</h3>
-                  <p className="text-gray-600">Companies connected with your university</p>
+                  <p className="text-gray-600">
+                    {approvedCompaniesCount} active partner{approvedCompaniesCount !== 1 ? 's' : ''} 
+                    {companies.filter(c => c.partnershipStatus === 'pending').length > 0 && 
+                      ` • ${companies.filter(c => c.partnershipStatus === 'pending').length} pending`
+                    }
+                  </p>
                 </div>
 
                 <div className="divide-y">
@@ -476,7 +515,9 @@ export default function UniversityCompanies() {
               <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b">
                   <h3 className="text-xl font-semibold">Available Jobs</h3>
-                  <p className="text-gray-600">Job opportunities from partner companies</p>
+                  <p className="text-gray-600">
+                    {activeJobsCount} active job{activeJobsCount !== 1 ? 's' : ''} from {approvedCompaniesCount} partner compan{approvedCompaniesCount !== 1 ? 'ies' : 'y'}
+                  </p>
                 </div>
 
                 <div className="divide-y">
