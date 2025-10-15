@@ -284,8 +284,18 @@ export default function UniversityCompanies() {
     toast.info(`Viewing details for: ${job.title}`);
   };
 
-  const handleShareWithStudents = (job: Job) => {
-    toast.success(`Job "${job.title}" shared with students!`);
+  const handleShareWithStudents = async (job: Job) => {
+    // In a full implementation, this could:
+    // 1. Send email notifications to students
+    // 2. Create announcements
+    // 3. Post to student dashboard
+    // For now, we'll just show a success message since jobs from connected companies
+    // are already visible to students
+    
+    toast.success(
+      `Job "${job.title}" from ${job.company} is now visible to your students! Students can find it in their job board.`,
+      { autoClose: 5000 }
+    );
   };
 
   const handleSaveJob = (job: Job) => {

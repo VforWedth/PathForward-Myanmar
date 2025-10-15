@@ -32,12 +32,21 @@ interface JobForm {
   salary: string;
   category: string;
   applicationDeadline: string;
+  targetUniversities: string[];
+  isPublic: boolean;
+}
+
+interface University {
+  id: string;
+  universityName: string;
+  location: string;
 }
 
 export default function PostJob() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [connectedUniversities, setConnectedUniversities] = useState<University[]>([]);
   const [formData, setFormData] = useState<JobForm>({
     title: '',
     description: '',
@@ -48,14 +57,47 @@ export default function PostJob() {
     salary: '',
     category: '',
     applicationDeadline: '',
+    targetUniversities: [],
+    isPublic: true,
   });
 
-  // Protect route
+  // Protect route and fetch connected universities
   useEffect(() => {
     if (user === undefined) return; // wait for hydration if your store sets undefined first
     if (!user || user.role !== 'company') {
       router.replace('/login');
+      return;
     }
+
+    // Fetch connected universities
+    const fetchUniversities = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/universities/connected?status=active`,
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            const unis = data.data.map((conn: any) => ({
+              id: conn.University.id,
+              universityName: conn.University.universityName,
+              location: conn.University.location
+            }));
+            setConnectedUniversities(unis);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching universities:', error);
+      }
+    };
+
+    fetchUniversities();
   }, [user, router]);
 
   const validate = () => {
@@ -97,6 +139,8 @@ export default function PostJob() {
         type: formData.type,
         workMode: formData.workMode,
         applicationDeadline: formData.applicationDeadline,
+        targetUniversities: formData.targetUniversities,
+        isPublic: formData.isPublic,
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs`, {
@@ -303,6 +347,76 @@ export default function PostJob() {
                       setFormData({ ...formData, applicationDeadline: e.target.value })
                     }
                   />
+                </div>
+
+                {/* Job Visibility Settings */}
+                <div className="border-t pt-6 mt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Job Visibility</h3>
+                  
+                  <div className="mb-4">
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={formData.isPublic}
+                        onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">
+                        Make this job public (visible to all students)
+                      </span>
+                    </label>
+                    <p className="text-sm text-gray-500 ml-7 mt-1">
+                      If unchecked, only students from selected universities can see this job
+                    </p>
+                  </div>
+
+                  {connectedUniversities.length > 0 && (
+                    <div>
+                      <label className="block text-gray-700 mb-2">
+                        Target Universities {!formData.isPublic && '(Required)'}
+                      </label>
+                      <p className="text-sm text-gray-500 mb-3">
+                        Select universities whose students can see this job posting
+                      </p>
+                      <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                        {connectedUniversities.map((uni) => (
+                          <label key={uni.id} className="flex items-start space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={formData.targetUniversities.includes(uni.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData({
+                                    ...formData,
+                                    targetUniversities: [...formData.targetUniversities, uni.id]
+                                  });
+                                } else {
+                                  setFormData({
+                                    ...formData,
+                                    targetUniversities: formData.targetUniversities.filter(id => id !== uni.id)
+                                  });
+                                }
+                              }}
+                              className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                            <div>
+                              <div className="text-gray-800 font-medium">{uni.universityName}</div>
+                              <div className="text-sm text-gray-500">{uni.location}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {connectedUniversities.length === 0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800">
+                        ℹ️ You haven't connected with any universities yet. 
+                        <a href="/company/universities" className="underline ml-1">Connect with universities</a> to share targeted job postings.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex space-x-4 pt-6">
