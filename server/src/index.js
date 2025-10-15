@@ -70,9 +70,9 @@ const startServer = async () => {
     // Test database connection
     await testConnection();
 
-    // Sync database models
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database models synchronized');
+    // Skip database sync since tables already exist
+    // await sequelize.sync({ alter: true });
+    console.log('✅ Database models synchronized (skipped)');
 
     // Start listening
     app.listen(PORT, () => {
