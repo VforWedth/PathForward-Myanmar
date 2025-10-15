@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, Bell, Briefcase, LogOut, School, Star, User2, Menu } from 'lucide-react';
+import { ArrowLeft, Award, Bell, Briefcase, LogOut, School, Star, User2, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -49,6 +49,12 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
       label: 'Applications',
       icon: <Briefcase className="h-4 w-4" />,
       active: pathname?.startsWith('/student/applications'),
+    },
+    {
+      href: '/student/certificates',
+      label: 'Certificates',
+      icon: <Award className="h-4 w-4" />,
+      active: pathname?.startsWith('/student/certificates'),
     },
     {
       href: '/student/reviews',

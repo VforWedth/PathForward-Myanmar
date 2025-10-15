@@ -30,6 +30,8 @@ export default function SkillsTestPage() {
   const { user, logout } = useAuthStore();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
+  const [certificatesCount, setCertificatesCount] = useState(0);
+  const [testsTaken, setTestsTaken] = useState(0);
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -38,6 +40,7 @@ export default function SkillsTestPage() {
     }
 
     fetchQuizzes();
+    fetchStats();
   }, [user, router]);
 
   const fetchQuizzes = async () => {
@@ -58,6 +61,37 @@ export default function SkillsTestPage() {
       console.error('Error fetching quizzes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+
+      // Fetch certificates
+      const certResponse = await fetch(`${API_BASE_URL}/api/student/certificates`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const certData = await certResponse.json();
+      if (certData.success) {
+        setCertificatesCount(certData.data.length);
+      }
+
+      // Fetch all attempts
+      const attemptsResponse = await fetch(`${API_BASE_URL}/api/quizzes/my-attempts`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const attemptsData = await attemptsResponse.json();
+      if (attemptsData.success) {
+        setTestsTaken(attemptsData.data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
     }
   };
 
@@ -83,32 +117,35 @@ export default function SkillsTestPage() {
 
         {/* Info Cards */}
         <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-[#C8D9E6] bg-white p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-100 p-3">
-                <Target className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm text-[#567C8D]">Passing Score</div>
-                <div className="text-lg font-bold text-[#2F4156]">70%</div>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-[#C8D9E6] bg-white p-4">
+          <Link
+            href="/student/certificates"
+            className="rounded-xl border border-[#C8D9E6] bg-white p-4 transition hover:shadow-md"
+          >
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-emerald-100 p-3">
                 <Award className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <div className="text-sm text-[#567C8D]">Certificate at</div>
-                <div className="text-lg font-bold text-[#2F4156]">85%+</div>
+                <div className="text-sm text-[#567C8D]">Certificates Earned</div>
+                <div className="text-lg font-bold text-[#2F4156]">{certificatesCount}</div>
+              </div>
+            </div>
+          </Link>
+          <div className="rounded-xl border border-[#C8D9E6] bg-white p-4">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-blue-100 p-3">
+                <BookOpen className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-[#567C8D]">Tests Taken</div>
+                <div className="text-lg font-bold text-[#2F4156]">{testsTaken}</div>
               </div>
             </div>
           </div>
           <div className="rounded-xl border border-[#C8D9E6] bg-white p-4">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-purple-100 p-3">
-                <BookOpen className="h-6 w-6 text-purple-600" />
+                <Target className="h-6 w-6 text-purple-600" />
               </div>
               <div>
                 <div className="text-sm text-[#567C8D]">Available Tests</div>
@@ -191,8 +228,17 @@ export default function SkillsTestPage() {
           </div>
         )}
 
-        {/* View My Attempts */}
-        <div className="mt-8 text-center">
+        {/* View My Certificates & Attempts */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-6">
+          <Link
+            href="/student/certificates"
+            className="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700"
+          >
+            <Award className="h-4 w-4" />
+            View My Certificates
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+          <span className="text-[#C8D9E6]">|</span>
           <Link
             href="/student/quiz/attempts"
             className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
