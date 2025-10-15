@@ -63,6 +63,8 @@ export default function StudentDashboard() {
         console.log('Dashboard data:', data); // Debug log
         
         if (data.success) {
+          console.log('📊 Stats received:', data.data.stats);
+          console.log('🏆 Certificates received:', data.data.recentCertificates);
           setStats(data.data.stats);
           setCertificates(data.data.recentCertificates || []);
         } else {
@@ -154,17 +156,20 @@ export default function StudentDashboard() {
                 </p>
                 
                 <div className="mb-4 flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 ring-1 ring-[#E3EAF1]">
-                    <Award className="h-5 w-5 text-blue-600" />
+                  <Link
+                    href="/student/certificates"
+                    className="flex items-center gap-2 rounded-lg bg-gradient-to-br from-emerald-50 to-white px-4 py-2 ring-2 ring-emerald-200 transition hover:ring-emerald-300"
+                  >
+                    <Award className="h-5 w-5 text-emerald-600" />
                     <div>
-                      <div className="text-sm font-medium text-[#2F4156]">{stats.certificates}</div>
+                      <div className="text-lg font-bold text-[#2F4156]">{stats.certificates}</div>
                       <div className="text-xs text-[#567C8D]">Certificates</div>
                     </div>
-                  </div>
+                  </Link>
                   <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 ring-1 ring-[#E3EAF1]">
-                    <TrendingUp className="h-5 w-5 text-emerald-600" />
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
                     <div>
-                      <div className="text-sm font-medium text-[#2F4156]">{stats.quizzesTaken}</div>
+                      <div className="text-lg font-bold text-[#2F4156]">{stats.quizzesTaken}</div>
                       <div className="text-xs text-[#567C8D]">Tests Taken</div>
                     </div>
                   </div>
@@ -181,27 +186,30 @@ export default function StudentDashboard() {
 
               {/* Recent Certificates */}
               {certificates.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-[#2F4156]">Recent Certificates</h4>
-                  {certificates.slice(0, 2).map((cert) => (
+                <div className="space-y-3 rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white p-4">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-emerald-600" />
+                    <h4 className="text-sm font-semibold text-[#2F4156]">Recent Certificates</h4>
+                  </div>
+                  {certificates.slice(0, 3).map((cert) => (
                     <div
                       key={cert.id}
-                      className="flex items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-[#E3EAF1]"
+                      className="flex items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-emerald-100 transition hover:ring-emerald-200"
                     >
-                      <div className="rounded-lg bg-blue-100 p-2">
-                        <Award className="h-5 w-5 text-blue-600" />
+                      <div className="rounded-lg bg-emerald-100 p-2">
+                        <Award className="h-5 w-5 text-emerald-600" />
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-[#2F4156]">{cert.Quiz.category}</div>
-                        <div className="text-xs text-[#567C8D]">{cert.score}% • {cert.Quiz.difficulty}</div>
+                        <div className="text-sm font-medium text-[#2F4156]">{cert.Quiz.title || cert.Quiz.category}</div>
+                        <div className="text-xs text-emerald-600 font-semibold">{cert.score}% • {cert.Quiz.difficulty}</div>
                       </div>
                     </div>
                   ))}
                   <Link
                     href="/student/certificates"
-                    className="block text-center text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="flex items-center justify-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-700"
                   >
-                    View all →
+                    View all certificates →
                   </Link>
                 </div>
               )}

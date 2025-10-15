@@ -48,6 +48,11 @@ const getDashboard = async (req, res) => {
       }
     });
 
+    console.log(`📊 Dashboard Stats - Student ${student.id}:`, {
+      quizzesTaken: totalQuizzesTaken,
+      certificates: certificatesEarned
+    });
+
     // Get recent certificates
     const recentCertificates = await QuizAttempt.findAll({
       where: {
@@ -61,6 +66,8 @@ const getDashboard = async (req, res) => {
       limit: 3,
       order: [['completedAt', 'DESC']]
     });
+
+    console.log(`🏆 Recent Certificates: ${recentCertificates.length} found`);
 
     // Get recent activity (last 10 items)
     const recentActivity = await Activity.findAll({
