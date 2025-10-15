@@ -4,24 +4,28 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
+import { getDisplayName, getFirstName } from '@/utils/getDisplayName';
 import { FileText, User2, Compass, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { StudentTopNav } from '@/components/ui/student/top-nav'; // <-- shadcn top nav
 
 export default function StudentDashboard() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, fetchProfileData } = useAuthStore();
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
       router.push('/login');
+    } else {
+      // Fetch profile data to get name information
+      fetchProfileData();
     }
-  }, [user, router]);
+  }, [user, router, fetchProfileData]);
 
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
       {/* Top Nav (shadcn) */}
-      <StudentTopNav userName={user?.name || user?.email?.split('@')[0]} alertsCount={3} onLogout={logout} />
+      <StudentTopNav userName={getDisplayName(user, user?.profileData)} alertsCount={3} onLogout={logout} />
 
       {/* Page container */}
       <main className="relative mx-auto max-w-7xl px-6 py-8">
@@ -39,7 +43,7 @@ export default function StudentDashboard() {
                 <Sparkles className="h-4 w-4" /> Welcome back
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#2F4156] md:text-3xl">
-                {user?.name ? `Hi, ${user.name} 👋` : user?.email ? `Hi, ${user.email.split('@')[0]} 👋` : 'Welcome 👋'}
+                {user ? `Hi, ${getFirstName(user, user.profileData)} 👋` : 'Welcome 👋'}
               </h2>
               <p className="mt-2 max-w-prose text-[#567C8D]">
                 Let’s keep your career journey moving. Start by updating your profile, checking applications, or reading peer reviews.
