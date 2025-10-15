@@ -1,7 +1,7 @@
 // app/university/companies/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "react-toastify";
@@ -75,26 +75,7 @@ export default function UniversityCompanies() {
   const approvedCompaniesCount = companies.filter(c => c.partnershipStatus === 'approved').length;
   const activeJobsCount = jobs.filter(j => j.status === 'active').length;
 
-  useEffect(() => {
-    if (!user || user.role !== "university") {
-      router.push("/login");
-      return;
-    }
-
-    fetchData();
-  }, [user, router]);
-
-  // Debug: Log counts when data changes
-  useEffect(() => {
-    console.log('=== DATA UPDATE ===');
-    console.log(`Total companies: ${companies.length}`);
-    console.log(`  - Pending: ${companies.filter(c => c.partnershipStatus === 'pending').length}`);
-    console.log(`  - Approved: ${approvedCompaniesCount}`);
-    console.log(`Total jobs: ${jobs.length}`);
-    console.log(`  - Active: ${activeJobsCount}`);
-  }, [companies, jobs]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setCompanies([]); // Clear previous data
@@ -206,7 +187,27 @@ export default function UniversityCompanies() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.role !== "university") {
+      router.push("/login");
+      return;
+    }
+
+    console.log('Page loaded - fetching data...');
+    fetchData();
+  }, [user, router, fetchData]);
+
+  // Debug: Log counts when data changes
+  useEffect(() => {
+    console.log('=== DATA UPDATE ===');
+    console.log(`Total companies: ${companies.length}`);
+    console.log(`  - Pending: ${companies.filter(c => c.partnershipStatus === 'pending').length}`);
+    console.log(`  - Approved: ${approvedCompaniesCount}`);
+    console.log(`Total jobs: ${jobs.length}`);
+    console.log(`  - Active: ${activeJobsCount}`);
+  }, [companies, jobs, approvedCompaniesCount, activeJobsCount]);
 
   const getStatusColor = (status: Company["partnershipStatus"]) => {
     switch (status) {
