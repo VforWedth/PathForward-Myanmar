@@ -67,6 +67,8 @@ export default function UniversityCompanies() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showJobModal, setShowJobModal] = useState(false);
 
   // Separate counters for better UX
   const approvedCompaniesCount = companies.filter(c => c.partnershipStatus === 'approved').length;
@@ -303,7 +305,8 @@ export default function UniversityCompanies() {
   };
 
   const handleViewJobDetails = (job: Job) => {
-    toast.info(`Viewing details for: ${job.title}`);
+    setSelectedJob(job);
+    setShowJobModal(true);
   };
 
   const handleShareWithStudents = async (job: Job) => {
@@ -743,6 +746,141 @@ export default function UniversityCompanies() {
                     </>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Job Details Modal */}
+      {showJobModal && selectedJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-semibold text-gray-900">{selectedJob.title}</h3>
+                <p className="text-gray-600 mt-1">{selectedJob.company}</p>
+              </div>
+              <button
+                onClick={() => setShowJobModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Job Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Job Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <Briefcase className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Job Type:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.type}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Location:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.location}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <DollarSign className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Salary:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.salary}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Timeline</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CalendarDays className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Posted Date:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.postedDate}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CalendarDays className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Application Deadline:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.deadline || 'Not specified'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Requirements */}
+              {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Requirements & Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedJob.requirements.map((req, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                      >
+                        <BadgeCheck className="h-3 w-3" />
+                        {req}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Company Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 mb-2">About {selectedJob.company}</h4>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Building2 className="h-4 w-4" />
+                  <span>Company is a verified partner of your university</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 border-t flex flex-wrap gap-3">
+                <button
+                  onClick={() => {
+                    handleShareWithStudents(selectedJob);
+                    setShowJobModal(false);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <Users className="h-4 w-4" />
+                  Share with Students
+                </button>
+                <button
+                  onClick={() => {
+                    handleSaveJob(selectedJob);
+                    setShowJobModal(false);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                >
+                  <BriefcaseBusiness className="h-4 w-4" />
+                  Save Job
+                </button>
+                <button
+                  onClick={() => setShowJobModal(false)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
