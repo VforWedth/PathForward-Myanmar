@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
+const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -35,4 +35,14 @@ api.interceptors.response.use(
   }
 );
 
+// Utility function to get full URL for uploaded files
+export const getFileUrl = (relativePath: string | undefined | null): string | null => {
+  if (!relativePath) return null;
+  // If it's already a full URL, return as is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+  // Otherwise, prepend the server URL
+  return `${SERVER_URL}${relativePath}`;
+};
 export default api;

@@ -4,7 +4,7 @@ import api from '@/lib/api';
 interface User {
   id: string;
   email: string;
-  name?: string; // Optional name field
+  name?: string;
   role: 'admin' | 'student' | 'company' | 'university' | 'freelancer';
   isVerified: boolean;
 }
@@ -67,11 +67,31 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    set({ user: null, token: null, isAuthenticated: false });
-    // Redirect to login with success message
-    window.location.href = '/login?message=Successfully logged out';
+  logout: async () => {
+    try {
+      // Optional: Call logout endpoint for logging purposes
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await api.post('/auth/logout');
+        } catch (error) {
+          // Ignore logout endpoint errors - client-side logout is sufficient
+          console.log('Logout endpoint error (ignored):', error);
+        }
+      }
+    } catch (error) {
+      // Ignore any errors during logout
+      console.log('Logout error (ignored):', error);
+    } finally {
+      // Always perform client-side cleanup
+      localStorage.removeItem('token');
+      localStorage.removeItem('rememberedEmail'); // Clear remembered email on logout
+      set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
+      // Redirect to login page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?message=Successfully logged out';
+      }
+    }
   },
 
   checkAuth: async () => {
