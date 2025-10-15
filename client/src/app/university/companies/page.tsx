@@ -44,12 +44,14 @@ interface Company {
   contactEmail: string;
   jobsCount: number;
   connectionId?: string;
+  connectedAt?: string;
 }
 
 interface Job {
   id: string;
   title: string;
   company: string;
+  companyId: string;
   type: string;
   location: string;
   salary: string;
@@ -91,6 +93,8 @@ export default function UniversityCompanies() {
         }
       );
 
+      let allCompanies: Company[] = [];
+
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json();
         console.log('Connection requests response:', requestsData);
@@ -108,7 +112,7 @@ export default function UniversityCompanies() {
             connectionId: conn.id
           }));
           console.log(`Found ${pendingCompanies.length} pending companies`);
-          setCompanies(prev => [...prev, ...pendingCompanies]);
+          allCompanies = [...allCompanies, ...pendingCompanies];
         }
       } else {
         console.error('Failed to fetch connection requests:', requestsResponse.status);
@@ -138,10 +142,11 @@ export default function UniversityCompanies() {
             partnershipStatus: conn.status === 'active' ? "approved" as const : "inactive" as const,
             contactEmail: conn.Company.User.email,
             jobsCount: 0,
-            connectionId: conn.id
+            connectionId: conn.id,
+            connectedAt: conn.connectedAt
           }));
           console.log(`Found ${activeCompanies.length} connected companies`);
-          setCompanies(prev => [...prev, ...activeCompanies]);
+          allCompanies = [...allCompanies, ...activeCompanies];
         }
       } else {
         console.error('Failed to fetch connected companies:', connectedResponse.status);
@@ -159,27 +164,36 @@ export default function UniversityCompanies() {
 
       if (jobsResponse.ok) {
         const jobsData = await jobsResponse.json();
-        console.log('University jobs API response:', jobsData); // Debug log
+        console.log('University jobs API response:', jobsData);
         if (jobsData.success) {
           const jobPosts = jobsData.jobs.map((job: any) => ({
             id: job.id,
             title: job.title,
             company: job.Company.companyName,
+            companyId: job.Company.id,
             type: job.jobType || job.type,
             location: job.location,
             salary: job.salaryRange || job.salary,
             postedDate: new Date(job.createdAt).toISOString().split('T')[0],
-            deadline: job.deadline,
+            deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : 'Not specified',
             requirements: job.skillsRequired || [],
             status: job.status
           }));
-          console.log('Formatted university jobs:', jobPosts); // Debug log
-          console.log('Sample job requirements:', jobPosts[0]?.requirements); // Debug log
+          console.log('Formatted university jobs:', jobPosts);
           setJobs(jobPosts);
+
+          // Update company job counts dynamically
+          allCompanies.forEach(company => {
+            company.jobsCount = jobPosts.filter((j: any) => j.companyId === company.id).length;
+          });
         }
       } else {
         console.error('Failed to fetch university jobs:', jobsResponse.status, jobsResponse.statusText);
       }
+
+      // Set all companies at once after calculating job counts
+      setCompanies(allCompanies);
+      console.log('Final companies with job counts:', allCompanies);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -692,14 +706,12 @@ export default function UniversityCompanies() {
                       <Briefcase className="h-4 w-4 text-gray-500" />
                       <span className="font-medium">Active Jobs:</span> {selectedCompany.jobsCount}
                     </p>
-                    <p className="inline-flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Students Hired:</span> 45
-                    </p>
-                    <p className="inline-flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Partnership Since:</span> 2023
-                    </p>
+                    {selectedCompany.connectedAt && (
+                      <p className="inline-flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-gray-500" />
+                        <span className="font-medium">Partnership Since:</span> {new Date(selectedCompany.connectedAt).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
