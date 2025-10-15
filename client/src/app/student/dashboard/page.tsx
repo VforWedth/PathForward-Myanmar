@@ -21,7 +21,7 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
       {/* Top Nav (shadcn) */}
-      <StudentTopNav userName={user?.name} alertsCount={3} onLogout={logout} />
+      <StudentTopNav userName={user?.name || user?.email?.split('@')[0]} alertsCount={3} onLogout={logout} />
 
       {/* Page container */}
       <main className="relative mx-auto max-w-7xl px-6 py-8">
@@ -39,7 +39,7 @@ export default function StudentDashboard() {
                 <Sparkles className="h-4 w-4" /> Welcome back
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#2F4156] md:text-3xl">
-                {user?.name ? `Hi, ${user.name} 👋` : 'Welcome 👋'}
+                {user?.name ? `Hi, ${user.name} 👋` : user?.email ? `Hi, ${user.email.split('@')[0]} 👋` : 'Welcome 👋'}
               </h2>
               <p className="mt-2 max-w-prose text-[#567C8D]">
                 Let’s keep your career journey moving. Start by updating your profile, checking applications, or reading peer reviews.

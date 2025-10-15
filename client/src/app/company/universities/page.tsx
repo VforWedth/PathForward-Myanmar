@@ -24,9 +24,9 @@ import {
 
 interface University {
   id: string;
-  name: string;
+  universityName: string;
   location: string;
-  establishedYear: number;
+  establishedYear?: number;
   website: string;
   description: string;
   supportedMajors: string[];
@@ -197,7 +197,7 @@ export default function UniversitiesPage() {
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="text-xl font-semibold text-gray-800">
-                        {university.name}
+                        {university.universityName}
                       </h3>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(university.connectionStatus)}`}>
                         {getStatusText(university.connectionStatus)}
@@ -208,9 +208,11 @@ export default function UniversitiesPage() {
                       <p>
                         <span className="font-medium">📍 Location:</span> {university.location}
                       </p>
-                      <p>
-                        <span className="font-medium">📅 Established:</span> {university.establishedYear}
-                      </p>
+                      {university.establishedYear && (
+                        <p>
+                          <span className="font-medium">📅 Established:</span> {university.establishedYear}
+                        </p>
+                      )}
                       {university.website && (
                         <p>
                           <span className="font-medium">🌐 Website:</span>{' '}

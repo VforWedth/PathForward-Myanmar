@@ -5,10 +5,10 @@ const {
   getStudents,
   verifyStudent,
   connectCompany,
+  getConnectionRequests,
+  updateConnectionRequest,
   getConnectedCompanies,
-  approveConnection,
-  rejectConnection,
-  getJobsFromConnectedCompanies,
+  getJobPosts,
   getEmploymentStats,
   generateReport,
   disconnectCompany
@@ -31,17 +31,14 @@ router.post('/verify-student/:studentId', verifyStudent);
 
 // Company connection routes
 router.post('/connect-company/:companyId', connectCompany);
+router.get('/connection-requests', getConnectionRequests);
+router.put('/connection-requests/:connectionId', updateConnectionRequest);
 router.get('/connected-companies', getConnectedCompanies);
-router.put('/approve-connection/:companyId', approveConnection);
-router.put('/reject-connection/:companyId', rejectConnection);
+router.get('/job-posts', getJobPosts);
 router.delete('/disconnect-company/:companyId', disconnectCompany);
-
-// Job management routes
-router.get('/jobs', getJobsFromConnectedCompanies);
 
 // Analytics and reporting routes
 router.get('/employment-stats', getEmploymentStats);
-router.get('/analytics', getEmploymentStats); // Alias for frontend consistency
 router.get('/generate-report', generateReport);
 
 module.exports = router;

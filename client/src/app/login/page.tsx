@@ -23,6 +23,17 @@ export default function Login() {
     }
   }, []);
 
+  // Check for logout message
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const message = urlParams.get('message');
+    if (message) {
+      toast.success(message);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   // Redirect after login based on user role
   useEffect(() => {
     if (user?.role === 'admin') {

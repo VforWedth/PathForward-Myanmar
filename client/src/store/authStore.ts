@@ -4,6 +4,7 @@ import api from '@/lib/api';
 interface User {
   id: string;
   email: string;
+  name?: string; // Optional name field
   role: 'admin' | 'student' | 'company' | 'university' | 'freelancer';
   isVerified: boolean;
 }
@@ -40,12 +41,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('token', token);
       console.log('Login successful, user role:', user.role);
       set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
-
-      // Add a small delay to prevent rapid state updates
-      setTimeout(() => {
-      set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
-    }, 100);
-    
       return user;
     } catch (error: any) {
       set({ isLoading: false });
@@ -75,6 +70,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem('token');
     set({ user: null, token: null, isAuthenticated: false });
+    // Redirect to login with success message
+    window.location.href = '/login?message=Successfully logged out';
   },
 
   checkAuth: async () => {
@@ -92,4 +89,5 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
     }
   },
+
 }));

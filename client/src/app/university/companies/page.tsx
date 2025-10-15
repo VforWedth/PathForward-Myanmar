@@ -43,6 +43,7 @@ interface Company {
   partnershipStatus: "pending" | "approved" | "rejected";
   contactEmail: string;
   jobsCount: number;
+  connectionId?: string;
 }
 
 interface Job {
@@ -73,13 +74,46 @@ export default function UniversityCompanies() {
       return;
     }
 
-    fetchConnectedCompanies();
-    fetchJobsFromConnectedCompanies();
+    fetchData();
   }, [user, router]);
 
-  const fetchConnectedCompanies = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch(
+      setIsLoading(true);
+      setCompanies([]); // Clear previous data
+      setJobs([]); // Clear previous data
+      
+      // Fetch connection requests (pending)
+      const requestsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        if (requestsData.success) {
+          const pendingCompanies = requestsData.connections.map((conn: any) => ({
+            id: conn.Company.id,
+            name: conn.Company.companyName,
+            industry: conn.Company.industry,
+            location: conn.Company.location,
+            website: conn.Company.website,
+            description: conn.Company.description,
+            partnershipStatus: "pending" as const,
+            contactEmail: conn.Company.User.email,
+            jobsCount: 0,
+            connectionId: conn.id
+          }));
+          setCompanies(prev => [...prev, ...pendingCompanies]);
+        }
+      }
+
+      // Fetch connected companies
+      const connectedResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connected-companies`,
         {
           headers: {
@@ -88,36 +122,28 @@ export default function UniversityCompanies() {
         }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Transform the API data to match our interface
-          const transformedCompanies: Company[] = data.connections.map((connection: any) => ({
-            id: connection.Company.id,
-            name: connection.Company.companyName,
-            industry: connection.Company.industry || 'Technology',
-            location: connection.Company.location || 'Yangon',
-            website: connection.Company.website || '#',
-            description: connection.Company.description || 'No description available',
-            partnershipStatus: connection.status === 'active' ? 'approved' : 
-                             connection.status === 'pending' ? 'pending' : 'rejected',
-            contactEmail: connection.Company.User?.email || 'contact@company.com',
-            jobsCount: 0 // Will be updated when we fetch jobs
+      if (connectedResponse.ok) {
+        const connectedData = await connectedResponse.json();
+        if (connectedData.success) {
+          const activeCompanies = connectedData.connections.map((conn: any) => ({
+            id: conn.Company.id,
+            name: conn.Company.companyName,
+            industry: conn.Company.industry,
+            location: conn.Company.location,
+            website: conn.Company.website,
+            description: conn.Company.description,
+            partnershipStatus: conn.status === 'active' ? "approved" as const : "inactive" as const,
+            contactEmail: conn.Company.User.email,
+            jobsCount: 0,
+            connectionId: conn.id
           }));
-          setCompanies(transformedCompanies);
+          setCompanies(prev => [...prev, ...activeCompanies]);
         }
       }
-    } catch (error) {
-      console.error('Error fetching connected companies:', error);
-      toast.error('Failed to load connected companies');
-    }
-  };
 
-  const fetchJobsFromConnectedCompanies = async () => {
-    try {
-      // Fetch jobs from connected companies specifically
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/jobs`,
+      // Fetch job posts from connected companies
+      const jobsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/job-posts`,
         {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -125,26 +151,33 @@ export default function UniversityCompanies() {
         }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          const transformedJobs: Job[] = data.data.map((job: any) => ({
+      if (jobsResponse.ok) {
+        const jobsData = await jobsResponse.json();
+        console.log('University jobs API response:', jobsData); // Debug log
+        if (jobsData.success) {
+          const jobPosts = jobsData.jobs.map((job: any) => ({
             id: job.id,
             title: job.title,
-            company: job.Company?.companyName || 'Unknown Company',
-            type: job.type,
+            company: job.Company.companyName,
+            type: job.jobType || job.type,
             location: job.location,
-            salary: job.salary || 'Not specified',
-            postedDate: new Date(job.createdAt).toLocaleDateString(),
-            deadline: job.deadline ? new Date(job.deadline).toLocaleDateString() : 'No deadline',
-            requirements: job.requirements || []
+            salary: job.salaryRange || job.salary,
+            postedDate: new Date(job.createdAt).toISOString().split('T')[0],
+            deadline: job.deadline,
+            requirements: job.skillsRequired || [],
+            status: job.status
           }));
-          setJobs(transformedJobs);
+          console.log('Formatted university jobs:', jobPosts); // Debug log
+          console.log('Sample job requirements:', jobPosts[0]?.requirements); // Debug log
+          setJobs(jobPosts);
         }
+      } else {
+        console.error('Failed to fetch university jobs:', jobsResponse.status, jobsResponse.statusText);
       }
+
     } catch (error) {
-      console.error('Error fetching jobs:', error);
-      toast.error('Failed to load jobs');
+      console.error('Error fetching data:', error);
+      toast.error('Error loading data');
     } finally {
       setIsLoading(false);
     }
@@ -177,77 +210,69 @@ export default function UniversityCompanies() {
     );
   };
 
-  const handleApprovePartnership = async (companyId: string) => {
+  const handleApprovePartnership = async (company: Company) => {
+    if (!company.connectionId) {
+      toast.error("Connection ID not found");
+      return;
+    }
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/approve-connection/${companyId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests/${company.connectionId}`,
         {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          body: JSON.stringify({ action: 'approve' })
         }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Update local state
-          const updatedCompanies = companies.map((c) =>
-            c.id === companyId ? { ...c, partnershipStatus: "approved" as Company["partnershipStatus"] } : c
-          );
-          setCompanies(updatedCompanies);
-          if (selectedCompany?.id === companyId) {
-            setSelectedCompany({ ...selectedCompany, partnershipStatus: "approved" as Company["partnershipStatus"] });
-          }
-          toast.success("Partnership approved successfully!");
-        } else {
-          toast.error(data.message || 'Failed to approve partnership');
-        }
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success("Partnership approved successfully!");
+        fetchData(); // Refresh data
       } else {
-        toast.error('Failed to approve partnership');
+        toast.error(data.message || "Failed to approve partnership");
       }
     } catch (error) {
       console.error('Error approving partnership:', error);
-      toast.error('Error approving partnership');
+      toast.error("Error approving partnership");
     }
   };
 
-  const handleRejectPartnership = async (companyId: string) => {
+  const handleRejectPartnership = async (company: Company) => {
+    if (!company.connectionId) {
+      toast.error("Connection ID not found");
+      return;
+    }
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/reject-connection/${companyId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests/${company.connectionId}`,
         {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          body: JSON.stringify({ action: 'reject' })
         }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // Update local state
-          const updatedCompanies = companies.map((c) =>
-            c.id === companyId ? { ...c, partnershipStatus: "rejected" as Company["partnershipStatus"] } : c
-          );
-          setCompanies(updatedCompanies);
-          if (selectedCompany?.id === companyId) {
-            setSelectedCompany({ ...selectedCompany, partnershipStatus: "rejected" as Company["partnershipStatus"] });
-          }
-          toast.info("Partnership request rejected");
-        } else {
-          toast.error(data.message || 'Failed to reject partnership');
-        }
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.info("Partnership request rejected");
+        fetchData(); // Refresh data
       } else {
-        toast.error('Failed to reject partnership');
+        toast.error(data.message || "Failed to reject partnership");
       }
     } catch (error) {
       console.error('Error rejecting partnership:', error);
-      toast.error('Error rejecting partnership');
+      toast.error("Error rejecting partnership");
     }
   };
 
@@ -399,14 +424,14 @@ export default function UniversityCompanies() {
                         {company.partnershipStatus === "pending" && (
                           <>
                             <button
-                              onClick={() => handleApprovePartnership(company.id)}
+                              onClick={() => handleApprovePartnership(company)}
                               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                             >
                               <Check className="h-4 w-4" />
                               Approve Partnership
                             </button>
                             <button
-                              onClick={() => handleRejectPartnership(company.id)}
+                              onClick={() => handleRejectPartnership(company)}
                               className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                             >
                               <XCircle className="h-4 w-4" />
@@ -482,15 +507,19 @@ export default function UniversityCompanies() {
                       <div className="mt-4">
                         <h5 className="font-semibold text-gray-700 mb-2">Requirements:</h5>
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {job.requirements.map((req, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm"
-                            >
-                              <BadgeCheck className="h-3 w-3" />
-                              {req}
-                            </span>
-                          ))}
+                          {Array.isArray(job.requirements) && job.requirements.length > 0 ? (
+                            job.requirements.map((req, i) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm"
+                              >
+                                <BadgeCheck className="h-3 w-3" />
+                                {req}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-500 text-sm">No specific requirements listed</span>
+                          )}
                         </div>
                       </div>
 
@@ -647,14 +676,14 @@ export default function UniversityCompanies() {
                   {selectedCompany.partnershipStatus === "pending" && (
                     <>
                       <button
-                        onClick={() => handleApprovePartnership(selectedCompany.id)}
+                        onClick={() => handleApprovePartnership(selectedCompany)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
                       >
                         <Check className="h-4 w-4" />
                         Approve Partnership
                       </button>
                       <button
-                        onClick={() => handleRejectPartnership(selectedCompany.id)}
+                        onClick={() => handleRejectPartnership(selectedCompany)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                       >
                         <XCircle className="h-4 w-4" />

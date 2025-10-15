@@ -28,20 +28,99 @@ export default function UniversityDashboard() {
 
   if (!user || user.role !== "university") return null;
 
-  // Mock data
-  const universityStats = {
-    totalStudents: 1250,
-    activeInternships: 47,
-    partnerCompanies: 23,
-    pendingApprovals: 12,
-  };
+  const [universityStats, setUniversityStats] = useState({
+    totalStudents: 0,
+    activeInternships: 0,
+    partnerCompanies: 0,
+    pendingApprovals: 0,
+  });
 
-  const recentActivities = [
-    { id: 1, action: "New student registration", time: "2 hours ago", type: "student" },
-    { id: 2, action: "Internship application approved", time: "5 hours ago", type: "approval" },
-    { id: 3, action: "New company partnership request", time: "1 day ago", type: "partnership" },
-    { id: 4, action: "Student profile updated", time: "1 day ago", type: "update" },
-  ];
+  const [recentActivities, setRecentActivities] = useState([
+    { id: 1, action: "Loading...", time: "", type: "loading" },
+  ]);
+
+  useEffect(() => {
+    if (user && user.role === "university") {
+      fetchDashboardData();
+    }
+  }, [user]);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch employment stats
+      const statsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/employment-stats`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        if (statsData.success) {
+          setUniversityStats(prev => ({
+            ...prev,
+            totalStudents: statsData.stats.students.total,
+            activeInternships: statsData.stats.students.onJob,
+            pendingApprovals: statsData.stats.applications.pending,
+          }));
+        }
+      }
+
+      // Fetch connection requests for pending approvals
+      const requestsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connection-requests`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        if (requestsData.success) {
+          setUniversityStats(prev => ({
+            ...prev,
+            pendingApprovals: requestsData.total
+          }));
+        }
+      }
+
+      // Fetch connected companies count
+      const connectedResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/connected-companies`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (connectedResponse.ok) {
+        const connectedData = await connectedResponse.json();
+        if (connectedData.success) {
+          setUniversityStats(prev => ({
+            ...prev,
+            partnerCompanies: connectedData.total
+          }));
+        }
+      }
+
+      // Mock recent activities for now
+      setRecentActivities([
+        { id: 1, action: "New student registration", time: "2 hours ago", type: "student" },
+        { id: 2, action: "Internship application approved", time: "5 hours ago", type: "approval" },
+        { id: 3, action: "New company partnership request", time: "1 day ago", type: "partnership" },
+        { id: 4, action: "Student profile updated", time: "1 day ago", type: "update" },
+      ]);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -107,7 +186,7 @@ export default function UniversityDashboard() {
                 }
               />
               <StatCardLink
-                href="/university/companies"
+                href="/university/connections"
                 title="Company Connections"
                 value={universityStats.partnerCompanies}
                 iconBg="bg-green-100"
@@ -137,8 +216,8 @@ export default function UniversityDashboard() {
                 }
               />
               <StatCardLink
-                href="/university/registration"
-                title="University Registration"
+                href="/university/connections"
+                title="Pending Approvals"
                 value={universityStats.pendingApprovals}
                 iconBg="bg-yellow-100"
                 iconText="text-yellow-600"

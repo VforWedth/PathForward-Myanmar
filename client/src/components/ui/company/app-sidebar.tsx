@@ -1,13 +1,15 @@
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import {
   Briefcase,
   FileText,
   MessageSquare,
   PlusCircle,
   Users,
-  GraduationCap,
+  Building2,
+  Link as LinkIcon,
 } from "lucide-react"
 import logo from "@/media/logo.png";
 import { NavMain } from "./nav-main"
@@ -20,6 +22,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useAuthStore } from "@/store/authStore"
 
 const companyNav = {
   user: {
@@ -57,7 +60,7 @@ const companyNav = {
     {
       title: "Universities",
       url: "/company/universities",
-      icon: GraduationCap,
+      icon: Building2,
       items: [
         { title: "Browse Universities", url: "/company/universities" },
         { title: "My Connections", url: "/company/universities/connected" },
@@ -67,6 +70,44 @@ const companyNav = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, logout } = useAuthStore();
+  const [companyName, setCompanyName] = useState("Company Admin");
+
+  // Fetch company profile to get company name
+  useEffect(() => {
+    const fetchCompanyProfile = async () => {
+      if (user && user.role === 'company') {
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/profile`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.companyName) {
+              setCompanyName(data.data.companyName);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching company profile:', error);
+        }
+      }
+    };
+
+    fetchCompanyProfile();
+  }, [user]);
+
+  const sidebarUser = {
+    name: companyName,
+    email: user?.email ?? "",
+    avatar: logo.src,
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -84,14 +125,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <NavUser
-  user={{
-    name: "Aung Aung",
-    email: "aung@example.com",
-    avatar: logo.src, // or leave undefined for initials
-  }}
-  onLogout={() => console.log("logout")}
-  onProfile={() => console.log("profile")}
-/>
+          user={sidebarUser}
+          onLogout={logout}
+          onProfile={() => console.log("profile")}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

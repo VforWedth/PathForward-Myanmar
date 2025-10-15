@@ -56,6 +56,7 @@ export default function CompanyJobs() {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Jobs API response:', data); // Debug log
           if (data.success) {
             // Map backend data to frontend format
             const formattedJobs = data.data.map((job: any) => ({
@@ -69,10 +70,11 @@ export default function CompanyJobs() {
               postedDate: new Date(job.createdAt).toLocaleDateString(),
               deadline: job.deadline ? new Date(job.deadline).toLocaleDateString() : 'Not specified',
             }));
+            console.log('Formatted jobs:', formattedJobs); // Debug log
             setJobs(formattedJobs);
           }
         } else {
-          console.error('Failed to fetch jobs');
+          console.error('Failed to fetch jobs:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching jobs:', error);
