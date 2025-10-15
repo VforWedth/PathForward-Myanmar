@@ -59,7 +59,7 @@ export default function QuizResultPage() {
       const API_BASE_URL = 'http://localhost:5000';
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`${API_BASE_URL}/api/quiz/attempts/${attemptId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/attempts/${attemptId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

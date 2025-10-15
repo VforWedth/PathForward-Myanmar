@@ -72,10 +72,10 @@ export default function TakeQuizPage() {
       const token = localStorage.getItem('token');
 
       console.log('Fetching quiz questions for ID:', quizId);
-      console.log('API URL:', `${API_BASE_URL}/api/quiz/${quizId}/questions`);
+      console.log('API URL:', `${API_BASE_URL}/api/quizzes/${quizId}/questions`);
       console.log('Has token:', !!token);
 
-      const response = await fetch(`${API_BASE_URL}/api/quiz/${quizId}/questions`, {
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}/questions`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export default function TakeQuizPage() {
       const startTime = quizData ? quizData.quiz.duration * 60 : 0;
       const timeSpent = startTime - timeLeft;
 
-      const response = await fetch(`${API_BASE_URL}/api/quiz/${quizId}/submit`, {
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}/submit`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
