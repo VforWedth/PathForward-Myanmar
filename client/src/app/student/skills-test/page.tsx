@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Award, Clock, Target, TrendingUp, ChevronRight, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { StudentTopNav } from '@/components/ui/student/top-nav';
+import { getQuizzes } from '@/lib/quizApi';
 
 interface Quiz {
   id: string;
@@ -42,17 +43,10 @@ export default function SkillsTestPage() {
 
   const fetchQuizzes = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const token = localStorage.getItem('token');
+      const response = await getQuizzes();
       
-      const response = await fetch(`${API_BASE_URL}/api/quiz`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setQuizzes(data.data);
+      if (response.success) {
+        setQuizzes(response.data);
       }
     } catch (error) {
       console.error('Error fetching quizzes:', error);
