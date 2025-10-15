@@ -57,22 +57,49 @@ const getQuizQuestions = async (req, res) => {
 const submitQuiz = async (req, res) => {
   try {
     const { answers, timeSpent } = req.body;
+        
+    console.log('📝 Quiz submission received:', {
+      quizId: req.params.id,
+      userId: req.user?.id,
+      answersCount: answers?.length,
+      timeSpent
+    });
+
+    // Validate request
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({ success: false, message: 'Invalid answers format' });
+    }
+
     const student = await Student.findOne({ where: { userId: req.user.id } });
-    if (!student) return res.status(404).json({ success: false, message: 'Student profile not found' });
+    if (!student) {
+      console.error('❌ Student profile not found for userId:', req.user.id);
+      return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+
     const quiz = await Quiz.findByPk(req.params.id);
-    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+    if (!quiz) {
+      console.error('❌ Quiz not found:', req.params.id);
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
     const questions = await Question.findAll({ where: { quizId: req.params.id } });
+    console.log(`📋 Found ${questions.length} questions for quiz`);
 
     let earnedPoints = 0, totalPoints = 0;
     const gradedAnswers = [];
     for (const question of questions) {
       totalPoints += question.points;
-      const studentAnswer = answers.find(a => a.questionId === question.id);
+      const studentAnswer = answers.find(a => String(a.questionId) === String(question.id));
       if (studentAnswer) {
         let isCorrect = false;
-        if (question.questionType === 'multiple_choice') isCorrect = studentAnswer.answer === question.correctAnswer;
-        else if (question.questionType === 'coding') isCorrect = studentAnswer.answer.trim() === question.correctAnswer.trim();
+        if (question.questionType === 'multiple_choice') {
+          isCorrect = String(studentAnswer.answer) === String(question.correctAnswer);
+          console.log(`✓ Q${question.orderNumber}: Student=${studentAnswer.answer}, Correct=${question.correctAnswer}, Match=${isCorrect}`);
+        } else if (question.questionType === 'coding') {
+          isCorrect = studentAnswer.answer.trim() === question.correctAnswer.trim();
+        }
+        
         if (isCorrect) earnedPoints += question.points;
+
         gradedAnswers.push({ 
           questionId: question.id, 
           answer: studentAnswer.answer, 
@@ -82,6 +109,7 @@ const submitQuiz = async (req, res) => {
           explanation: question.explanation 
         });
       } else {
+        console.log(`⚠️ No answer found for question ${question.id}`);
         gradedAnswers.push({ 
           questionId: question.id, 
           answer: null, 
@@ -95,7 +123,7 @@ const submitQuiz = async (req, res) => {
 
     const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
     const passed = score >= quiz.passingScore;
-    
+    console.log(`🎯 Quiz graded: ${earnedPoints}/${totalPoints} points = ${score}% (Pass: ${quiz.passingScore}%)`);
     // Issue certificate if score >= 85%
     const certificateIssued = score >= 85;
     const certificateUrl = certificateIssued ? `/certificates/${student.id}/${req.params.id}` : null;
@@ -113,7 +141,7 @@ const submitQuiz = async (req, res) => {
       certificateIssued,
       certificateUrl
     });
-
+    console.log(`✅ Attempt saved with ID: ${attempt.id}`);
     // Log activity if certificate issued
     if (certificateIssued) {
       const { Activity } = require('../models');
@@ -121,8 +149,16 @@ const submitQuiz = async (req, res) => {
         studentId: student.id,
         type: 'certificate_earned',
         title: `Earned ${quiz.category} Certificate`,
-        description: `Passed ${quiz.title} with ${score}% score`
+        description: `Passed ${quiz.title} with ${score}% score`,
+        relatedType: 'quiz',
+        relatedId: attempt.id,
+        metadata: {
+          quizId: quiz.id,
+          score: score,
+          certificateUrl: certificateUrl
+        }
       });
+      console.log('🏆 Certificate issued and activity logged!');
     }
 
     res.json({ 
@@ -139,14 +175,20 @@ const submitQuiz = async (req, res) => {
       } 
     });
   } catch (error) {
+    console.error('❌ Error in submitQuiz:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
 const getMyAttempts = async (req, res) => {
   try {
+    console.log('📊 Fetching attempt:', req.params.id, 'for user:', req.user?.id);
     const student = await Student.findOne({ where: { userId: req.user.id } });
-    if (!student) return res.status(404).json({ success: false, message: 'Student profile not found' });
+    if (!student) {
+      console.error('❌ Student profile not found for userId:', req.user.id);
+      return res.status(404).json({ success: false, message: 'Student profile not found' });
+    }
+    
     const attempts = await QuizAttempt.findAll({ 
       where: { studentId: student.id }, 
       include: [{ 
@@ -172,9 +214,16 @@ const getAttempt = async (req, res) => {
         attributes: ['id', 'title', 'category', 'difficulty', 'type', 'passingScore', 'totalQuestions'] 
       }] 
     });
-    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
+       
+    if (!attempt) {
+      console.error('❌ Attempt not found:', req.params.id, 'for student:', student.id);
+      return res.status(404).json({ success: false, message: 'Attempt not found' });
+    }
+    
+    console.log('✅ Attempt found:', { id: attempt.id, score: attempt.score, passed: attempt.passed });
     res.json({ success: true, data: attempt });
   } catch (error) {
+    console.error('❌ Error in getAttempt:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };

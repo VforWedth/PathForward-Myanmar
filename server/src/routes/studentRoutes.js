@@ -74,4 +74,6 @@ router.get('/reviews', getMyReviews);
 // Peer finder route
 router.get('/peers', findPeers);
 
+router.get('/certificates', getCertificates);
+
 module.exports = router;

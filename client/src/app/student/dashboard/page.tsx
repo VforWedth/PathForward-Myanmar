@@ -118,6 +118,13 @@ export default function StudentDashboard() {
                   <User2 className="h-5 w-5" />
                   Update profile
                 </Link>
+                <Link
+                  href="/student/findpeer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-[#2F4156] ring-1 ring-[#C8D9E6] transition hover:bg-[#C8D9E6]/30"
+                >
+                  <User2 className="h-5 w-5" />
+                  Find Peer
+                </Link>
               </div>
             </div>
 

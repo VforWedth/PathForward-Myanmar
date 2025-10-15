@@ -72,10 +72,10 @@ export default function TakeQuizPage() {
       const token = localStorage.getItem('token');
 
       console.log('Fetching quiz questions for ID:', quizId);
-      console.log('API URL:', `${API_BASE_URL}/api/quiz/${quizId}/questions`);
+      console.log('API URL:', `${API_BASE_URL}/api/quizzes/${quizId}/questions`);
       console.log('Has token:', !!token);
 
-      const response = await fetch(`${API_BASE_URL}/api/quiz/${quizId}/questions`, {
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}/questions`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -126,7 +126,14 @@ export default function TakeQuizPage() {
       const startTime = quizData ? quizData.quiz.duration * 60 : 0;
       const timeSpent = startTime - timeLeft;
 
-      const response = await fetch(`${API_BASE_URL}/api/quiz/${quizId}/submit`, {
+      console.log('Submitting quiz with data:', {
+        quizId,
+        answersCount: formattedAnswers.length,
+        timeSpent,
+        formattedAnswers
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}/submit`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -138,14 +145,19 @@ export default function TakeQuizPage() {
         }),
       });
 
+      console.log('Submit response status:', response.status);
       const data = await response.json();
+      console.log('Submit response data:', data);
+
       if (data.success) {
         // Redirect to results page
         router.push(`/student/quiz/result/${data.data.attemptId}`);
+      } else {
+        alert(`Failed to submit: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      alert('Failed to submit quiz. Please try again.');
+      alert(`Failed to submit quiz: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }
