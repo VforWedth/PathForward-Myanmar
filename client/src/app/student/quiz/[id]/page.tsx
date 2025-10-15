@@ -126,6 +126,13 @@ export default function TakeQuizPage() {
       const startTime = quizData ? quizData.quiz.duration * 60 : 0;
       const timeSpent = startTime - timeLeft;
 
+      console.log('Submitting quiz with data:', {
+        quizId,
+        answersCount: formattedAnswers.length,
+        timeSpent,
+        formattedAnswers
+      });
+
       const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}/submit`, {
         method: 'POST',
         headers: {
@@ -138,14 +145,19 @@ export default function TakeQuizPage() {
         }),
       });
 
+      console.log('Submit response status:', response.status);
       const data = await response.json();
+      console.log('Submit response data:', data);
+
       if (data.success) {
         // Redirect to results page
         router.push(`/student/quiz/result/${data.data.attemptId}`);
+      } else {
+        alert(`Failed to submit: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      alert('Failed to submit quiz. Please try again.');
+      alert(`Failed to submit quiz: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }

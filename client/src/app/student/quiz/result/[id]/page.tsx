@@ -59,6 +59,8 @@ export default function QuizResultPage() {
       const API_BASE_URL = 'http://localhost:5000';
       const token = localStorage.getItem('token');
 
+      console.log('Fetching quiz attempt:', attemptId);
+
       const response = await fetch(`${API_BASE_URL}/api/quizzes/attempts/${attemptId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -66,12 +68,19 @@ export default function QuizResultPage() {
         },
       });
 
+      console.log('Attempt response status:', response.status);
       const data = await response.json();
+      console.log('Attempt data:', data);
+
       if (data.success) {
         setAttemptData(data.data);
+      } else {
+        console.error('Failed to fetch attempt:', data.message);
+        alert(`Error loading results: ${data.message}`);
       }
     } catch (error) {
       console.error('Error fetching attempt:', error);
+      alert('Failed to load quiz results. Please try again.');
     } finally {
       setLoading(false);
     }
