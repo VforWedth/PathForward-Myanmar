@@ -4,6 +4,7 @@ import api from '@/lib/api';
 interface User {
   id: string;
   email: string;
+  name?: string; // Optional name field
   role: 'admin' | 'student' | 'company' | 'university' | 'freelancer';
   isVerified: boolean;
 }

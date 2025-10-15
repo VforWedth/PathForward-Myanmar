@@ -133,7 +133,7 @@ export default function JobApplicationsPage() {
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
       {/* ✅ shadcn Top Nav */}
-      <StudentTopNav userName={user?.name} alertsCount={3} onLogout={logout} />
+      <StudentTopNav userName={user?.name || user?.email?.split('@')[0]} alertsCount={3} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl p-6 md:p-8">
         {/* Filters */}
