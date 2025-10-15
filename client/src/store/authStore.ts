@@ -33,7 +33,6 @@ interface AuthState {
   logout: () => void;
   checkAuth: () => Promise<void>;
   fetchProfileData: () => Promise<void>;
-  getDisplayName: () => string;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -156,12 +155,4 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  getDisplayName: () => {
-    const { user } = useAuthStore.getState();
-    if (!user) return 'User';
-    
-    // Import the utility function dynamically to avoid circular imports
-    const { getDisplayName } = require('@/utils/getDisplayName');
-    return getDisplayName(user, user.profileData);
-  },
 }));
