@@ -42,6 +42,8 @@ interface ConnectionRequest {
     location: string;
     website: string;
     description: string;
+    companySize?: string;
+    logo?: string;
     User: {
       email: string;
       isVerified: boolean;
@@ -58,6 +60,8 @@ export default function UniversityConnections() {
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Array<{id: string, type: 'success' | 'error' | 'info' | 'warning', title: string, message: string}>>([]);
+  const [selectedCompany, setSelectedCompany] = useState<ConnectionRequest | null>(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== "university") {
@@ -341,31 +345,41 @@ export default function UniversityConnections() {
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          onClick={() => handleApproveRequest(request.id)}
-                          disabled={processingId === request.id}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:bg-gray-400"
-                        >
-                          <Check className="h-4 w-4" />
-                          {processingId === request.id ? 'Processing...' : 'Approve'}
-                        </button>
-                        <button
-                          onClick={() => handleRejectRequest(request.id)}
-                          disabled={processingId === request.id}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm disabled:bg-gray-400"
-                        >
-                          <X className="h-4 w-4" />
-                          {processingId === request.id ? 'Processing...' : 'Reject'}
-                        </button>
-                        <button
-                          onClick={() => window.open(`mailto:${request.Company.User.email}?subject=Partnership Inquiry&body=Hello ${request.Company.companyName},`, "_blank")}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          <Mail className="h-4 w-4" />
-                          Contact
-                        </button>
-                      </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => {
+                          setSelectedCompany(request);
+                          setShowCompanyModal(true);
+                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                      >
+                        <Building2 className="h-4 w-4" />
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleApproveRequest(request.id)}
+                        disabled={processingId === request.id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm disabled:bg-gray-400"
+                      >
+                        <Check className="h-4 w-4" />
+                        {processingId === request.id ? 'Processing...' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => handleRejectRequest(request.id)}
+                        disabled={processingId === request.id}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm disabled:bg-gray-400"
+                      >
+                        <X className="h-4 w-4" />
+                        {processingId === request.id ? 'Processing...' : 'Reject'}
+                      </button>
+                      <button
+                        onClick={() => window.open(`mailto:${request.Company.User.email}?subject=Partnership Inquiry&body=Hello ${request.Company.companyName},`, "_blank")}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Contact
+                      </button>
+                    </div>
                     </div>
                   ))}
                 </div>
@@ -473,6 +487,196 @@ export default function UniversityConnections() {
           </div>
         </main>
       </SidebarInset>
+
+      {/* Company Details Modal */}
+      {showCompanyModal && selectedCompany && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-semibold text-gray-900">{selectedCompany.Company.companyName}</h3>
+                <p className="text-gray-600 mt-1">{selectedCompany.Company.industry}</p>
+              </div>
+              <button
+                onClick={() => setShowCompanyModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Status Badge */}
+              <div>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(selectedCompany.status)}`}>
+                  {selectedCompany.status === 'active' && <Check className="h-4 w-4" />}
+                  {selectedCompany.status === 'pending' && <Clock className="h-4 w-4" />}
+                  {selectedCompany.status === 'rejected' && <X className="h-4 w-4" />}
+                  {getStatusText(selectedCompany.status)}
+                </span>
+              </div>
+
+              {/* Company Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Contact Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <Mail className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Email:</span>
+                        <br />
+                        <a href={`mailto:${selectedCompany.Company.User.email}`} className="text-blue-600 hover:underline">
+                          {selectedCompany.Company.User.email}
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Location:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedCompany.Company.location}</span>
+                      </div>
+                    </div>
+                    {selectedCompany.Company.website && (
+                      <div className="flex items-start gap-2">
+                        <Globe className="h-4 w-4 text-gray-500 mt-0.5" />
+                        <div>
+                          <span className="font-medium text-gray-700">Website:</span>
+                          <br />
+                          <a
+                            href={selectedCompany.Company.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {selectedCompany.Company.website}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Company Details</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <Building2 className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Industry:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedCompany.Company.industry}</span>
+                      </div>
+                    </div>
+                    {selectedCompany.Company.companySize && (
+                      <div className="flex items-start gap-2">
+                        <Users className="h-4 w-4 text-gray-500 mt-0.5" />
+                        <div>
+                          <span className="font-medium text-gray-700">Company Size:</span>
+                          <br />
+                          <span className="text-gray-600">{selectedCompany.Company.companySize} employees</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2">
+                      <CalendarDays className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Request Date:</span>
+                        <br />
+                        <span className="text-gray-600">{new Date(selectedCompany.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    {selectedCompany.connectedAt && (
+                      <div className="flex items-start gap-2">
+                        <Check className="h-4 w-4 text-green-500 mt-0.5" />
+                        <div>
+                          <span className="font-medium text-gray-700">Connected Since:</span>
+                          <br />
+                          <span className="text-gray-600">{new Date(selectedCompany.connectedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">About the Company</h4>
+                <p className="text-sm text-gray-600 leading-relaxed">{selectedCompany.Company.description}</p>
+              </div>
+
+              {/* Verification Status */}
+              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                {selectedCompany.Company.User.isVerified ? (
+                  <>
+                    <Check className="h-5 w-5 text-green-600" />
+                    <span className="text-sm text-gray-700">
+                      <span className="font-medium">Verified Company</span> - Email address confirmed
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <span className="text-sm text-gray-700">
+                      <span className="font-medium">Unverified</span> - Email not yet confirmed
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 border-t flex flex-wrap gap-3">
+                <button
+                  onClick={() => window.open(`mailto:${selectedCompany.Company.User.email}?subject=Partnership Inquiry from ${selectedCompany.Company.companyName}`, "_blank")}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <Mail className="h-4 w-4" />
+                  Contact Company
+                </button>
+                
+                {selectedCompany.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowCompanyModal(false);
+                        handleApproveRequest(selectedCompany.id);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                    >
+                      <Check className="h-4 w-4" />
+                      Approve Connection
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowCompanyModal(false);
+                        handleRejectRequest(selectedCompany.id);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                    >
+                      <X className="h-4 w-4" />
+                      Reject Request
+                    </button>
+                  </>
+                )}
+
+                {selectedCompany.status === 'active' && (
+                  <button
+                    onClick={() => router.push(`/university/companies?tab=jobs&company=${selectedCompany.Company.id}`)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                  >
+                    <Users className="h-4 w-4" />
+                    View Job Postings
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </SidebarProvider>
   );
 }

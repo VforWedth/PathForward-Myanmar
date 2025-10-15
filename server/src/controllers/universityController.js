@@ -835,21 +835,28 @@ const getJobPosts = async (req, res) => {
       });
     }
 
-    // Build where clause for jobs
+    // Build where clause for jobs with university-specific filtering
+    console.log(`[Job Filter] University ID: ${university.id}`);
+    console.log(`[Job Filter] Connected Companies: ${companyIds.length}`);
+
     const whereClause = {
-      companyId: { [Op.in]: companyIds }
+      companyId: { [Op.in]: companyIds },
+      status: status || 'active',  // Default to active jobs
+      [Op.or]: [
+        { isPublic: true },  // Show public jobs from connected companies
+        {
+          isPublic: false,
+          targetUniversities: { [Op.contains]: [university.id] }  // Show targeted jobs
+        }
+      ]
     };
 
     if (companyId) {
       whereClause.companyId = companyId;
     }
 
-    if (status) {
-      whereClause.status = status;
-    }
-
     if (type) {
-      whereClause.type = type;
+      whereClause.jobType = type;
     }
 
     const jobs = await Job.findAndCountAll({
@@ -869,6 +876,15 @@ const getJobPosts = async (req, res) => {
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [['createdAt', 'DESC']]
+    });
+
+    // Log job filtering results
+    console.log(`[Job Filter] Total jobs found: ${jobs.count}`);
+    console.log(`[Job Filter] Jobs breakdown:`);
+    jobs.rows.forEach(job => {
+      const visibility = job.isPublic ? 'PUBLIC' : `TARGETED (${job.targetUniversities?.length || 0} universities)`;
+      const isTargeted = job.targetUniversities?.includes(university.id) ? '✓ INCLUDES THIS UNI' : '✗ DOES NOT INCLUDE';
+      console.log(`  - ${job.title} | ${visibility} | ${isTargeted}`);
     });
 
     res.json({

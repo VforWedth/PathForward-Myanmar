@@ -70,7 +70,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       { title: "Company Connections", url: "/university/companies", icon: Building2 },
       { title: "Connection Management", url: "/university/connections", icon: LinkIcon },
       { title: "Employment Tracking", url: "/university/employment", icon: FileCheck2 },
-      { title: "University Registration", url: "/university/registration", icon: ClipboardList },
+      // { title: "University Registration", url: "/university/registration", icon: ClipboardList },
     ],
     pathname
   );

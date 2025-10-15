@@ -55,6 +55,28 @@ exports.createJob = async (req, res) => {
       });
     }
 
+    // Validate application deadline
+    if (applicationDeadline) {
+      const deadlineDate = new Date(applicationDeadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      deadlineDate.setHours(0, 0, 0, 0);
+
+      if (deadlineDate < today) {
+        return res.status(400).json({
+          success: false,
+          message: 'Application deadline cannot be in the past'
+        });
+      }
+
+      // Warn if deadline is more than 6 months away
+      const sixMonthsFromNow = new Date();
+      sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+      if (deadlineDate > sixMonthsFromNow) {
+        console.warn(`[Job Creation] Warning: Job deadline is more than 6 months away: ${applicationDeadline}`);
+      }
+    }
+
     // Validate target universities if provided
     if (targetUniversities && targetUniversities.length > 0) {
       // Check if company is connected to these universities
@@ -66,13 +88,20 @@ exports.createJob = async (req, res) => {
           status: 'active'
         }
       });
-      
+
       if (connections.length !== targetUniversities.length) {
         return res.status(400).json({
           success: false,
           message: 'You can only post jobs to universities you are connected with'
         });
       }
+
+      console.log(`[Job Creation] Job will be targeted to ${targetUniversities.length} universities`);
+    } else if (!isPublic || isPublic === false) {
+      return res.status(400).json({
+        success: false,
+        message: 'Private jobs must specify target universities'
+      });
     }
 
     // Create job
@@ -264,8 +293,46 @@ exports.updateJob = async (req, res) => {
       majorsPreferred,
       experienceLevel,
       numberOfPositions,
-      status
+      status,
+      targetUniversities,
+      isPublic
     } = req.body;
+
+    // Validate application deadline if provided
+    if (applicationDeadline) {
+      const deadlineDate = new Date(applicationDeadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      deadlineDate.setHours(0, 0, 0, 0);
+
+      if (deadlineDate < today) {
+        return res.status(400).json({
+          success: false,
+          message: 'Application deadline cannot be in the past'
+        });
+      }
+    }
+
+    // Validate target universities if being updated
+    if (targetUniversities && targetUniversities.length > 0) {
+      const { UniversityCompanyConnection } = require('../models');
+      const connections = await UniversityCompanyConnection.findAll({
+        where: {
+          companyId: company.id,
+          universityId: targetUniversities,
+          status: 'active'
+        }
+      });
+
+      if (connections.length !== targetUniversities.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'You can only target universities you are connected with'
+        });
+      }
+
+      console.log(`[Job Update] Job ${job.id} updated to target ${targetUniversities.length} universities`);
+    }
 
     await job.update({
       title: title || job.title,
@@ -280,7 +347,9 @@ exports.updateJob = async (req, res) => {
       experienceLevel: experienceLevel || job.experienceLevel,
       numberOfPositions: numberOfPositions || job.numberOfPositions,
       deadline: applicationDeadline ? new Date(applicationDeadline) : job.deadline,
-      status: status || job.status
+      status: status || job.status,
+      targetUniversities: targetUniversities !== undefined ? targetUniversities : job.targetUniversities,
+      isPublic: isPublic !== undefined ? isPublic : job.isPublic
     });
 
     res.json({

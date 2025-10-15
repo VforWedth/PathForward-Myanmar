@@ -1,7 +1,7 @@
 // app/university/companies/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "react-toastify";
@@ -44,18 +44,23 @@ interface Company {
   contactEmail: string;
   jobsCount: number;
   connectionId?: string;
+  connectedAt?: string;
 }
 
 interface Job {
   id: string;
   title: string;
   company: string;
+  companyId: string;
   type: string;
   location: string;
   salary: string;
   postedDate: string;
   deadline: string;
   requirements: string[];
+  status: string;
+  isPublic: boolean;
+  targetUniversities: string[];
 }
 
 export default function UniversityCompanies() {
@@ -67,17 +72,14 @@ export default function UniversityCompanies() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showJobModal, setShowJobModal] = useState(false);
 
-  useEffect(() => {
-    if (!user || user.role !== "university") {
-      router.push("/login");
-      return;
-    }
+  // Separate counters for better UX
+  const approvedCompaniesCount = companies.filter(c => c.partnershipStatus === 'approved').length;
+  const activeJobsCount = jobs.filter(j => j.status === 'active').length;
 
-    fetchData();
-  }, [user, router]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
       setCompanies([]); // Clear previous data
@@ -93,8 +95,11 @@ export default function UniversityCompanies() {
         }
       );
 
+      let allCompanies: Company[] = [];
+
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json();
+        console.log('Connection requests response:', requestsData);
         if (requestsData.success) {
           const pendingCompanies = requestsData.connections.map((conn: any) => ({
             id: conn.Company.id,
@@ -108,8 +113,11 @@ export default function UniversityCompanies() {
             jobsCount: 0,
             connectionId: conn.id
           }));
-          setCompanies(prev => [...prev, ...pendingCompanies]);
+          console.log(`Found ${pendingCompanies.length} pending companies`);
+          allCompanies = [...allCompanies, ...pendingCompanies];
         }
+      } else {
+        console.error('Failed to fetch connection requests:', requestsResponse.status);
       }
 
       // Fetch connected companies
@@ -124,6 +132,7 @@ export default function UniversityCompanies() {
 
       if (connectedResponse.ok) {
         const connectedData = await connectedResponse.json();
+        console.log('Connected companies response:', connectedData);
         if (connectedData.success) {
           const activeCompanies = connectedData.connections.map((conn: any) => ({
             id: conn.Company.id,
@@ -135,10 +144,14 @@ export default function UniversityCompanies() {
             partnershipStatus: conn.status === 'active' ? "approved" as const : "inactive" as const,
             contactEmail: conn.Company.User.email,
             jobsCount: 0,
-            connectionId: conn.id
+            connectionId: conn.id,
+            connectedAt: conn.connectedAt
           }));
-          setCompanies(prev => [...prev, ...activeCompanies]);
+          console.log(`Found ${activeCompanies.length} connected companies`);
+          allCompanies = [...allCompanies, ...activeCompanies];
         }
+      } else {
+        console.error('Failed to fetch connected companies:', connectedResponse.status);
       }
 
       // Fetch job posts from connected companies
@@ -153,27 +166,38 @@ export default function UniversityCompanies() {
 
       if (jobsResponse.ok) {
         const jobsData = await jobsResponse.json();
-        console.log('University jobs API response:', jobsData); // Debug log
+        console.log('University jobs API response:', jobsData);
         if (jobsData.success) {
           const jobPosts = jobsData.jobs.map((job: any) => ({
             id: job.id,
             title: job.title,
             company: job.Company.companyName,
+            companyId: job.Company.id,
             type: job.jobType || job.type,
             location: job.location,
             salary: job.salaryRange || job.salary,
             postedDate: new Date(job.createdAt).toISOString().split('T')[0],
-            deadline: job.deadline,
+            deadline: job.deadline ? new Date(job.deadline).toISOString().split('T')[0] : 'Not specified',
             requirements: job.skillsRequired || [],
-            status: job.status
+            status: job.status,
+            isPublic: job.isPublic !== false,  // Default to true if not specified
+            targetUniversities: job.targetUniversities || []
           }));
-          console.log('Formatted university jobs:', jobPosts); // Debug log
-          console.log('Sample job requirements:', jobPosts[0]?.requirements); // Debug log
+          console.log('Formatted university jobs:', jobPosts);
           setJobs(jobPosts);
+
+          // Update company job counts dynamically
+          allCompanies.forEach(company => {
+            company.jobsCount = jobPosts.filter((j: any) => j.companyId === company.id).length;
+          });
         }
       } else {
         console.error('Failed to fetch university jobs:', jobsResponse.status, jobsResponse.statusText);
       }
+
+      // Set all companies at once after calculating job counts
+      setCompanies(allCompanies);
+      console.log('Final companies with job counts:', allCompanies);
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -181,7 +205,27 @@ export default function UniversityCompanies() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!user || user.role !== "university") {
+      router.push("/login");
+      return;
+    }
+
+    console.log('Page loaded - fetching data...');
+    fetchData();
+  }, [user, router, fetchData]);
+
+  // Debug: Log counts when data changes
+  useEffect(() => {
+    console.log('=== DATA UPDATE ===');
+    console.log(`Total companies: ${companies.length}`);
+    console.log(`  - Pending: ${companies.filter(c => c.partnershipStatus === 'pending').length}`);
+    console.log(`  - Approved: ${approvedCompaniesCount}`);
+    console.log(`Total jobs: ${jobs.length}`);
+    console.log(`  - Active: ${activeJobsCount}`);
+  }, [companies, jobs, approvedCompaniesCount, activeJobsCount]);
 
   const getStatusColor = (status: Company["partnershipStatus"]) => {
     switch (status) {
@@ -281,11 +325,22 @@ export default function UniversityCompanies() {
   };
 
   const handleViewJobDetails = (job: Job) => {
-    toast.info(`Viewing details for: ${job.title}`);
+    setSelectedJob(job);
+    setShowJobModal(true);
   };
 
-  const handleShareWithStudents = (job: Job) => {
-    toast.success(`Job "${job.title}" shared with students!`);
+  const handleShareWithStudents = async (job: Job) => {
+    // In a full implementation, this could:
+    // 1. Send email notifications to students
+    // 2. Create announcements
+    // 3. Post to student dashboard
+    // For now, we'll just show a success message since jobs from connected companies
+    // are already visible to students
+    
+    toast.success(
+      `Job "${job.title}" from ${job.company} is now visible to your students! Students can find it in their job board.`,
+      { autoClose: 5000 }
+    );
   };
 
   const handleSaveJob = (job: Job) => {
@@ -312,6 +367,18 @@ export default function UniversityCompanies() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             <h1 className="text-xl font-semibold text-gray-900">Company Connections</h1>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setIsLoading(true);
+                  fetchData();
+                }}
+                disabled={isLoading}
+                className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm disabled:bg-gray-400"
+              >
+                {isLoading ? 'Refreshing...' : 'Refresh Data'}
+              </button>
+            </div>
           </div>
         </header>
 
@@ -330,7 +397,7 @@ export default function UniversityCompanies() {
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
-                    Partner Companies ({companies.length})
+                    Partner Companies ({approvedCompaniesCount})
                   </button>
                   <button
                     onClick={() => setActiveTab("jobs")}
@@ -340,7 +407,7 @@ export default function UniversityCompanies() {
                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                   >
-                    Available Jobs ({jobs.length})
+                    Available Jobs ({activeJobsCount})
                   </button>
                 </nav>
               </div>
@@ -351,7 +418,12 @@ export default function UniversityCompanies() {
               <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b">
                   <h3 className="text-xl font-semibold">Partner Companies</h3>
-                  <p className="text-gray-600">Companies connected with your university</p>
+                  <p className="text-gray-600">
+                    {approvedCompaniesCount} active partner{approvedCompaniesCount !== 1 ? 's' : ''} 
+                    {companies.filter(c => c.partnershipStatus === 'pending').length > 0 && 
+                      ` • ${companies.filter(c => c.partnershipStatus === 'pending').length} pending`
+                    }
+                  </p>
                 </div>
 
                 <div className="divide-y">
@@ -466,7 +538,9 @@ export default function UniversityCompanies() {
               <div className="bg-white rounded-lg shadow-md">
                 <div className="p-6 border-b">
                   <h3 className="text-xl font-semibold">Available Jobs</h3>
-                  <p className="text-gray-600">Job opportunities from partner companies</p>
+                  <p className="text-gray-600">
+                    {activeJobsCount} active job{activeJobsCount !== 1 ? 's' : ''} from {approvedCompaniesCount} partner compan{approvedCompaniesCount !== 1 ? 'ies' : 'y'}
+                  </p>
                 </div>
 
                 <div className="divide-y">
@@ -474,7 +548,21 @@ export default function UniversityCompanies() {
                     <div key={job.id} className="p-6 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-800">{job.title}</h4>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="text-lg font-semibold text-gray-800">{job.title}</h4>
+                            {/* Job Visibility Badge */}
+                            {(job as any).isPublic ? (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                <Globe className="h-3 w-3" />
+                                Public
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                <BadgeCheck className="h-3 w-3" />
+                                Targeted to Us
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-700">
                             <span className="inline-flex items-center gap-1.5">
                               <Building2 className="h-4 w-4 text-gray-500" />
@@ -636,14 +724,12 @@ export default function UniversityCompanies() {
                       <Briefcase className="h-4 w-4 text-gray-500" />
                       <span className="font-medium">Active Jobs:</span> {selectedCompany.jobsCount}
                     </p>
-                    <p className="inline-flex items-center gap-2">
-                      <Users className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Students Hired:</span> 45
-                    </p>
-                    <p className="inline-flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Partnership Since:</span> 2023
-                    </p>
+                    {selectedCompany.connectedAt && (
+                      <p className="inline-flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-gray-500" />
+                        <span className="font-medium">Partnership Since:</span> {new Date(selectedCompany.connectedAt).toLocaleDateString()}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -692,6 +778,141 @@ export default function UniversityCompanies() {
                     </>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Job Details Modal */}
+      {showJobModal && selectedJob && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-2xl font-semibold text-gray-900">{selectedJob.title}</h3>
+                <p className="text-gray-600 mt-1">{selectedJob.company}</p>
+              </div>
+              <button
+                onClick={() => setShowJobModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Job Details Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Job Information</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <Briefcase className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Job Type:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.type}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Location:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.location}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <DollarSign className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Salary:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.salary}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Timeline</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <CalendarDays className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Posted Date:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.postedDate}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CalendarDays className="h-4 w-4 text-gray-500 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-gray-700">Application Deadline:</span>
+                        <br />
+                        <span className="text-gray-600">{selectedJob.deadline || 'Not specified'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Requirements */}
+              {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-3">Requirements & Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedJob.requirements.map((req, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                      >
+                        <BadgeCheck className="h-3 w-3" />
+                        {req}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Company Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 mb-2">About {selectedJob.company}</h4>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Building2 className="h-4 w-4" />
+                  <span>Company is a verified partner of your university</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 border-t flex flex-wrap gap-3">
+                <button
+                  onClick={() => {
+                    handleShareWithStudents(selectedJob);
+                    setShowJobModal(false);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                >
+                  <Users className="h-4 w-4" />
+                  Share with Students
+                </button>
+                <button
+                  onClick={() => {
+                    handleSaveJob(selectedJob);
+                    setShowJobModal(false);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+                >
+                  <BriefcaseBusiness className="h-4 w-4" />
+                  Save Job
+                </button>
+                <button
+                  onClick={() => setShowJobModal(false)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

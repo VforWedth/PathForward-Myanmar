@@ -524,4 +524,95 @@ exports.getCompanyAnalytics = async (req, res) => {
   }
 };
 
+// @desc    Get university job posting analytics
+// @route   GET /api/company/analytics/universities
+// @access  Private (Company)
+exports.getUniversityJobAnalytics = async (req, res) => {
+  try {
+    const { sequelize } = require('../config/database');
+    const { University } = require('../models');
+
+    const company = await Company.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company profile not found'
+      });
+    }
+
+    // Get all jobs for this company
+    const jobs = await Job.findAll({
+      where: { companyId: company.id },
+      attributes: ['id', 'title', 'isPublic', 'targetUniversities', 'createdAt', 'status']
+    });
+
+    console.log(`[Analytics] Analyzing ${jobs.length} jobs for company ${company.companyName}`);
+
+    // Calculate statistics
+    const totalJobs = jobs.length;
+    const publicJobs = jobs.filter(j => j.isPublic).length;
+    const targetedJobs = jobs.filter(j => !j.isPublic).length;
+
+    // Count jobs per university
+    const universityJobCount = {};
+    jobs.forEach(job => {
+      if (!job.isPublic && job.targetUniversities && Array.isArray(job.targetUniversities)) {
+        job.targetUniversities.forEach(uniId => {
+          universityJobCount[uniId] = (universityJobCount[uniId] || 0) + 1;
+        });
+      }
+    });
+
+    // Get university details
+    const universityIds = Object.keys(universityJobCount);
+    const universities = await University.findAll({
+      where: { id: universityIds },
+      attributes: ['id', 'universityName', 'location']
+    });
+
+    const universityAnalytics = universities.map(uni => ({
+      universityId: uni.id,
+      universityName: uni.universityName,
+      location: uni.location,
+      jobsPosted: universityJobCount[uni.id] || 0
+    })).sort((a, b) => b.jobsPosted - a.jobsPosted);
+
+    console.log(`[Analytics] Job distribution: ${publicJobs} public, ${targetedJobs} targeted to ${universityIds.length} universities`);
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          totalJobs,
+          publicJobs,
+          targetedJobs,
+          universitiesTargeted: universityIds.length
+        },
+        universityBreakdown: universityAnalytics,
+        recentTargetedJobs: jobs
+          .filter(j => !j.isPublic && j.targetUniversities && j.targetUniversities.length > 0)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5)
+          .map(j => ({
+            id: j.id,
+            title: j.title,
+            targetedUniversities: j.targetUniversities.length,
+            status: j.status,
+            postedDate: j.createdAt
+          }))
+      }
+    });
+  } catch (error) {
+    console.error('Get university job analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = exports;

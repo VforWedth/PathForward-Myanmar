@@ -304,7 +304,7 @@ exports.getUniversityStudents = async (req, res) => {
         },
         {
           model: University,
-          attributes: ['name']
+          attributes: ['id', 'universityName', 'location']
         }
       ],
       order: [['createdAt', 'DESC']]

@@ -24,6 +24,7 @@ router.put('/profile', companyController.updateProfile);
 router.get('/dashboard/stats', companyController.getDashboardStats);
 router.get('/dashboard/activity', companyController.getRecentActivity);
 router.get('/analytics', companyController.getCompanyAnalytics);
+router.get('/analytics/universities', companyController.getUniversityJobAnalytics);
 
 // Job routes
 router.post('/jobs', jobController.createJob);
