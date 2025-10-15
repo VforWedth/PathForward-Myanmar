@@ -307,8 +307,27 @@ POST /api/quizzes/:quizId/submit
 - [x] Improved user feedback
 - [x] Created testing guide
 - [x] Documented data flow
+- [x] Fixed certificate issuance error (Activity model)
+
+---
+
+## 🆕 Additional Fix: Certificate Error (2025-10-15)
+
+### Issue:
+When scoring ≥ 85%, an error occurred:
+```
+❌ Error: Cannot read properties of undefined (reading 'create')
+```
+
+### Cause:
+Code tried to use non-existent `Activity` model for logging certificate achievements.
+
+### Fix:
+Removed Activity logging - certificate info is already stored in `QuizAttempt` record.
+
+**See:** `QUIZ_CERTIFICATE_ERROR_FIX.md` for detailed documentation.
 
 ---
 
 **Last Updated:** 2025-10-15
-**Status:** ✅ READY FOR TESTING
+**Status:** ✅ READY FOR TESTING - ALL ISSUES RESOLVED

@@ -156,9 +156,16 @@ const submitQuiz = async (req, res) => {
         studentId: student.id,
         type: 'certificate_earned',
         title: `Earned ${quiz.category} Certificate`,
-        description: `Passed ${quiz.title} with ${score}% score`
+        description: `Passed ${quiz.title} with ${score}% score`,
+        relatedType: 'quiz',
+        relatedId: attempt.id,
+        metadata: {
+          quizId: quiz.id,
+          score: score,
+          certificateUrl: certificateUrl
+        }
       });
-      console.log('🏆 Certificate issued!');
+      console.log('🏆 Certificate issued and activity logged!');
     }
 
     res.json({ 
