@@ -8,6 +8,8 @@ import {
   MessageSquare,
   PlusCircle,
   Users,
+  Building2,
+  Link as LinkIcon,
 } from "lucide-react"
 import logo from "@/media/logo.png";
 import { NavMain } from "./nav-main"
@@ -53,6 +55,15 @@ const companyNav = {
       items: [
         { title: "All Jobs", url: "/company/jobs" },
         { title: "Post Job", url: "/company/jobs/post" },
+      ],
+    },
+    {
+      title: "Universities",
+      url: "/company/universities",
+      icon: Building2,
+      items: [
+        { title: "Browse Universities", url: "/company/universities" },
+        { title: "My Connections", url: "/company/universities/connected" },
       ],
     },
   ],
