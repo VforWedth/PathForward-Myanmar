@@ -8,23 +8,23 @@ async function testQuizAPI() {
 
   try {
     // Test 1: Categories (no auth required)
-    console.log('Test 1: GET /api/quiz/categories');
-    const categoriesRes = await axios.get(`${BASE_URL}/api/quiz/categories`);
+    console.log('Test 1: GET /api/quizzes/categories');
+    const categoriesRes = await axios.get(`${BASE_URL}/api/quizzes/categories`);
     console.log('✅ Categories:', categoriesRes.data);
     console.log('');
 
     // Test 2: Get all quizzes (needs auth)
-    console.log('Test 2: GET /api/quiz (with mock student role)');
+    console.log('Test 2: GET /api/quizzes (with mock student role)');
     
     // You need to replace this with a real token from your login
     const token = 'YOUR_TOKEN_HERE'; // <-- REPLACE THIS
     
     if (token === 'YOUR_TOKEN_HERE') {
       console.log('⚠️  No token provided. Trying without auth...');
-      const quizzesRes = await axios.get(`${BASE_URL}/api/quiz`);
+      const quizzesRes = await axios.get(`${BASE_URL}/api/quizzes`);
       console.log('Response:', quizzesRes.data);
     } else {
-      const quizzesRes = await axios.get(`${BASE_URL}/api/quiz`, {
+        const quizzesRes = await axios.get(`${BASE_URL}/api/quizzes` , {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('✅ Quizzes:', quizzesRes.data);

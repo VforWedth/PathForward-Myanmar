@@ -59,7 +59,7 @@ import {
   updateCertificate,
   deleteCertificate
 } from '@/lib/studentApi';
-
+import { getFileUrl } from '@/lib/api';
 interface StudentProfile {
   id: string;
   firstName: string;
@@ -348,9 +348,9 @@ export default function StudentProfilePage() {
               <div className="relative z-10 flex items-start justify-between gap-6">
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    {profile.profilePicture ? (
+                  {getFileUrl(profile.profilePicture) ? (
                       <img 
-                        src={profile.profilePicture} 
+                      src={getFileUrl(profile.profilePicture)!}
                         alt="Profile" 
                         className="h-16 w-16 rounded-2xl object-cover ring-1 ring-[#E3EAF1]"
                       />
@@ -893,9 +893,9 @@ export default function StudentProfilePage() {
                     }} 
                     className="mt-3" 
                   />
-                  {profile.cvUrl && (
+                  {profile.cvUrl && getFileUrl(profile.cvUrl) && (
                     <Button asChild variant="secondary" className="mt-2 w-full">
-                      <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={getFileUrl(profile.cvUrl)!} target="_blank" rel="noopener noreferrer" download>
                         <FileDown className="mr-2 h-4 w-4" /> Download CV
                       </a>
                     </Button>

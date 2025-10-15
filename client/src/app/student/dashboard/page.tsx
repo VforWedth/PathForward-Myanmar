@@ -274,10 +274,10 @@ export default function StudentDashboard() {
                 Try the career compass to discover roles that match your skills.
               </p>
               <Link
-                href="/student/compass"
+                href="/university/dashboard"
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#2F4156] px-3 py-2 text-white shadow-sm transition hover:translate-y-[-1px]"
               >
-                <Compass className="h-4 w-4" /> Open Career Compass
+                <Compass className="h-4 w-4" /> Browse Jobs
               </Link>
             </div>
           </div>

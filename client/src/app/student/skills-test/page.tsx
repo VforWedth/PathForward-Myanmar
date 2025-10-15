@@ -45,7 +45,7 @@ export default function SkillsTestPage() {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_BASE_URL}/api/quiz`, {
+      const response = await fetch(`${API_BASE_URL}/api/quizzes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
