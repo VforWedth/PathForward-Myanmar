@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { useEffect, useState } from "react"
-import { getDisplayName } from "@/utils/getDisplayName"
 import {
   Briefcase,
   FileText,
@@ -60,17 +59,40 @@ const companyNav = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, logout, fetchProfileData } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const [companyName, setCompanyName] = useState("Company Admin");
 
   // Fetch company profile to get company name
   useEffect(() => {
-    if (user && user.role === 'company') {
-      fetchProfileData();
-    }
-  }, [user, fetchProfileData]);
+    const fetchCompanyProfile = async () => {
+      if (user && user.role === 'company') {
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/profile`,
+            {
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+              }
+            }
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.companyName) {
+              setCompanyName(data.data.companyName);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching company profile:', error);
+        }
+      }
+    };
+
+    fetchCompanyProfile();
+  }, [user]);
 
   const sidebarUser = {
-    name: getDisplayName(user, user?.profileData),
+    name: companyName,
     email: user?.email ?? "",
     avatar: logo.src,
   };

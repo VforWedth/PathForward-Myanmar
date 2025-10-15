@@ -4,22 +4,9 @@ import api from '@/lib/api';
 interface User {
   id: string;
   email: string;
-  name?: string; // Optional direct name field
+  name?: string; // Optional name field
   role: 'admin' | 'student' | 'company' | 'university' | 'freelancer';
   isVerified: boolean;
-  
-  // Role-specific profile data (optional, fetched when needed)
-  profileData?: {
-    // Company fields
-    companyName?: string;
-    
-    // Student/Freelancer fields
-    firstName?: string;
-    lastName?: string;
-    
-    // University fields
-    universityName?: string;
-  };
 }
 
 interface AuthState {
@@ -32,7 +19,6 @@ interface AuthState {
   register: (data: any) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
-  fetchProfileData: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -101,57 +87,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       localStorage.removeItem('token');
       set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
-    }
-  },
-
-  fetchProfileData: async () => {
-    const { user, token } = useAuthStore.getState();
-    if (!user || !token) return;
-
-    try {
-      let profileResponse;
-      
-      switch (user.role) {
-        case 'company':
-          profileResponse = await api.get('/company/profile');
-          break;
-        case 'student':
-          profileResponse = await api.get('/student/profile');
-          break;
-        case 'university':
-          profileResponse = await api.get('/university/profile');
-          break;
-        case 'freelancer':
-          profileResponse = await api.get('/freelancer/profile');
-          break;
-        default:
-          return;
-      }
-
-      if (profileResponse.data.success) {
-        const profileData = profileResponse.data.data;
-        
-        // Map profile data to our interface
-        const mappedProfileData: any = {};
-        
-        if (user.role === 'company') {
-          mappedProfileData.companyName = profileData.companyName;
-        } else if (user.role === 'student' || user.role === 'freelancer') {
-          mappedProfileData.firstName = profileData.firstName;
-          mappedProfileData.lastName = profileData.lastName;
-        } else if (user.role === 'university') {
-          mappedProfileData.universityName = profileData.universityName;
-        }
-
-        set((state) => ({
-          user: {
-            ...state.user!,
-            profileData: mappedProfileData
-          }
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
     }
   },
 

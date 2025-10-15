@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { getDisplayName } from '@/utils/getDisplayName';
 import { motion } from 'framer-motion';
 
 // shadcn/ui
@@ -34,7 +33,7 @@ interface JobApplication {
 
 export default function JobApplicationsPage() {
   const router = useRouter();
-  const { user, logout, fetchProfileData } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [filter, setFilter] = useState<'all' | JobApplication['status']>('all');
 
@@ -42,9 +41,6 @@ export default function JobApplicationsPage() {
     if (!user || user.role !== 'student') {
       router.push('/login');
       return;
-    } else {
-      // Fetch profile data to get name information
-      fetchProfileData();
     }
     // Mock data — replace with API call
     setApplications([
@@ -137,7 +133,7 @@ export default function JobApplicationsPage() {
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
       {/* ✅ shadcn Top Nav */}
-      <StudentTopNav userName={getDisplayName(user, user?.profileData)} alertsCount={3} onLogout={logout} />
+      <StudentTopNav userName={user?.name || user?.email?.split('@')[0]} alertsCount={3} onLogout={logout} />
 
       <main className="mx-auto max-w-6xl p-6 md:p-8">
         {/* Filters */}
