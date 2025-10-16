@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/sidebar';
 
 import { toast, ToastContainer } from 'react-toastify';
+import Link from 'next/link';
+import { Users, Filter, ArrowLeft } from 'lucide-react';
 
 interface Applicant {
   id: string;
@@ -155,8 +157,8 @@ export default function CompanyApplicants() {
 
   if (user === undefined || isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading applicants...</div>
+      <div className="min-h-screen bg-[#F5EFEB] flex items-center justify-center">
+        <div className="text-[#567C8D]">Loading applicants...</div>
       </div>
     );
   }
@@ -168,14 +170,41 @@ export default function CompanyApplicants() {
       <ToastContainer position="top-right" />
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+        {/* THEMED TOP BAR (matches student) */}
+        <header className="relative isolate border-b border-black/5 bg-gradient-to-r from-[#2F4156] via-[#2F4156] to-[#567C8D] text-white shadow-lg">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 -left-24 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-2">
+         
+              <Users className="h-6 w-6" />
+              <span className="text-base font-semibold leading-none sm:text-lg">Applicants</span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-2">
+              <Link
+                href="/company/dashboard"
+                className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+              </Link>
+            </div>
+          </div>
+
+          {/* breadcrumb row in the themed header */}
+          <div className="relative mx-auto flex max-w-7xl items-center gap-2 px-4 pb-3 sm:px-6">
+               <SidebarTrigger
+                className="rounded-md bg-white/10 px-2 py-1.5 text-white hover:bg-white/20"
+                aria-label="Toggle sidebar"
+              />
+            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4 bg-white/30" />
             <Breadcrumb>
-              <BreadcrumbList>
+              <BreadcrumbList className="text-white/90">
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Company</BreadcrumbLink>
+                  <BreadcrumbLink href="#" className="hover:text-white">Company</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
@@ -183,29 +212,26 @@ export default function CompanyApplicants() {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
-            <div className="ml-auto pr-4">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => router.push('/company/dashboard')}
-                  className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
-                >
-                  Back to Dashboard
-                </button>
-              </div>
+            <div className="ml-auto md:hidden pr-2">
+              <SidebarTrigger className="text-white" />
             </div>
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="max-w-7xl mx-auto p-8">
-            {/* Filters */}
-            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-              <h3 className="text-lg font-semibold mb-4">Filter Applicants</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* PAGE BODY */}
+        <div className="min-h-[calc(100vh-4rem)] bg-[#F5EFEB]">
+          <div className="max-w-7xl mx-auto p-6 sm:p-8">
+            {/* Filters (themed card) */}
+            <div className="rounded-2xl border border-[#C8D9E6] bg-white p-6 shadow-sm mb-6">
+              <div className="mb-4 flex items-center gap-2">
+                <Filter className="h-5 w-5 text-[#2F4156]" />
+                <h3 className="text-lg font-semibold text-[#2F4156]">Filter Applicants</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-[#2F4156] mb-2">Status</label>
                   <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                    className="w-full rounded-lg border border-[#E3EAF1] bg-white px-3 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                     value={filters.status}
                     onChange={(e) =>
                       setFilters(f => ({ ...f, status: e.target.value as FilterStatus }))
@@ -221,9 +247,9 @@ export default function CompanyApplicants() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Position</label>
+                  <label className="block text-sm font-medium text-[#2F4156] mb-2">Position</label>
                   <select
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                    className="w-full rounded-lg border border-[#E3EAF1] bg-white px-3 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                     value={filters.position}
                     onChange={(e) => setFilters(f => ({ ...f, position: e.target.value }))}
                     aria-label="Filter by position"
@@ -238,11 +264,11 @@ export default function CompanyApplicants() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <label className="block text-sm font-medium text-[#2F4156] mb-2">Search</label>
                   <input
                     type="text"
                     placeholder="Search by name, email, or skills..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                    className="w-full rounded-lg border border-[#E3EAF1] bg-white px-3 py-2 text-[#2F4156] placeholder-[#567C8D] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                     value={filters.search}
                     onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}
                     aria-label="Search applicants"
@@ -251,20 +277,22 @@ export default function CompanyApplicants() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
               {/* Applicant List */}
               <div className="lg:col-span-2">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold">Applicants ({filteredApplicants.length})</h3>
-                  <span className="text-sm text-gray-500">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-[#2F4156]">
+                    Applicants ({filteredApplicants.length})
+                  </h3>
+                  <span className="text-sm text-[#567C8D]">
                     Showing {filteredApplicants.length} of {applicants.length} total
                   </span>
                 </div>
 
                 {filteredApplicants.length === 0 ? (
-                  <div className="bg-white p-8 rounded-lg shadow-md text-center">
+                  <div className="rounded-2xl border border-dashed border-[#C8D9E6] bg-white/60 p-8 text-center shadow-sm">
                     <svg
-                      className="w-16 h-16 mx-auto text-gray-300 mb-4"
+                      className="mx-auto mb-4 h-16 w-16 text-[#C8D9E6]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -276,19 +304,19 @@ export default function CompanyApplicants() {
                         d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                       />
                     </svg>
-                    <p className="text-gray-500 mb-2">No applicants found</p>
-                    <p className="text-sm text-gray-400">Try adjusting your filters</p>
+                    <p className="mb-1 text-[#2F4156]">No applicants found</p>
+                    <p className="text-sm text-[#567C8D]">Try adjusting your filters</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {filteredApplicants.map(applicant => (
                       <div
                         key={applicant.id}
-                        className={`bg-white p-6 rounded-lg shadow-md border-l-4 ${
+                        className={`cursor-pointer rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
                           selectedApplicant?.id === applicant.id
-                            ? 'border-blue-600 bg-blue-50'
-                            : 'border-blue-500'
-                        } hover:shadow-lg transition cursor-pointer`}
+                            ? 'border-[#567C8D] ring-2 ring-[#C8D9E6]'
+                            : 'border-[#E3EAF1]'
+                        }`}
                         onClick={() => setSelectedApplicant(applicant)}
                         role="button"
                         tabIndex={0}
@@ -296,26 +324,33 @@ export default function CompanyApplicants() {
                           if (e.key === 'Enter' || e.key === ' ') setSelectedApplicant(applicant);
                         }}
                       >
-                        <div className="flex justify-between items-start">
+                        <div className="flex items-start justify-between">
                           <div>
-                            <h4 className="text-lg font-semibold">{applicant.name}</h4>
-                            <p className="text-gray-600">{applicant.position}</p>
-                            <p className="text-sm text-gray-500">{applicant.email}</p>
+                            <h4 className="text-lg font-semibold text-[#2F4156]">{applicant.name}</h4>
+                            <p className="text-[#567C8D]">{applicant.position}</p>
+                            <p className="text-sm text-[#567C8D]/80">{applicant.email}</p>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(applicant.status)}`}>
+                          <span
+                            className={`rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(
+                              applicant.status
+                            )}`}
+                          >
                             {applicant.status.charAt(0).toUpperCase() + applicant.status.slice(1)}
                           </span>
                         </div>
 
                         <div className="mt-4">
-                          <div className="flex flex-wrap gap-2 mb-3">
+                          <div className="mb-3 flex flex-wrap gap-2">
                             {applicant.skills.map((skill, index) => (
-                              <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                              <span
+                                key={index}
+                                className="rounded-md bg-[#F5EFEB] px-2 py-1 text-sm text-[#2F4156] ring-1 ring-[#E3EAF1]"
+                              >
                                 {skill}
                               </span>
                             ))}
                           </div>
-                          <div className="flex justify-between items-center text-sm text-gray-600">
+                          <div className="flex items-center justify-between text-sm text-[#567C8D]">
                             <span>Applied: {applicant.appliedDate}</span>
                             <span>Experience: {applicant.experience}</span>
                           </div>
@@ -328,48 +363,51 @@ export default function CompanyApplicants() {
 
               {/* Applicant Details Sidebar */}
               <div className="lg:col-span-1">
-                <div className="bg-white p-6 rounded-lg shadow-md sticky top-8">
+                <div className="sticky top-8 rounded-2xl border border-[#C8D9E6] bg-white p-6 shadow-sm">
                   {selectedApplicant ? (
                     <>
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-xl font-semibold">Applicant Details</h3>
+                      <div className="mb-4 flex items-start justify-between">
+                        <h3 className="text-xl font-semibold text-[#2F4156]">Applicant Details</h3>
                         <button
                           onClick={() => setSelectedApplicant(null)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-[#567C8D] hover:text-[#2F4156]"
                           aria-label="Close details"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
                       </div>
 
                       <div className="space-y-4">
-                        <div className="pb-4 border-b">
-                          <h4 className="font-semibold text-gray-700 mb-2">Personal Information</h4>
-                          <div className="space-y-1 text-sm">
-                            <p><span className="font-medium">Name:</span> {selectedApplicant.name}</p>
-                            <p><span className="font-medium">Email:</span> {selectedApplicant.email}</p>
-                            <p><span className="font-medium">Position:</span> {selectedApplicant.position}</p>
-                            <p><span className="font-medium">Applied:</span> {selectedApplicant.appliedDate}</p>
+                        <div className="border-b pb-4">
+                          <h4 className="mb-2 font-semibold text-[#2F4156]">Personal Information</h4>
+                          <div className="space-y-1 text-sm text-[#567C8D]">
+                            <p><span className="font-medium text-[#2F4156]">Name:</span> {selectedApplicant.name}</p>
+                            <p><span className="font-medium text-[#2F4156]">Email:</span> {selectedApplicant.email}</p>
+                            <p><span className="font-medium text-[#2F4156]">Position:</span> {selectedApplicant.position}</p>
+                            <p><span className="font-medium text-[#2F4156]">Applied:</span> {selectedApplicant.appliedDate}</p>
                           </div>
                         </div>
 
-                        <div className="pb-4 border-b">
-                          <h4 className="font-semibold text-gray-700 mb-2">Education</h4>
-                          <p className="text-sm">{selectedApplicant.education}</p>
+                        <div className="border-b pb-4">
+                          <h4 className="mb-2 font-semibold text-[#2F4156]">Education</h4>
+                          <p className="text-sm text-[#567C8D]">{selectedApplicant.education}</p>
                         </div>
 
-                        <div className="pb-4 border-b">
-                          <h4 className="font-semibold text-gray-700 mb-2">Experience</h4>
-                          <p className="text-sm">{selectedApplicant.experience}</p>
+                        <div className="border-b pb-4">
+                          <h4 className="mb-2 font-semibold text-[#2F4156]">Experience</h4>
+                          <p className="text-sm text-[#567C8D]">{selectedApplicant.experience}</p>
                         </div>
 
-                        <div className="pb-4 border-b">
-                          <h4 className="font-semibold text-gray-700 mb-2">Skills</h4>
-                          <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="border-b pb-4">
+                          <h4 className="mb-2 font-semibold text-[#2F4156]">Skills</h4>
+                          <div className="mt-2 flex flex-wrap gap-2">
                             {selectedApplicant.skills.map((skill, index) => (
-                              <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
+                              <span
+                                key={index}
+                                className="rounded-md bg-emerald-50 px-2 py-1 text-sm text-emerald-800 ring-1 ring-emerald-600/15"
+                              >
                                 {skill}
                               </span>
                             ))}
@@ -377,23 +415,23 @@ export default function CompanyApplicants() {
                         </div>
 
                         <div className="pt-2">
-                          <h4 className="font-semibold text-gray-700 mb-3">Update Status</h4>
+                          <h4 className="mb-3 font-semibold text-[#2F4156]">Update Status</h4>
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               onClick={() => updateApplicationStatus(selectedApplicant.id, 'accepted')}
-                              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
+                              className="rounded-lg bg-emerald-600 px-3 py-2 text-sm text-white transition-colors hover:bg-emerald-700"
                             >
                               Accept
                             </button>
                             <button
                               onClick={() => updateApplicationStatus(selectedApplicant.id, 'rejected')}
-                              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
+                              className="rounded-lg bg-red-600 px-3 py-2 text-sm text-white transition-colors hover:bg-red-700"
                             >
                               Reject
                             </button>
                             <button
                               onClick={() => updateApplicationStatus(selectedApplicant.id, 'reviewed')}
-                              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors col-span-2"
+                              className="col-span-2 rounded-lg bg-[#2F4156] px-3 py-2 text-sm text-white transition-colors hover:bg-[#243447]"
                             >
                               Mark as Reviewed
                             </button>
@@ -402,11 +440,11 @@ export default function CompanyApplicants() {
                       </div>
                     </>
                   ) : (
-                    <div className="text-center py-8">
-                      <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="py-8 text-center">
+                      <svg className="mx-auto mb-4 h-16 w-16 text-[#C8D9E6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      <p className="text-gray-500">Select an applicant to view details</p>
+                      <p className="text-[#567C8D]">Select an applicant to view details</p>
                     </div>
                   )}
                 </div>

@@ -6,7 +6,10 @@ import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { FileText, User2, Compass, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { StudentTopNav } from '@/components/ui/student/top-nav'; // <-- shadcn top nav
+import { StudentTopNav } from '@/components/ui/student/top-nav';
+
+// Top Applications
+import { TopApplications, JobApplication } from './top-applications';
 
 export default function StudentDashboard() {
   const router = useRouter();
@@ -18,9 +21,41 @@ export default function StudentDashboard() {
     }
   }, [user, router]);
 
+  // Replace with API data (e.g., SWR/React Query)
+  const topApps: JobApplication[] = [
+    {
+      id: '1',
+      jobTitle: 'Frontend Developer Intern',
+      company: 'Google',
+      status: 'interview',
+      appliedDate: '2024-01-15',
+      location: 'Mountain View, CA',
+      salary: '$85,000',
+      interviewDate: '2024-02-01',
+    },
+    {
+      id: '2',
+      jobTitle: 'Software Engineering Intern',
+      company: 'Microsoft',
+      status: 'under-review',
+      appliedDate: '2024-01-10',
+      location: 'Redmond, WA',
+      salary: '$82,000',
+    },
+    {
+      id: '3',
+      jobTitle: 'Full Stack Developer',
+      company: 'Tech Startup',
+      status: 'applied',
+      appliedDate: '2024-01-20',
+      location: 'San Francisco, CA',
+      salary: '$95,000',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
-      {/* Top Nav (shadcn) */}
+      {/* Top Nav */}
       <StudentTopNav userName={user?.name} alertsCount={3} onLogout={logout} />
 
       {/* Page container */}
@@ -80,6 +115,11 @@ export default function StudentDashboard() {
             </div>
           </div>
         </motion.section>
+
+        {/* ✅ Top Applications slice */}
+        <section className="mt-8">
+          <TopApplications applications={topApps} limit={3} />
+        </section>
 
         {/* Activity & Announcements */}
         <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -157,7 +197,7 @@ export default function StudentDashboard() {
           </div>
         </section>
 
-        {/* Empty state demo block (hide if you already have data) */}
+        {/* Empty state demo block */}
         <section className="mt-10">
           <div className="rounded-2xl border border-dashed border-[#C8D9E6] bg-white/60 p-6 text-center">
             <p className="mx-auto inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-[#2F4156] ring-1 ring-[#E3EAF1]">

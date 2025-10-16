@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
+import Link from 'next/link';
 
 import { AppSidebar } from '@/components/ui/company/app-sidebar';
 import {
@@ -21,6 +22,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { Briefcase, PlusCircle } from 'lucide-react';
 
 interface JobForm {
   title: string;
@@ -50,7 +52,7 @@ export default function PostJob() {
 
   // Protect route
   useEffect(() => {
-    if (user === undefined) return; // wait for hydration if your store sets undefined first
+    if (user === undefined) return;
     if (!user || user.role !== 'company') {
       router.replace('/login');
     }
@@ -66,7 +68,6 @@ export default function PostJob() {
 
     const today = new Date();
     const dl = new Date(formData.applicationDeadline);
-    // zero-out time for fair compare
     today.setHours(0, 0, 0, 0);
     dl.setHours(0, 0, 0, 0);
     if (dl < today) return 'Deadline cannot be in the past.';
@@ -86,9 +87,8 @@ export default function PostJob() {
     setIsLoading(true);
     try {
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // You would POST here with trimmed form
       const payload = {
         ...formData,
         title: formData.title.trim(),
@@ -109,11 +109,10 @@ export default function PostJob() {
     }
   };
 
-  // Optional loading gate while auth hydrates
   if (user === undefined) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading…</div>
+      <div className="min-h-screen bg-[#F5EFEB] flex items-center justify-center">
+        <div className="text-[#567C8D]">Loading…</div>
       </div>
     );
   }
@@ -124,19 +123,60 @@ export default function PostJob() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* Shared header to match the rest of company pages */}
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+        {/* Themed Gradient Header with SidebarTrigger on LEFT */}
+        <header className="relative isolate border-b border-black/5 bg-gradient-to-r from-[#2F4156] via-[#2F4156] to-[#567C8D] text-white shadow-lg">
+          {/* blobs */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 -left-24 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+            {/* LEFT: sidebar trigger + title */}
+            <div className="flex items-center gap-3">
+            
+              <Briefcase className="h-6 w-6" />
+              <span className="text-base font-semibold sm:text-lg">
+                Post New Job
+              </span>
+            </div>
+
+            {/* RIGHT (desktop): quick links */}
+            <div className="hidden items-center gap-2 md:flex">
+              <Link
+                href="/company/jobs"
+                className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+              >
+                Back to Jobs
+              </Link>
+              <Link
+                href="/company/dashboard"
+                className="inline-flex items-center gap-2 rounded-md bg-white text-[#2F4156] px-3 py-1.5 text-sm"
+              >
+                Dashboard
+              </Link>
+            </div>
+          </div>
+
+          {/* Breadcrumb Row */}
+          <div className="relative mx-auto flex max-w-7xl items-center gap-2 px-4 pb-3 sm:px-6">
+              <SidebarTrigger
+                className="rounded-md bg-white/10 px-2 py-1.5 text-white hover:bg-white/20"
+                aria-label="Toggle sidebar"
+              />
+            <Separator orientation="vertical" className="mr-2 h-4 bg-white/30" />
             <Breadcrumb>
-              <BreadcrumbList>
+              <BreadcrumbList className="text-white/90">
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Company</BreadcrumbLink>
+                  <BreadcrumbLink href="#" className="hover:text-white">
+                    Company
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/company/jobs">Jobs</BreadcrumbLink>
+                  <BreadcrumbLink href="/company/jobs" className="hover:text-white">
+                    Jobs
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -145,152 +185,167 @@ export default function PostJob() {
               </BreadcrumbList>
             </Breadcrumb>
 
-            <div className="ml-auto pr-4">
-              <button
-                onClick={() => router.push('/company/dashboard')}
-                className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
-              >
-                Back to Dashboard
-              </button>
+            {/* mobile trigger (kept for parity) */}
+            <div className="ml-auto md:hidden">
+              <SidebarTrigger className="text-white" aria-label="Toggle sidebar" />
             </div>
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="max-w-4xl mx-auto w-full">
-            <div className="bg-white p-8 rounded-lg shadow-md">
-              <h1 className="text-3xl font-bold text-gray-800 mb-6">Post a New Job</h1>
+        {/* Page Body */}
+        <div className="min-h-[calc(100vh-4rem)] bg-[#F5EFEB]">
+          <div className="mx-auto max-w-7xl p-6 sm:p-8">
+            <section className="relative overflow-hidden rounded-2xl border border-[#C8D9E6] bg-white/70 shadow-sm backdrop-blur-sm">
+              {/* subtle pattern tint */}
+              <div className="absolute inset-0 bg-[radial-gradient(1200px_300px_at_0%_-10%,rgba(16,44,36,0.08),transparent),radial-gradient(800px_200px_at_100%_120%,rgba(86,124,141,0.08),transparent)]" />
+              <div className="relative z-10 grid gap-6 p-6">
+                <div className="flex items-center gap-2 text-[#2F4156]">
+                  <PlusCircle className="h-5 w-5" />
+                  <h1 className="text-xl font-semibold">Create a job posting</h1>
+                </div>
+                <p className="max-w-prose text-sm text-[#567C8D]">
+                  Share role details, requirements, and timelines. You can edit later from the Jobs page.
+                </p>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Form Card */}
+                <form onSubmit={handleSubmit} className="grid gap-6">
+                  {/* Title / Type */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Title *</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Type *</label>
+                      <select
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.type}
+                        onChange={(e) =>
+                          setFormData({ ...formData, type: e.target.value as JobForm['type'] })
+                        }
+                      >
+                        <option value="full-time">Full Time</option>
+                        <option value="part-time">Part Time</option>
+                        <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Location / Salary */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Location *</label>
+                      <input
+                        type="text"
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.location}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Salary Range</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., $50,000 - $70,000"
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.salary}
+                        onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
                   <div>
-                    <label className="block text-gray-700 mb-2">Job Title *</label>
-                    <input
-                      type="text"
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Description *</label>
+                    <textarea
+                      rows={6}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="Describe the responsibilities, expectations, and what makes your company great..."
+                      className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
                   </div>
 
+                  {/* Requirements */}
                   <div>
-                    <label className="block text-gray-700 mb-2">Job Type *</label>
-                    <select
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Requirements *</label>
+                    <textarea
+                      rows={4}
                       required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData({ ...formData, type: e.target.value as JobForm['type'] })
-                      }
+                      placeholder="List required skills, qualifications, and experience…"
+                      className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.requirements}
+                      onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Category / Deadline */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Category *</label>
+                      <select
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      >
+                        <option value="">Select Category</option>
+                        <option value="engineering">Engineering</option>
+                        <option value="design">Design</option>
+                        <option value="marketing">Marketing</option>
+                        <option value="sales">Sales</option>
+                        <option value="finance">Finance</option>
+                        <option value="hr">Human Resources</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Application Deadline *</label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.applicationDeadline}
+                        onChange={(e) =>
+                          setFormData({ ...formData, applicationDeadline: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#2F4156] px-5 py-2.5 text-white shadow-sm ring-1 ring-black/10 transition hover:translate-y-[-1px] hover:bg-[#243447] disabled:opacity-70"
                     >
-                      <option value="full-time">Full Time</option>
-                      <option value="part-time">Part Time</option>
-                      <option value="contract">Contract</option>
-                      <option value="internship">Internship</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Location *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 mb-2">Salary Range</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      placeholder="e.g., $50,000 - $70,000"
-                      value={formData.salary}
-                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Job Description *</label>
-                  <textarea
-                    rows={6}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    placeholder="Describe the job responsibilities, expectations, and what makes your company great..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Requirements *</label>
-                  <textarea
-                    rows={4}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    placeholder="List the required skills, qualifications, and experience..."
-                    value={formData.requirements}
-                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Category *</label>
-                    <select
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      <PlusCircle className="h-5 w-5" />
+                      {isLoading ? 'Posting Job…' : 'Post Job'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/company/jobs')}
+                      className="rounded-xl bg-white px-5 py-2.5 text-[#2F4156] ring-1 ring-[#C8D9E6] transition hover:bg-[#C8D9E6]/30"
                     >
-                      <option value="">Select Category</option>
-                      <option value="engineering">Engineering</option>
-                      <option value="design">Design</option>
-                      <option value="marketing">Marketing</option>
-                      <option value="sales">Sales</option>
-                      <option value="finance">Finance</option>
-                      <option value="hr">Human Resources</option>
-                    </select>
+                      Cancel
+                    </button>
                   </div>
-
-                  <div>
-                    <label className="block text-gray-700 mb-2">Application Deadline *</label>
-                    <input
-                      type="date"
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.applicationDeadline}
-                      onChange={(e) =>
-                        setFormData({ ...formData, applicationDeadline: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-
-                <div className="flex space-x-4 pt-6">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
-                  >
-                    {isLoading ? 'Posting Job...' : 'Post Job'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/company/jobs')}
-                    className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
+                </form>
+              </div>
+            </section>
           </div>
         </div>
       </SidebarInset>
