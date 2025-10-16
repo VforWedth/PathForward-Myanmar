@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Briefcase, FileText } from 'lucide-react'
+import { Briefcase, FileText,School,SchoolIcon, University } from 'lucide-react'
 import logo from '@/media/logo.png'
 import { NavMain } from './nav-main'
 import { NavUser } from './nav-user'
@@ -41,7 +41,18 @@ const companyNav = {
         { title: 'All Jobs', url: '/company/jobs' },
         { title: 'Post Job', url: '/company/jobs/post' },
       ],
-    },
+    },{
+      title: 'Browse University',
+      url: '/company',
+      icon : University,
+      items :[
+        {
+          title :'Registrator School',
+          url :'/company/registeration',
+          icon : School
+        }
+      ]
+    }
   ],
 }
 
