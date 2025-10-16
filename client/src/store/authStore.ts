@@ -39,6 +39,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       localStorage.setItem('token', token);
+
+      // Store login timestamp for session management
+      localStorage.setItem('loginTimestamp', Date.now().toString());
+
       console.log('Login successful, user role:', user.role);
       set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
       return user;
@@ -85,11 +89,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       // Always perform client-side cleanup
       localStorage.removeItem('token');
-      localStorage.removeItem('rememberedEmail'); // Clear remembered email on logout
+      localStorage.removeItem('loginTimestamp');
+      localStorage.removeItem('redirectAfterLogin');
+      // NOTE: We DON'T clear 'rememberedEmail' - users expect this to persist
+      // This is how Gmail, Facebook, and other major sites handle it
+
       set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
-      // Redirect to login page
+
+      // Use router for smoother navigation instead of hard redirect
+      // This provides a better UX than window.location.href
       if (typeof window !== 'undefined') {
-        window.location.href = '/login?message=Successfully logged out';
+        // Small delay to allow state to update
+        setTimeout(() => {
+          window.location.href = '/login?message=Successfully logged out';
+        }, 100);
       }
     }
   },

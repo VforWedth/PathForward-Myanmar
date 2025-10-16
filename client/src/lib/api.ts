@@ -28,8 +28,22 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Only redirect to login if we're not already on the login page
+      // This prevents infinite redirect loops
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isAuthPage = currentPath === '/login' || currentPath === '/register';
+
+      if (!isAuthPage) {
+        localStorage.removeItem('token');
+
+        // Store the current path to redirect back after login
+        if (typeof window !== 'undefined' && currentPath !== '/') {
+          localStorage.setItem('redirectAfterLogin', currentPath);
+        }
+
+        // Use a more graceful redirect with a message
+        window.location.href = '/login?session=expired';
+      }
     }
     return Promise.reject(error);
   }
