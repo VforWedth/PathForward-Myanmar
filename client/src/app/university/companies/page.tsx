@@ -5,6 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "react-toastify";
+import { useRealTimeJobs } from "@/hooks/useRealTimeJobs";
 
 // shadcn/ui sidebar primitives
 import {
@@ -78,6 +79,12 @@ export default function UniversityCompanies() {
   // Separate counters for better UX
   const approvedCompaniesCount = companies.filter(c => c.partnershipStatus === 'approved').length;
   const activeJobsCount = jobs.filter(j => j.status === 'active').length;
+
+  // Real-time job updates hook
+  const { isConnected } = useRealTimeJobs(useCallback(() => {
+    console.log('🔄 Job update received, refreshing data...');
+    fetchData();
+  }, []));
 
   const fetchData = useCallback(async () => {
     try {
@@ -367,7 +374,14 @@ export default function UniversityCompanies() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
             <SidebarTrigger className="md:hidden" />
             <h1 className="text-xl font-semibold text-gray-900">Company Connections</h1>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
+              {/* Real-time connection indicator */}
+              <div className="hidden sm:flex items-center gap-2 text-xs">
+                <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+                <span className={isConnected ? 'text-green-600 font-medium' : 'text-gray-500'}>
+                  {isConnected ? 'Live Updates' : 'Connecting...'}
+                </span>
+              </div>
               <button
                 onClick={() => {
                   setIsLoading(true);
@@ -376,7 +390,7 @@ export default function UniversityCompanies() {
                 disabled={isLoading}
                 className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm disabled:bg-gray-400"
               >
-                {isLoading ? 'Refreshing...' : 'Refresh Data'}
+                {isLoading ? 'Refreshing...' : 'Refresh Now'}
               </button>
             </div>
           </div>

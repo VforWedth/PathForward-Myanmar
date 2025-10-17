@@ -78,6 +78,38 @@ export default function StudentDashboard() {
     fetchDashboard();
   }, [user, router]);
 
+  // Replace with API data (e.g., SWR/React Query)
+  const topApps: JobApplication[] = [
+    {
+      id: '1',
+      jobTitle: 'Frontend Developer Intern',
+      company: 'Google',
+      status: 'interview',
+      appliedDate: '2024-01-15',
+      location: 'Mountain View, CA',
+      salary: '$85,000',
+      interviewDate: '2024-02-01',
+    },
+    {
+      id: '2',
+      jobTitle: 'Software Engineering Intern',
+      company: 'Microsoft',
+      status: 'under-review',
+      appliedDate: '2024-01-10',
+      location: 'Redmond, WA',
+      salary: '$82,000',
+    },
+    {
+      id: '3',
+      jobTitle: 'Full Stack Developer',
+      company: 'Tech Startup',
+      status: 'applied',
+      appliedDate: '2024-01-20',
+      location: 'San Francisco, CA',
+      salary: '$95,000',
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
       <StudentTopNav userName={user?.name} alertsCount={3} onLogout={logout} />
@@ -287,6 +319,19 @@ export default function StudentDashboard() {
                 <Compass className="h-4 w-4" /> Browse Jobs
               </Link>
             </div>
+          </div>
+        </section>
+
+        {/* Empty state demo block */}
+        <section className="mt-10">
+          <div className="rounded-2xl border border-dashed border-[#C8D9E6] bg-white/60 p-6 text-center">
+            <p className="mx-auto inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-[#2F4156] ring-1 ring-[#E3EAF1]">
+              <Sparkles className="h-4 w-4" /> Coming soon
+            </p>
+            <h5 className="mt-3 text-lg font-semibold text-[#2F4156]">Personalized analytics</h5>
+            <p className="mx-auto mt-1 max-w-prose text-sm text-[#567C8D]">
+              See your application funnel, interview conversion, and salary insights—tailored just for you.
+            </p>
           </div>
         </section>
       </main>

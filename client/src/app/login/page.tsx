@@ -45,10 +45,14 @@ export default function Login() {
   useEffect(() => {
     if (!user) return;
 
+    console.log('Login redirect - User role:', user.role);
+    console.log('Login redirect - Full user object:', user);
+
     // Check if there was a redirect URL stored
     const redirectUrl = localStorage.getItem('redirectAfterLogin');
 
     if (redirectUrl) {
+      console.log('Redirecting to stored URL:', redirectUrl);
       // Remove the stored redirect URL
       localStorage.removeItem('redirectAfterLogin');
       router.push(redirectUrl);
@@ -57,15 +61,23 @@ export default function Login() {
 
     // Default role-based redirects
     if (user.role === 'admin') {
+      console.log('Redirecting to admin dashboard');
       router.push('/admin/dashboard');
     } else if (user.role === 'student') {
+      console.log('Redirecting to student dashboard');
       router.push('/student/dashboard');
     } else if (user.role === 'company') {
+      console.log('Redirecting to company dashboard');
       router.push('/company/dashboard');
     } else if (user.role === 'university') {
+      console.log('Redirecting to university dashboard');
       router.push('/university/dashboard');
     } else if (user.role === 'freelancer') {
+      console.log('Redirecting to freelancer dashboard');
       router.push('/freelancer/dashboard');
+    } else {
+      console.error('Unknown role:', user.role);
+      toast.error(`Unknown user role: ${user.role}`);
     }
   }, [user, router]);
 

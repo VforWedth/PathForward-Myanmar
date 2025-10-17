@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
+import { Building2, Sparkles } from 'lucide-react';
 
 interface RegistrationForm {
   companyName: string;
@@ -43,6 +44,7 @@ export default function CompanyRegistration() {
       return;
     }
 
+
     setIsLoading(true);
 
     try {
@@ -69,24 +71,27 @@ export default function CompanyRegistration() {
     }
   };
 
+  // ✅ Success / verification screen — themed
   if (verificationStep === 2) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="min-h-screen bg-[#F5EFEB] flex items-center justify-center px-4">
+        <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-[#C8D9E6] bg-white/80 shadow-xl backdrop-blur-sm">
+          {/* subtle background glow */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(1000px_300px_at_0%_-10%,rgba(86,124,141,0.12),transparent),radial-gradient(700px_250px_at_100%_120%,rgba(16,44,36,0.10),transparent)]" />
+          <div className="relative z-10 p-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 ring-1 ring-emerald-600/20">
+              <svg className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Verification Pending</h2>
-            <p className="text-gray-600 mb-6">
-              Your company registration has been submitted for verification. 
-              You'll receive an email once your account is approved.
+            <h2 className="text-2xl font-bold text-[#2F4156]">Verification Pending</h2>
+            <p className="mx-auto mt-2 max-w-prose text-[#567C8D]">
+              Your company registration has been submitted for verification. You’ll receive an email once your account is approved.
             </p>
+
             <Link
               href="/login"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#2F4156] px-5 py-2.5 text-white shadow-sm ring-1 ring-black/10 transition hover:translate-y-[-1px] hover:bg-[#243447] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
             >
               Back to Login
             </Link>
@@ -96,153 +101,226 @@ export default function CompanyRegistration() {
     );
   }
 
+  // ✅ Registration form — themed to match student UI
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">
-          Company Registration
-        </h1>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-2">Company Name *</label>
-              <input
-                type="text"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-gray-700 mb-2">Industry *</label>
-              <select
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                value={formData.industry}
-                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-              >
-                <option value="">Select Industry</option>
-                <option value="technology">Technology</option>
-                <option value="finance">Finance</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="education">Education</option>
-                <option value="manufacturing">Manufacturing</option>
-              </select>
-            </div>
+    <div className="min-h-screen bg-[#F5EFEB] px-4 py-12">
+      <div className="mx-auto w-full max-w-2xl">
+        {/* Header / Hero */}
+        <div className="relative mb-6 overflow-hidden rounded-2xl border border-[#C8D9E6] bg-gradient-to-r from-[#2F4156] via-[#2F4156] to-[#567C8D] p-6 text-white shadow-lg">
+          {/* soft blobs */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-20 -top-16 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-16 right-10 h-48 w-48 rounded-full bg-emerald-300/10 blur-3xl" />
           </div>
 
-          <div>
-            <label className="block text-gray-700 mb-2">Email *</label>
-            <input
+          <div className="relative z-10 flex items-center gap-3">
+            <Building2 className="h-6 w-6" />
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold ring-1 ring-white/20">
+                <Sparkles className="h-4 w-4" /> Company Portal
+              </p>
+              <h1 className="mt-2 text-2xl font-bold leading-tight">Register your company</h1>
+              <p className="text-white/80">Create your account to post jobs and manage applicants.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-[#C8D9E6] bg-white/80 shadow-sm backdrop-blur-sm">
+          <div className="absolute inset-0 bg-[radial-gradient(900px_250px_at_100%_-10%,rgba(86,124,141,0.08),transparent)]" />
+          <form onSubmit={handleSubmit} className="relative z-10 space-y-6 p-6 sm:p-8">
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field
+                label="Company Name *"
+                required
+                value={formData.companyName}
+                onChange={(v) => setFormData((s) => ({ ...s, companyName: v }))}
+              />
+              <SelectField
+                label="Industry *"
+                required
+                value={formData.industry}
+                onChange={(v) => setFormData((s) => ({ ...s, industry: v }))}
+                options={[
+                  { value: '', label: 'Select Industry' },
+                  { value: 'technology', label: 'Technology' },
+                  { value: 'finance', label: 'Finance' },
+                  { value: 'healthcare', label: 'Healthcare' },
+                  { value: 'education', label: 'Education' },
+                  { value: 'manufacturing', label: 'Manufacturing' },
+                ]}
+              />
+            </div>
+
+            <Field
+              label="Email *"
               type="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(v) => setFormData((s) => ({ ...s, email: v }))}
             />
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-2">Password *</label>
-              <input
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field
+                label="Password *"
                 type="password"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(v) => setFormData((s) => ({ ...s, password: v }))}
               />
-            </div>
-            
-            <div>
-              <label className="block text-gray-700 mb-2">Confirm Password *</label>
-              <input
+              <Field
+                label="Confirm Password *"
                 type="password"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                onChange={(v) => setFormData((s) => ({ ...s, confirmPassword: v }))}
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-2">Company Size</label>
-              <select
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+            {/* Row 3 */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <SelectField
+                label="Company Size"
                 value={formData.size}
-                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-              >
-                <option value="">Select Size</option>
-                <option value="1-10">1-10 employees</option>
-                <option value="11-50">11-50 employees</option>
-                <option value="51-200">51-200 employees</option>
-                <option value="201-500">201-500 employees</option>
-                <option value="501+">501+ employees</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-gray-700 mb-2">Phone</label>
-              <input
+                onChange={(v) => setFormData((s) => ({ ...s, size: v }))}
+                options={[
+                  { value: '', label: 'Select Size' },
+                  { value: '1-10', label: '1-10 employees' },
+                  { value: '11-50', label: '11-50 employees' },
+                  { value: '51-200', label: '51-200 employees' },
+                  { value: '201-500', label: '201-500 employees' },
+                  { value: '501+', label: '501+ employees' },
+                ]}
+              />
+              <Field
+                label="Phone"
                 type="tel"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(v) => setFormData((s) => ({ ...s, phone: v }))}
               />
             </div>
-          </div>
 
-          <div>
-            <label className="block text-gray-700 mb-2">Website</label>
-            <input
+            <Field
+              label="Website"
               type="url"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="https://yourcompany.com"
               value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              onChange={(v) => setFormData((s) => ({ ...s, website: v }))}
             />
-          </div>
 
-          <div>
-            <label className="block text-gray-700 mb-2">Address</label>
-            <input
-              type="text"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+            <Field
+              label="Address"
               value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              onChange={(v) => setFormData((s) => ({ ...s, address: v }))}
             />
-          </div>
 
-          <div>
-            <label className="block text-gray-700 mb-2">Company Description</label>
-            <textarea
+            <TextArea
+              label="Company Description"
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(v) => setFormData((s) => ({ ...s, description: v }))}
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
-          >
-            {isLoading ? 'Submitting...' : 'Register Company'}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-gray-600">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-600 hover:underline">
-            Login here
-          </Link>
-        </p>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="mt-2 w-full rounded-xl bg-[#2F4156] px-4 py-3 font-medium text-white shadow-sm ring-1 ring-black/10 transition hover:translate-y-[-1px] hover:bg-[#243447] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 disabled:translate-y-0 disabled:bg-[#9BA7B0]"
+            >
+              {isLoading ? 'Submitting…' : 'Register Company'}
+            </button>
+          </form>
+        </div>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Reusable Themed Inputs ---------- */
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-[#2F4156]">{label}</label>
+      <input
+        type={type}
+        required={required}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-[#C8D9E6] bg-white/90 px-4 py-2 text-[#2F4156] shadow-sm outline-none transition placeholder:text-[#9AAFC0] focus:border-emerald-400 focus:ring-2 focus:ring-emerald-300/60"
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  required,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  required?: boolean;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-[#2F4156]">{label}</label>
+      <select
+        required={required}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-[#C8D9E6] bg-white/90 px-4 py-2 text-[#2F4156] shadow-sm outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-300/60"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  onChange,
+  rows = 4,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-[#2F4156]">{label}</label>
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-[#C8D9E6] bg-white/90 px-4 py-2 text-[#2F4156] shadow-sm outline-none transition placeholder:text-[#9AAFC0] focus:border-emerald-400 focus:ring-2 focus:ring-emerald-300/60"
+      />
     </div>
   );
 }

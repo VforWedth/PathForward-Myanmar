@@ -13,11 +13,15 @@ const {
   generateReport,
   disconnectCompany
 } = require('../controllers/universityController');
+const { streamJobNotifications } = require('../controllers/sseController');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// All routes require authentication and university role
+// SSE endpoint - NO middleware, token verification is done in the controller
+router.get('/job-notifications', streamJobNotifications);
+
+// All other routes require authentication and university role
 router.use(protect);
 router.use(authorize('university'));
 

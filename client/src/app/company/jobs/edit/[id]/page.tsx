@@ -1,8 +1,8 @@
-// app/company/jobs/post/page.tsx
+// app/company/jobs/edit/[id]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
@@ -22,7 +22,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Briefcase, PlusCircle, X } from 'lucide-react';
+import { Briefcase, Save, X } from 'lucide-react';
 
 interface JobForm {
   title: string;
@@ -40,6 +40,7 @@ interface JobForm {
   applicationDeadline: string;
   targetUniversities: string[];
   isPublic: boolean;
+  status: 'active' | 'closed' | 'draft';
 }
 
 interface University {
@@ -48,10 +49,13 @@ interface University {
   location: string;
 }
 
-export default function PostJob() {
+export default function EditJob() {
   const router = useRouter();
+  const params = useParams();
+  const jobId = params?.id as string;
   const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [connectedUniversities, setConnectedUniversities] = useState<University[]>([]);
   const [formData, setFormData] = useState<JobForm>({
     title: '',
@@ -69,13 +73,14 @@ export default function PostJob() {
     applicationDeadline: '',
     targetUniversities: [],
     isPublic: true,
+    status: 'active',
   });
 
   // For handling multi-value inputs
   const [skillInput, setSkillInput] = useState('');
   const [majorInput, setMajorInput] = useState('');
 
-  // Protect route and fetch connected universities
+  // Protect route and fetch job data
   useEffect(() => {
     if (user === undefined) return;
     if (!user || user.role !== 'company') {
@@ -83,22 +88,68 @@ export default function PostJob() {
       return;
     }
 
-    // Fetch connected universities
-    const fetchUniversities = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/universities/connected?status=active`,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          }
-        );
+    if (!jobId) {
+      toast.error('Job ID not found');
+      router.push('/company/jobs');
+      return;
+    }
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            const unis = data.data.map((conn: any) => ({
+    const fetchData = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+
+        // Fetch job details
+        const jobResponse = await fetch(`${apiUrl}/company/jobs/${jobId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!jobResponse.ok) {
+          toast.error('Failed to fetch job details');
+          router.push('/company/jobs');
+          return;
+        }
+
+        const jobData = await jobResponse.json();
+        if (jobData.success && jobData.data) {
+          const job = jobData.data;
+
+          // Format deadline for input[type="date"]
+          let deadline = '';
+          if (job.deadline) {
+            const d = new Date(job.deadline);
+            deadline = d.toISOString().split('T')[0];
+          }
+
+          setFormData({
+            title: job.title || '',
+            description: job.description || '',
+            requirements: job.requirements || '',
+            responsibilities: job.responsibilities || '',
+            location: job.location || '',
+            jobType: job.jobType || 'full-time',
+            workMode: job.workMode || 'onsite',
+            salaryRange: job.salaryRange || '',
+            skillsRequired: job.skillsRequired || [],
+            majorsPreferred: job.majorsPreferred || [],
+            experienceLevel: job.experienceLevel || 'entry',
+            numberOfPositions: job.numberOfPositions || 1,
+            applicationDeadline: deadline,
+            targetUniversities: job.targetUniversities || [],
+            isPublic: job.isPublic !== false,
+            status: job.status || 'active',
+          });
+        }
+
+        // Fetch connected universities
+        const uniResponse = await fetch(`${apiUrl}/company/universities/connected?status=active`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (uniResponse.ok) {
+          const uniData = await uniResponse.json();
+          if (uniData.success && uniData.data) {
+            const unis = uniData.data.map((conn: any) => ({
               id: conn.University.id,
               universityName: conn.University.universityName,
               location: conn.University.location
@@ -107,12 +158,15 @@ export default function PostJob() {
           }
         }
       } catch (error) {
-        console.error('Error fetching universities:', error);
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load job data');
+      } finally {
+        setIsFetching(false);
       }
     };
 
-    fetchUniversities();
-  }, [user, router]);
+    fetchData();
+  }, [user, router, jobId]);
 
   const validate = () => {
     if (!formData.title.trim()) return 'Please enter a job title.';
@@ -198,46 +252,50 @@ export default function PostJob() {
         responsibilities: formData.responsibilities.trim(),
         location: formData.location.trim(),
         workMode: formData.workMode,
-        jobType: formData.jobType,
-        salaryRange: formData.salaryRange.trim() || null,
+        type: formData.jobType,
+        salary: formData.salaryRange.trim() || null,
         skillsRequired: formData.skillsRequired,
         majorsPreferred: formData.majorsPreferred,
         experienceLevel: formData.experienceLevel,
         numberOfPositions: formData.numberOfPositions,
-        deadline: formData.applicationDeadline,
+        applicationDeadline: formData.applicationDeadline,
         targetUniversities: formData.targetUniversities,
         isPublic: formData.isPublic,
+        status: formData.status,
       };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/company/jobs/${jobId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(payload)
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast.success(data.message || 'Job posted successfully!');
+        toast.success(data.message || 'Job updated successfully!');
         router.push('/company/jobs');
       } else {
-        toast.error(data.message || 'Failed to post job');
+        toast.error(data.message || 'Failed to update job');
       }
     } catch (error) {
-      console.error('Post job error:', error);
-      toast.error('Failed to post job. Please try again.');
+      console.error('Update job error:', error);
+      toast.error('Failed to update job. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (user === undefined) {
+  if (user === undefined || isFetching) {
     return (
       <div className="min-h-screen bg-[#F5EFEB] flex items-center justify-center">
-        <div className="text-[#567C8D]">Loading…</div>
+        <div className="text-[#567C8D]">Loading job data...</div>
       </div>
     );
   }
@@ -261,7 +319,7 @@ export default function PostJob() {
             <div className="flex items-center gap-3">
               <Briefcase className="h-6 w-6" />
               <span className="text-base font-semibold sm:text-lg">
-                Post New Job
+                Edit Job Posting
               </span>
             </div>
 
@@ -304,7 +362,7 @@ export default function PostJob() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Post</BreadcrumbPage>
+                  <BreadcrumbPage>Edit</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -323,16 +381,45 @@ export default function PostJob() {
               {/* subtle pattern tint */}
               <div className="absolute inset-0 bg-[radial-gradient(1200px_300px_at_0%_-10%,rgba(16,44,36,0.08),transparent),radial-gradient(800px_200px_at_100%_120%,rgba(86,124,141,0.08),transparent)]" />
               <div className="relative z-10 grid gap-6 p-6">
-                <div className="flex items-center gap-2 text-[#2F4156]">
-                  <PlusCircle className="h-5 w-5" />
-                  <h1 className="text-xl font-semibold">Create a job posting</h1>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#2F4156]">
+                    <Save className="h-5 w-5" />
+                    <h1 className="text-xl font-semibold">Edit job posting</h1>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      formData.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                      formData.status === 'closed' ? 'bg-rose-100 text-rose-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                    </span>
+                  </div>
                 </div>
                 <p className="max-w-prose text-sm text-[#567C8D]">
-                  Share role details, requirements, and timelines. All fields marked with * are required.
+                  Update job details, requirements, and visibility settings. All fields marked with * are required.
                 </p>
 
                 {/* Form Card */}
                 <form onSubmit={handleSubmit} className="grid gap-6">
+                  {/* Status Selection */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Status *</label>
+                    <select
+                      required
+                      className="w-full md:w-64 rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as JobForm['status'] })}
+                    >
+                      <option value="active">Active</option>
+                      <option value="closed">Closed</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                    <p className="mt-1 text-xs text-[#567C8D]">
+                      Active jobs are visible to students. Closed jobs no longer accept applications.
+                    </p>
+                  </div>
+
                   {/* Title / Job Type */}
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
@@ -638,10 +725,10 @@ export default function PostJob() {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#2F4156] px-5 py-2.5 text-white shadow-sm ring-1 ring-black/10 transition hover:translate-y-[-1px] hover:bg-[#243447] disabled:opacity-70"
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-white shadow-sm ring-1 ring-black/10 transition hover:translate-y-[-1px] hover:bg-emerald-700 disabled:opacity-70"
                     >
-                      <PlusCircle className="h-5 w-5" />
-                      {isLoading ? 'Posting Job…' : 'Post Job'}
+                      <Save className="h-5 w-5" />
+                      {isLoading ? 'Saving Changes…' : 'Save Changes'}
                     </button>
                     <button
                       type="button"

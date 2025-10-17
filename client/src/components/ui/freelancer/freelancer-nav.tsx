@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { LogOut, Bell, Briefcase, LayoutDashboard, Lightbulb, Send } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"; // ← the file you pasted
 import { cn } from "@/lib/utils";
+import LogoutConfirmDialog from "@/components/LogoutConfirmDialog";
 
 type Tabs = "overview" | "jobs" | "projects" | "applications";
 
@@ -26,6 +28,22 @@ export function FreelancerNav({
   onLogout: () => void;
   userName?: string;
 }) {
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutDialog(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    setIsLoggingOut(true);
+    try {
+      await onLogout();
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutDialog(false);
+    }
+  };
   return (
     <nav className="bg-background border-b">
       <div className="mx-auto max-w-7xl px-4">
@@ -122,7 +140,7 @@ export function FreelancerNav({
               <span className="text-sm">{userName}</span>
             </div>
             <button
-              onClick={onLogout}
+              onClick={handleLogoutClick}
               className="inline-flex items-center gap-2 rounded-md bg-destructive px-3 py-2 text-destructive-foreground hover:opacity-90"
             >
               <LogOut className="h-4 w-4" />
@@ -150,6 +168,14 @@ export function FreelancerNav({
           </div>
         </div>
       </div>
+
+      {/* Centralized Logout Confirmation Dialog */}
+      <LogoutConfirmDialog
+        isOpen={showLogoutDialog}
+        onConfirm={handleLogoutConfirm}
+        onCancel={() => setShowLogoutDialog(false)}
+        isLoading={isLoggingOut}
+      />
     </nav>
   );
 }
