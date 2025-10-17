@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useEffect, useState } from 'react'
-import { Briefcase, FileText, Building2, Link as LinkIcon } from 'lucide-react'
+import { Briefcase, FileText, Building2, Link as LinkIcon, FolderKanban, Lightbulb } from 'lucide-react'
 import logo from '@/media/logo.png'
 import { NavMain } from './nav-main'
 import { NavUser } from './nav-user'
@@ -42,6 +42,23 @@ const companyNav = {
       items: [
         { title: 'All Jobs', url: '/company/jobs' },
         { title: 'Post Job', url: '/company/jobs/post' },
+      ],
+    },
+    {
+      title: 'Projects',
+      url: '/company/projects',
+      icon: FolderKanban,
+      items: [
+        { title: 'All Projects', url: '/company/projects' },
+        { title: 'Post Project', url: '/company/projects/post' },
+      ],
+    },
+    {
+      title: 'Explore Projects',
+      url: '/company/freelancer-projects',
+      icon: Lightbulb,
+      items: [
+        { title: 'Browse Projects', url: '/company/freelancer-projects' },
       ],
     },
     {

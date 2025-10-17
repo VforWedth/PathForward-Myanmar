@@ -8,6 +8,8 @@ const jobController = require('../controllers/jobController');
 const applicantController = require('../controllers/applicantController');
 const feedbackController = require('../controllers/feedbackController');
 const universityConnectionController = require('../controllers/universityConnectionController');
+const companyProjectController = require('../controllers/companyProjectController');
+const projectController = require('../controllers/projectController');
 
 // Public routes
 router.post('/register', companyController.registerCompany);
@@ -33,6 +35,18 @@ router.get('/jobs/:id', jobController.getJobById);
 router.put('/jobs/:id', jobController.updateJob);
 router.delete('/jobs/:id', jobController.deleteJob);
 router.put('/jobs/:id/close', jobController.closeJob);
+
+// Company Project routes (for freelancer hiring)
+router.post('/projects', companyProjectController.createCompanyProject);
+router.get('/projects', companyProjectController.getCompanyProjects);
+router.get('/projects/:id', companyProjectController.getCompanyProjectById);
+router.put('/projects/:id', companyProjectController.updateCompanyProject);
+router.delete('/projects/:id', companyProjectController.deleteCompanyProject);
+router.put('/projects/:id/close', companyProjectController.closeCompanyProject);
+
+// Freelancer project browsing routes (for companies to explore)
+router.get('/freelancer-projects', projectController.getAllActiveFreelancerProjects);
+router.get('/freelancer-projects/:id', projectController.getFreelancerProjectDetailsForCompany);
 
 // Applicant routes
 router.get('/applicants', applicantController.getApplicants);

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
-import { Briefcase, DollarSign, Clock, TrendingUp, Plus, Search } from 'lucide-react';
+import { Briefcase, DollarSign, Clock, TrendingUp, Plus, Search, FileText, Users, FolderKanban } from 'lucide-react';
 
 export default function FreelancerDashboard() {
   const router = useRouter();
@@ -107,7 +107,7 @@ export default function FreelancerDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <Link
             href="/freelancer/projects/new"
             className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-4"
@@ -131,6 +131,17 @@ export default function FreelancerDashboard() {
           </Link>
 
           <Link
+            href="/freelancer/company-projects"
+            className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-4"
+          >
+            <FolderKanban className="h-8 w-8" />
+            <div>
+              <h3 className="text-lg font-semibold">Find Projects</h3>
+              <p className="text-sm opacity-90">Browse company projects</p>
+            </div>
+          </Link>
+
+          <Link
             href="/freelancer/jobs"
             className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-4"
           >
@@ -138,6 +149,28 @@ export default function FreelancerDashboard() {
             <div>
               <h3 className="text-lg font-semibold">Find Jobs</h3>
               <p className="text-sm opacity-90">Browse available jobs</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/freelancer/applications"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-4"
+          >
+            <FileText className="h-8 w-8" />
+            <div>
+              <h3 className="text-lg font-semibold">My Applications</h3>
+              <p className="text-sm opacity-90">Track applications</p>
+            </div>
+          </Link>
+
+          <Link
+            href="/freelancer/teammates"
+            className="bg-gradient-to-r from-pink-500 to-pink-600 text-white p-6 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-4"
+          >
+            <Users className="h-8 w-8" />
+            <div>
+              <h3 className="text-lg font-semibold">Find Teammates</h3>
+              <p className="text-sm opacity-90">Connect with talent</p>
             </div>
           </Link>
         </div>

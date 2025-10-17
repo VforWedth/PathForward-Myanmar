@@ -9,6 +9,7 @@ const companyRoutes = require('./routes/companyRoutes');
 const universityRoutes = require('./routes/universityRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const studentRoutes = require('./routes/studentRoutes');
+const freelancerRoutes = require('./routes/freelancerRoutes');
 
 // Load env vars
 dotenv.config();
@@ -34,6 +35,7 @@ app.use('/api/company', companyRoutes);
 app.use('/api/university', universityRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/freelancer', freelancerRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

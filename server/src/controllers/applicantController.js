@@ -103,13 +103,14 @@ exports.getApplicants = async (req, res) => {
           if (freelancer) {
             applicantDetails = {
               id: freelancer.id,
-              name: freelancer.fullName,
+              name: `${freelancer.firstName || ''} ${freelancer.lastName || ''}`.trim() || 'Unknown',
               email: freelancer.User?.email,
               phone: freelancer.User?.phone,
               skills: freelancer.skills || [],
-              experience: freelancer.experience || 'Freelancer',
-              education: freelancer.education || 'Not specified',
-              portfolio: freelancer.portfolio
+              experience: 'Freelancer',
+              education: 'Freelancer Profile',
+              portfolio: freelancer.portfolioUrl,
+              location: freelancer.location
             };
           }
         }
@@ -259,15 +260,17 @@ exports.getApplicantById = async (req, res) => {
       if (freelancer) {
         applicantDetails = {
           id: freelancer.id,
-          name: freelancer.fullName,
+          name: `${freelancer.firstName || ''} ${freelancer.lastName || ''}`.trim() || 'Unknown',
           email: freelancer.User?.email,
           phone: freelancer.User?.phone,
           skills: freelancer.skills || [],
-          experience: freelancer.experience,
-          education: freelancer.education,
-          portfolio: freelancer.portfolio,
+          experience: 'Freelancer',
+          education: 'Freelancer Profile',
+          portfolio: freelancer.portfolioUrl,
           bio: freelancer.bio,
-          availability: freelancer.availability
+          availability: freelancer.availability,
+          location: freelancer.location,
+          hourlyRate: freelancer.hourlyRate
         };
       }
     }

@@ -17,6 +17,8 @@ const Quiz = require('./Quiz');
 const Question = require('./Question');
 const QuizAttempt = require('./QuizAttempt');
 const Notification = require('./Notification');
+const Project = require('./Project');
+const CompanyProject = require('./CompanyProject');
 
 // User Relationships
 User.hasOne(Student, { foreignKey: 'userId', onDelete: 'CASCADE' });
@@ -103,6 +105,14 @@ Quiz.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 User.hasMany(Notification, { foreignKey: 'userId', onDelete: 'CASCADE' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
 
+// Project Relationships
+Freelancer.hasMany(Project, { foreignKey: 'freelancerId', onDelete: 'CASCADE' });
+Project.belongsTo(Freelancer, { foreignKey: 'freelancerId' });
+
+// Company Project Relationships (for hiring freelancers)
+Company.hasMany(CompanyProject, { foreignKey: 'companyId', onDelete: 'CASCADE' });
+CompanyProject.belongsTo(Company, { foreignKey: 'companyId' });
+
 module.exports = {
   User,
   Student,
@@ -122,5 +132,7 @@ module.exports = {
   Quiz,
   Question,
   QuizAttempt,
-  Notification
+  Notification,
+  Project,
+  CompanyProject
 };
