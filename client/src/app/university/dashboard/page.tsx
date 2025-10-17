@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import AuthGuard from "@/components/AuthGuard";
+import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 
 // shadcn/ui sidebar primitives
 import {
@@ -17,16 +19,10 @@ import { AppSidebar } from "@/components/ui/university/app-sidebar"; // adjust i
 
 export default function UniversityDashboard() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const [activeTab] = useState("overview");
 
-  useEffect(() => {
-    if (!user || user.role !== "university") {
-      router.push("/login");
-    }
-  }, [user, router]);
-
-  if (!user || user.role !== "university") return null;
+  // AuthGuard will handle authentication and role checking
 
   const [universityStats, setUniversityStats] = useState({
     totalStudents: 0,
@@ -123,7 +119,11 @@ export default function UniversityDashboard() {
   };
 
   return (
-    <SidebarProvider>
+    <AuthGuard requiredRole="university">
+      {/* Session timeout warning */}
+      <SessionTimeoutWarning />
+
+      <SidebarProvider>
       {/* Left rail */}
       <AppSidebar />
 
@@ -139,16 +139,6 @@ export default function UniversityDashboard() {
             </div>
 
             <div className="ml-auto flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">University Admin</p>
-                <p className="text-sm text-gray-500">{user.email}</p>
-              </div>
-              <button
-                onClick={logout}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
-              >
-                Logout
-              </button>
             </div>
           </div>
         </header>
@@ -260,6 +250,7 @@ export default function UniversityDashboard() {
         </main>
       </SidebarInset>
     </SidebarProvider>
+    </AuthGuard>
   );
 }
 

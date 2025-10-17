@@ -3,6 +3,11 @@ const { protect, authorize } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 
 const {
+  getDashboard,
+  getActivity,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
   getProfile,
   updateProfile,
   uploadCV,
@@ -20,7 +25,14 @@ const {
   getMyFeedback,
   submitReview,
   getMyReviews,
-  getJobsFromConnectedCompanies
+  getCertificates,
+  submitVerificationRequest,
+  getUniversities,
+  findPeers,
+  getAvailableJobs,
+  getJobDetails,
+  applyForJob,
+  getMyApplications
 } = require('../controllers/studentController');
 
 const router = express.Router();
@@ -28,6 +40,13 @@ const router = express.Router();
 // All routes require authentication and student role
 router.use(protect);
 router.use(authorize('student'));
+
+// Dashboard routes
+router.get('/dashboard', getDashboard);
+router.get('/activity', getActivity);
+router.get('/notifications', getNotifications);
+router.put('/notifications/:id/read', markNotificationRead);
+router.put('/notifications/read-all', markAllNotificationsRead);
 
 // Profile routes
 router.get('/profile', getProfile);
@@ -53,12 +72,28 @@ router.post('/certificate', addCertificate);
 router.put('/certificate/:id', updateCertificate);
 router.delete('/certificate/:id', deleteCertificate);
 
-// Job routes
-router.get('/jobs', getJobsFromConnectedCompanies);
 
 // Feedback & Review routes
 router.get('/feedback', getMyFeedback);
 router.post('/reviews', submitReview);
 router.get('/reviews', getMyReviews);
+
+// Peer finder route
+router.get('/peers', findPeers);
+
+// Certificate routes
+router.get('/certificates', getCertificates);
+
+// University verification routes
+router.get('/universities', getUniversities);
+router.post('/verify-university', submitVerificationRequest);
+
+// Jobs routes
+router.get('/jobs', getAvailableJobs);
+router.get('/jobs/:id', getJobDetails);
+router.post('/jobs/:id/apply', applyForJob);
+
+// Application routes
+router.get('/applications', getMyApplications);
 
 module.exports = router;

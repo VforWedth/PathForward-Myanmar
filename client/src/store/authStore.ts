@@ -4,7 +4,7 @@ import api from '@/lib/api';
 interface User {
   id: string;
   email: string;
-  name?: string; // Optional name field
+  name?: string;
   role: 'admin' | 'student' | 'company' | 'university' | 'freelancer';
   isVerified: boolean;
 }
@@ -39,6 +39,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       }
 
       localStorage.setItem('token', token);
+
+      // Store login timestamp for session management
+      localStorage.setItem('loginTimestamp', Date.now().toString());
+
       console.log('Login successful, user role:', user.role);
       set({ user, token, isAuthenticated: true, isLoading: false, isInitialized: true });
       return user;
@@ -67,11 +71,40 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  logout: () => {
-    localStorage.removeItem('token');
-    set({ user: null, token: null, isAuthenticated: false });
-    // Redirect to login with success message
-    window.location.href = '/login?message=Successfully logged out';
+  logout: async () => {
+    try {
+      // Optional: Call logout endpoint for logging purposes
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await api.post('/auth/logout');
+        } catch (error) {
+          // Ignore logout endpoint errors - client-side logout is sufficient
+          console.log('Logout endpoint error (ignored):', error);
+        }
+      }
+    } catch (error) {
+      // Ignore any errors during logout
+      console.log('Logout error (ignored):', error);
+    } finally {
+      // Always perform client-side cleanup
+      localStorage.removeItem('token');
+      localStorage.removeItem('loginTimestamp');
+      localStorage.removeItem('redirectAfterLogin');
+      // NOTE: We DON'T clear 'rememberedEmail' - users expect this to persist
+      // This is how Gmail, Facebook, and other major sites handle it
+
+      set({ user: null, token: null, isAuthenticated: false, isInitialized: true });
+
+      // Use router for smoother navigation instead of hard redirect
+      // This provides a better UX than window.location.href
+      if (typeof window !== 'undefined') {
+        // Small delay to allow state to update
+        setTimeout(() => {
+          window.location.href = '/login?message=Successfully logged out';
+        }, 100);
+      }
+    }
   },
 
   checkAuth: async () => {

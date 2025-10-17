@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, Bell, Briefcase, LogOut, School, Star, User2, Menu } from 'lucide-react';
+import { Bell, Briefcase, LogOut, School, Star, User2, Menu, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -33,19 +33,21 @@ type TopNavProps = {
   onLogout: () => void;
 };
 
+function getInitials(name?: string) {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
+  return (first + last).toUpperCase() || 'U';
+}
+
 export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavProps) {
   const pathname = usePathname();
   const onDashboard = pathname?.startsWith('/student/dashboard');
 
   const quickLinks = [
     {
-      href: '/student/profile',
-      label: 'Profile',
-      icon: <User2 className="h-4 w-4" />,
-      active: pathname?.startsWith('/student/profile'),
-    },
-    {
-      href: '/student/applications', // fixed route
+      href: '/student/applications',
       label: 'Applications',
       icon: <Briefcase className="h-4 w-4" />,
       active: pathname?.startsWith('/student/applications'),
@@ -78,26 +80,25 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
         {/* Desktop actions */}
         <TooltipProvider delayDuration={200}>
           <div className="hidden items-center gap-2 md:flex">
-            {/* Back to Dashboard (desktop) */}
-            {!onDashboard && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="secondary"
-                    className="bg-white/10 text-white hover:bg-white/20"
-                  >
-                    <Link href="/student/dashboard" className="inline-flex items-center gap-2">
-                      <ArrowLeft className="h-4 w-4" />
-                      <span className="hidden sm:inline">Back</span>
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Back to Dashboard</TooltipContent>
-              </Tooltip>
-            )}
+            {/* Dashboard (always visible; replaces Back) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  asChild
+                  size="sm"
+                  variant={onDashboard ? 'default' : 'secondary'}
+                  className={onDashboard ? 'bg-white text-[#2F4156]' : 'bg-white/10 text-white hover:bg-white/20'}
+                >
+                  <Link href="/student/dashboard" className="inline-flex items-center gap-2">
+                    <School className="h-4 w-4" />
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Go to Dashboard</TooltipContent>
+            </Tooltip>
 
+            {/* Quick links */}
             {quickLinks.map((q) => (
               <Tooltip key={q.href}>
                 <TooltipTrigger asChild>
@@ -143,15 +144,44 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Logout */}
-            <Button
-              size="sm"
-              className="bg-[#C8D9E6] text-[#2F4156] hover:bg-white"
-              onClick={onLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+            {/* User dropdown: Profile + Logout */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-white/10 text-white hover:bg-white/20 inline-flex items-center gap-2"
+                  aria-label="Account menu"
+                >
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-white/20 text-sm font-bold">
+                    {getInitials(userName)}
+                  </span>
+                  <span className="hidden sm:inline text-sm">{userName ?? 'Account'}</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  <User2 className="h-4 w-4" />
+                  {userName ?? 'Student'}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/student/profile" className="inline-flex w-full items-center gap-2">
+                    <User2 className="h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-red-600 focus:text-red-600"
+                  onClick={onLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </TooltipProvider>
 
@@ -171,16 +201,15 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
               </SheetHeader>
 
               <div className="mt-4 space-y-2">
-                {/* Back to Dashboard (mobile) */}
-                {!onDashboard && (
-                  <Button asChild className="w-full justify-start" variant="secondary">
-                    <Link href="/student/dashboard" className="inline-flex items-center gap-2">
-                      <ArrowLeft className="h-4 w-4" />
-                      Back to Dashboard
-                    </Link>
-                  </Button>
-                )}
+                {/* Dashboard (mobile) */}
+                <Button asChild className="w-full justify-start" variant={onDashboard ? 'default' : 'secondary'}>
+                  <Link href="/student/dashboard" className="inline-flex items-center gap-2">
+                    <School className="h-4 w-4" />
+                    Dashboard
+                  </Link>
+                </Button>
 
+                {/* Quick links */}
                 {quickLinks.map((q) => (
                   <Button
                     key={q.href}
@@ -195,6 +224,7 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
                   </Button>
                 ))}
 
+                {/* Alerts summary */}
                 <div className="mt-4 flex items-center justify-between rounded-lg bg-[#F5EFEB] p-3">
                   <span className="text-sm font-medium text-[#2F4156]">Alerts</span>
                   <div className="flex items-center gap-2">
@@ -205,10 +235,22 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
                   </div>
                 </div>
 
-                <Button onClick={onLogout} className="mt-4 w-full">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
+                {/* Account section (mobile) */}
+                <div className="mt-4">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Account
+                  </div>
+                  <Button asChild variant="secondary" className="w-full justify-start">
+                    <Link href="/student/profile" className="inline-flex items-center gap-2">
+                      <User2 className="h-4 w-4" />
+                      Profile
+                    </Link>
+                  </Button>
+                  <Button onClick={onLogout} className="mt-2 w-full justify-start">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>

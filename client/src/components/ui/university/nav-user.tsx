@@ -68,11 +68,7 @@ export function NavUser({
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuItem
-              onClick={() => {
-                if (onLogout) onLogout()
-              }}
-            >
+            <DropdownMenuItem onClick={onLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

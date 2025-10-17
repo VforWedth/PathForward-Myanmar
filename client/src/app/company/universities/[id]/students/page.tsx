@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
+import { Users, Building2, ArrowLeft, Search, Filter } from 'lucide-react';
 
 import { AppSidebar } from '@/components/ui/company/app-sidebar';
 import {
@@ -161,8 +162,8 @@ export default function UniversityStudentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading students...</div>
+      <div className="min-h-screen bg-[#F5EFEB] flex items-center justify-center">
+        <div className="text-[#567C8D]">Loading students...</div>
       </div>
     );
   }
@@ -171,80 +172,103 @@ export default function UniversityStudentsPage() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+        {/* Header with Gradient */}
+        <header className="relative isolate border-b border-black/5 bg-gradient-to-r from-[#2F4156] via-[#2F4156] to-[#567C8D] text-white shadow-lg">
+          {/* Decorative blur effects */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 -left-24 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl" />
+          </div>
+
+          {/* Title row */}
+          <div className="relative flex h-20 shrink-0 items-center gap-3 px-6">
+            <Users className="h-8 w-8 text-emerald-300" />
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">
+                {university?.universityName || 'University'} Students
+              </h1>
+              <p className="text-sm text-white/80">
+                {university?.location && `📍 ${university.location} • `}
+                {students.length} {students.length === 1 ? 'student' : 'students'} found
+              </p>
+            </div>
+          </div>
+
+          {/* Breadcrumb row */}
+          <div className="relative flex h-12 items-center gap-2 border-t border-white/10 bg-black/5 px-4">
+            <SidebarTrigger className="-ml-1 text-white hover:bg-white/10 data-[state=open]:bg-white/10" />
+            <Separator orientation="vertical" className="mr-2 h-4 bg-white/20" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Company</BreadcrumbLink>
+                  <BreadcrumbLink href="#" className="text-white/90 hover:text-white">
+                    Company
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbSeparator className="hidden md:block text-white/50" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/company/universities">Universities</BreadcrumbLink>
+                  <BreadcrumbLink href="/company/universities" className="text-white/90 hover:text-white">
+                    Universities
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
+                <BreadcrumbSeparator className="text-white/50" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Students</BreadcrumbPage>
+                  <BreadcrumbPage className="text-white font-medium">Students</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
 
-            <div className="ml-auto pr-4 flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={() => router.push('/company/universities')}
-                className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
+                className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-colors text-sm border border-white/20"
               >
+                <ArrowLeft className="h-4 w-4" />
                 Back to Universities
               </button>
             </div>
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 bg-[#F5EFEB]">
           <div className="max-w-7xl mx-auto p-8 w-full">
-            {/* Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                {university?.universityName || 'University'} Students
-              </h1>
-              <p className="text-gray-600">
-                {university?.location && `📍 ${university.location} • `}
-                {students.length} {students.length === 1 ? 'student' : 'students'} found
-              </p>
-            </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Filter Students</h3>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[#C8D9E6] shadow-sm p-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="h-5 w-5 text-[#567C8D]" />
+                <h3 className="text-lg font-semibold text-[#2F4156]">Filter Students</h3>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
-                  <input
-                    type="text"
-                    placeholder="Search by name, email, or skills..."
-                    value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  />
+                  <label className="block text-sm font-medium text-[#2F4156] mb-2">Search</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#567C8D]" />
+                    <input
+                      type="text"
+                      placeholder="Search by name, email, or skills..."
+                      value={filters.search}
+                      onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                      className="w-full pl-10 pr-4 py-2 border border-[#C8D9E6] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-[#2F4156]"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Major</label>
+                  <label className="block text-sm font-medium text-[#2F4156] mb-2">Major</label>
                   <input
                     type="text"
                     placeholder="e.g., Computer Science"
                     value={filters.major}
                     onChange={(e) => setFilters({ ...filters, major: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-[#C8D9E6] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-[#2F4156]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                  <label className="block text-sm font-medium text-[#2F4156] mb-2">Year</label>
                   <select
                     value={filters.year}
                     onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-[#C8D9E6] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-[#2F4156]"
                   >
                     <option value="">All Years</option>
                     <option value="1">1st Year</option>
@@ -258,7 +282,7 @@ export default function UniversityStudentsPage() {
               {(filters.search || filters.major || filters.year) && (
                 <button
                   onClick={() => setFilters({ major: '', year: '', search: '' })}
-                  className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+                  className="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-medium"
                 >
                   Clear all filters
                 </button>
@@ -271,16 +295,16 @@ export default function UniversityStudentsPage() {
                 {students.map((student) => (
                   <div
                     key={student.id}
-                    className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow overflow-hidden"
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[#C8D9E6] shadow-sm hover:shadow-md transition-all overflow-hidden hover:border-emerald-300"
                   >
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-800">
+                          <h3 className="text-lg font-semibold text-[#2F4156]">
                             {student.firstName} {student.lastName}
                           </h3>
                           {student.User?.isVerified && (
-                            <span className="text-xs text-green-600">✓ Verified</span>
+                            <span className="text-xs text-emerald-600">✓ Verified</span>
                           )}
                         </div>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(student.status)}`}>
@@ -288,37 +312,37 @@ export default function UniversityStudentsPage() {
                         </span>
                       </div>
 
-                      <div className="space-y-2 mb-4 text-sm text-gray-600">
+                      <div className="space-y-2 mb-4 text-sm text-[#567C8D]">
                         <p>
-                          <span className="font-medium">🎓 Major:</span> {student.major}
+                          <span className="font-medium text-[#2F4156]">🎓 Major:</span> {student.major}
                         </p>
                         <p>
-                          <span className="font-medium">📚 Year:</span> {getYearLabel(student.year)}
+                          <span className="font-medium text-[#2F4156]">📚 Year:</span> {getYearLabel(student.year)}
                         </p>
                         {student.gpa && (
                           <p>
-                            <span className="font-medium">📊 GPA:</span> {student.gpa.toFixed(2)}
+                            <span className="font-medium text-[#2F4156]">📊 GPA:</span> {student.gpa.toFixed(2)}
                           </p>
                         )}
                         <p>
-                          <span className="font-medium">💼 Preference:</span> {student.jobPreference}
+                          <span className="font-medium text-[#2F4156]">💼 Preference:</span> {student.jobPreference}
                         </p>
                       </div>
 
                       {student.skills && student.skills.length > 0 && (
                         <div className="mb-4">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Skills:</p>
+                          <p className="text-sm font-medium text-[#2F4156] mb-2">Skills:</p>
                           <div className="flex flex-wrap gap-1">
                             {student.skills.slice(0, 3).map((skill, index) => (
                               <span
                                 key={index}
-                                className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs"
+                                className="px-2 py-1 bg-[#F5EFEB] text-[#2F4156] rounded text-xs ring-1 ring-[#E3EAF1]"
                               >
                                 {skill}
                               </span>
                             ))}
                             {student.skills.length > 3 && (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                              <span className="px-2 py-1 bg-[#F5EFEB] text-[#567C8D] rounded text-xs ring-1 ring-[#E3EAF1]">
                                 +{student.skills.length - 3} more
                               </span>
                             )}
@@ -326,10 +350,10 @@ export default function UniversityStudentsPage() {
                         </div>
                       )}
 
-                      <div className="pt-4 border-t flex gap-2">
+                      <div className="pt-4 border-t border-[#E3EAF1] flex gap-2">
                         <button
                           onClick={() => handleViewDetails(student)}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                          className="flex-1 px-4 py-2 bg-[#2F4156] text-white rounded-lg hover:bg-[#243447] transition-colors text-sm font-medium"
                         >
                           View Profile
                         </button>
@@ -339,7 +363,7 @@ export default function UniversityStudentsPage() {
                             // TODO: Navigate to job application flow
                             // This will be connected when student module is integrated
                           }}
-                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
                         >
                           Invite to Job
                         </button>
@@ -349,9 +373,9 @@ export default function UniversityStudentsPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <div className="rounded-2xl border border-dashed border-[#C8D9E6] bg-white/60 p-12 text-center shadow-sm">
                 <svg
-                  className="w-20 h-20 mx-auto text-gray-300 mb-4"
+                  className="w-20 h-20 mx-auto text-[#C8D9E6] mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -363,8 +387,8 @@ export default function UniversityStudentsPage() {
                     d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                   />
                 </svg>
-                <p className="text-lg text-gray-600 mb-2">No students found</p>
-                <p className="text-sm text-gray-500">
+                <p className="text-lg text-[#2F4156] mb-2">No students found</p>
+                <p className="text-sm text-[#567C8D]">
                   {filters.search || filters.major || filters.year
                     ? 'Try adjusting your filters'
                     : 'This university has no students yet'}
@@ -377,20 +401,20 @@ export default function UniversityStudentsPage() {
 
       {/* Student Details Modal */}
       {showStudentModal && selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-[#C8D9E6] p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-2xl font-semibold text-gray-900">
+                <h3 className="text-2xl font-semibold text-[#2F4156]">
                   {selectedStudent.firstName} {selectedStudent.lastName}
                 </h3>
-                <p className="text-gray-600 mt-1">
+                <p className="text-[#567C8D] mt-1">
                   {selectedStudent.major} • {getYearLabel(selectedStudent.year)}
                 </p>
               </div>
               <button
                 onClick={() => setShowStudentModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-[#567C8D] hover:text-[#2F4156] transition-colors"
                 aria-label="Close"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,25 +439,25 @@ export default function UniversityStudentsPage() {
               {/* Student Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-3">Contact Information</h4>
+                  <h4 className="font-semibold text-[#2F4156] mb-3">Contact Information</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500">📧</span>
+                      <span className="text-[#567C8D]">📧</span>
                       <div>
-                        <span className="font-medium text-gray-700">Email:</span>
+                        <span className="font-medium text-[#2F4156]">Email:</span>
                         <br />
-                        <a href={`mailto:${selectedStudent.User.email}`} className="text-blue-600 hover:underline">
+                        <a href={`mailto:${selectedStudent.User.email}`} className="text-emerald-600 hover:underline">
                           {selectedStudent.User.email}
                         </a>
                       </div>
                     </div>
                     {selectedStudent.User.phone && (
                       <div className="flex items-start gap-2">
-                        <span className="text-gray-500">📱</span>
+                        <span className="text-[#567C8D]">📱</span>
                         <div>
-                          <span className="font-medium text-gray-700">Phone:</span>
+                          <span className="font-medium text-[#2F4156]">Phone:</span>
                           <br />
-                          <a href={`tel:${selectedStudent.User.phone}`} className="text-blue-600 hover:underline">
+                          <a href={`tel:${selectedStudent.User.phone}`} className="text-emerald-600 hover:underline">
                             {selectedStudent.User.phone}
                           </a>
                         </div>
@@ -443,40 +467,40 @@ export default function UniversityStudentsPage() {
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-3">Academic Details</h4>
+                  <h4 className="font-semibold text-[#2F4156] mb-3">Academic Details</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500">🎓</span>
+                      <span className="text-[#567C8D]">🎓</span>
                       <div>
-                        <span className="font-medium text-gray-700">Major:</span>
+                        <span className="font-medium text-[#2F4156]">Major:</span>
                         <br />
-                        <span className="text-gray-600">{selectedStudent.major}</span>
+                        <span className="text-[#567C8D]">{selectedStudent.major}</span>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500">📚</span>
+                      <span className="text-[#567C8D]">📚</span>
                       <div>
-                        <span className="font-medium text-gray-700">Year:</span>
+                        <span className="font-medium text-[#2F4156]">Year:</span>
                         <br />
-                        <span className="text-gray-600">{getYearLabel(selectedStudent.year)}</span>
+                        <span className="text-[#567C8D]">{getYearLabel(selectedStudent.year)}</span>
                       </div>
                     </div>
                     {selectedStudent.gpa && (
                       <div className="flex items-start gap-2">
-                        <span className="text-gray-500">📊</span>
+                        <span className="text-[#567C8D]">📊</span>
                         <div>
-                          <span className="font-medium text-gray-700">GPA:</span>
+                          <span className="font-medium text-[#2F4156]">GPA:</span>
                           <br />
-                          <span className="text-gray-600">{selectedStudent.gpa.toFixed(2)}</span>
+                          <span className="text-[#567C8D]">{selectedStudent.gpa.toFixed(2)}</span>
                         </div>
                       </div>
                     )}
                     <div className="flex items-start gap-2">
-                      <span className="text-gray-500">💼</span>
+                      <span className="text-[#567C8D]">💼</span>
                       <div>
-                        <span className="font-medium text-gray-700">Job Preference:</span>
+                        <span className="font-medium text-[#2F4156]">Job Preference:</span>
                         <br />
-                        <span className="text-gray-600">{selectedStudent.jobPreference}</span>
+                        <span className="text-[#567C8D]">{selectedStudent.jobPreference}</span>
                       </div>
                     </div>
                   </div>
@@ -486,12 +510,12 @@ export default function UniversityStudentsPage() {
               {/* Skills */}
               {selectedStudent.skills && selectedStudent.skills.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-3">Skills & Expertise</h4>
+                  <h4 className="font-semibold text-[#2F4156] mb-3">Skills & Expertise</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedStudent.skills.map((skill, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
+                        className="px-3 py-1 bg-[#F5EFEB] text-[#2F4156] rounded-full text-sm ring-1 ring-[#E3EAF1]"
                       >
                         {skill}
                       </span>
@@ -501,10 +525,10 @@ export default function UniversityStudentsPage() {
               )}
 
               {/* Actions */}
-              <div className="pt-4 border-t flex flex-wrap gap-3">
+              <div className="pt-4 border-t border-[#E3EAF1] flex flex-wrap gap-3">
                 <a
                   href={`mailto:${selectedStudent.User.email}?subject=Job Opportunity&body=Hello ${selectedStudent.firstName},`}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#2F4156] text-white rounded-lg hover:bg-[#243447] transition-colors text-sm font-medium"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -516,7 +540,7 @@ export default function UniversityStudentsPage() {
                     toast.info('This feature will be available when student module is connected');
                     // TODO: Will be implemented when connecting with student module
                   }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -526,9 +550,9 @@ export default function UniversityStudentsPage() {
               </div>
 
               {/* Note about student module integration */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
-                  <strong>📝 Note:</strong> Full student profile details, education history, experience, 
+              <div className="bg-[#F5EFEB] border border-[#C8D9E6] rounded-lg p-4">
+                <p className="text-sm text-[#2F4156]">
+                  <strong>📝 Note:</strong> Full student profile details, education history, experience,
                   and application features will be available once the student module is integrated.
                 </p>
               </div>

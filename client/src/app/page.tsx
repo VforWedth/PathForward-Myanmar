@@ -6,13 +6,18 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, user, checkAuth } = useAuthStore();
+  const { isAuthenticated, user, isInitialized, checkAuth } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
   useEffect(() => {
+    // Wait for authentication to be initialized
+    if (!isInitialized) {
+      return;
+    }
+
     if (isAuthenticated && user) {
       // Redirect based on role
       switch (user.role) {
@@ -35,7 +40,31 @@ export default function Home() {
           router.push('/login');
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, isInitialized, router]);
+
+  // Show loading while checking authentication
+  if (!isInitialized) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Show loading while redirecting authenticated users
+  if (isAuthenticated && user) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to your dashboard...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">

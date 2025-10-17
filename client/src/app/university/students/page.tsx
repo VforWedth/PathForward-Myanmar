@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "react-toastify";
+import * as universityApi from "@/lib/universityApi";
 
 // Sidebar layout primitives
 import {
@@ -32,20 +33,28 @@ import {
   Hourglass,
   Search,
   Filter,
+  CheckCircle,
+  XCircle,
+  Clock,
 } from "lucide-react";
 
 interface Student {
   id: string;
-  name: string;
-  email: string;
-  studentId: string;
-  department: string;
-  year: string;
-  gpa: string;
-  status: "active" | "graduated" | "inactive";
-  employmentStatus: "unemployed" | "internship" | "employed" | "seeking";
+  firstName: string;
+  lastName: string;
+  rollNumber?: string;
+  major: string;
+  year: number;
+  verificationStatus: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+  status: "available" | "on_job" | "internship_completed";
   skills: string[];
-  lastUpdated: string;
+  cvUrl?: string;
+  User: {
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function StudentManagement() {
@@ -53,16 +62,17 @@ export default function StudentManagement() {
   const { user } = useAuthStore();
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [pendingStudents, setPendingStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showEmploymentModal, setShowEmploymentModal] = useState(false);
-  const [newEmploymentStatus, setNewEmploymentStatus] =
-    useState<Student["employmentStatus"]>("unemployed");
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationAction, setVerificationAction] = useState<'approve' | 'reject'>('approve');
+  const [rejectionReason, setRejectionReason] = useState('');
   const [filters, setFilters] = useState({
-    department: "all",
+    major: "all",
     year: "all",
-    employmentStatus: "all",
+    verificationStatus: "all",
     search: "",
   });
 
@@ -72,70 +82,45 @@ export default function StudentManagement() {
       return;
     }
 
-    // Mock data
-    const mockStudents: Student[] = [
-      {
-        id: "1",
-        name: "Aung Aung",
-        email: "aung@university.edu.mm",
-        studentId: "STU-2023-001",
-        department: "Computer Science",
-        year: "Final Year",
-        gpa: "3.8",
-        status: "active",
-        employmentStatus: "seeking",
-        skills: ["React", "Python", "Machine Learning"],
-        lastUpdated: "2024-01-15",
-      },
-      {
-        id: "2",
-        name: "Mi Mi",
-        email: "mimi@university.edu.mm",
-        studentId: "STU-2023-002",
-        department: "Software Engineering",
-        year: "Third Year",
-        gpa: "3.9",
-        status: "active",
-        employmentStatus: "internship",
-        skills: ["Java", "Spring Boot", "Database Design"],
-        lastUpdated: "2024-01-14",
-      },
-      {
-        id: "3",
-        name: "Ko Ko",
-        email: "koko@university.edu.mm",
-        studentId: "STU-2022-001",
-        department: "Computer Science",
-        year: "Graduated",
-        gpa: "3.7",
-        status: "graduated",
-        employmentStatus: "employed",
-        skills: ["JavaScript", "Node.js", "AWS"],
-        lastUpdated: "2024-01-10",
-      },
-    ];
+    const fetchStudents = async () => {
+      try {
+        const response = await universityApi.getStudents();
+        if (response.success) {
+          const allStudents = response.students || response.data || [];
+          setStudents(allStudents);
+          setFilteredStudents(allStudents);
 
-    setStudents(mockStudents);
-    setFilteredStudents(mockStudents);
-    setIsLoading(false);
+          // Filter pending verifications
+          const pending = allStudents.filter((s: Student) => s.verificationStatus === 'pending');
+          setPendingStudents(pending);
+        }
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        toast.error('Failed to load students');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudents();
   }, [user, router]);
 
   useEffect(() => {
     let filtered = students;
 
-    if (filters.department !== "all") {
+    if (filters.major !== "all") {
       filtered = filtered.filter(
-        (student) => student.department === filters.department
+        (student) => student.major === filters.major
       );
     }
 
     if (filters.year !== "all") {
-      filtered = filtered.filter((student) => student.year === filters.year);
+      filtered = filtered.filter((student) => student.year.toString() === filters.year);
     }
 
-    if (filters.employmentStatus !== "all") {
+    if (filters.verificationStatus !== "all") {
       filtered = filtered.filter(
-        (student) => student.employmentStatus === filters.employmentStatus
+        (student) => student.verificationStatus === filters.verificationStatus
       );
     }
 
@@ -143,8 +128,8 @@ export default function StudentManagement() {
       const q = filters.search.toLowerCase();
       filtered = filtered.filter(
         (student) =>
-          student.name.toLowerCase().includes(q) ||
-          student.studentId.toLowerCase().includes(q) ||
+          `${student.firstName} ${student.lastName}`.toLowerCase().includes(q) ||
+          student.rollNumber?.toLowerCase().includes(q) ||
           student.skills.some((skill) => skill.toLowerCase().includes(q))
       );
     }
@@ -154,26 +139,24 @@ export default function StudentManagement() {
 
   const getStatusColor = (status: Student["status"]) => {
     switch (status) {
-      case "active":
+      case "available":
         return "bg-green-100 text-green-800 ring-1 ring-green-200";
-      case "graduated":
+      case "on_job":
         return "bg-blue-100 text-blue-800 ring-1 ring-blue-200";
-      case "inactive":
-        return "bg-red-100 text-red-800 ring-1 ring-red-200";
+      case "internship_completed":
+        return "bg-purple-100 text-purple-800 ring-1 ring-purple-200";
       default:
         return "bg-gray-100 text-gray-800 ring-1 ring-gray-200";
     }
   };
 
-  const getEmploymentColor = (status: Student["employmentStatus"]) => {
+  const getVerificationColor = (status: Student["verificationStatus"]) => {
     switch (status) {
-      case "employed":
-        return "bg-green-100 text-green-800 ring-1 ring-green-200";
-      case "internship":
-        return "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-200";
-      case "seeking":
-        return "bg-orange-100 text-orange-800 ring-1 ring-orange-200";
-      case "unemployed":
+      case "approved":
+        return "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200";
+      case "pending":
+        return "bg-amber-100 text-amber-800 ring-1 ring-amber-200";
+      case "rejected":
         return "bg-red-100 text-red-800 ring-1 ring-red-200";
       default:
         return "bg-gray-100 text-gray-800 ring-1 ring-gray-200";
@@ -182,48 +165,56 @@ export default function StudentManagement() {
 
   // Actions
   const handleViewFullProfile = (student: Student) => {
-    toast.info(`Opening full profile for ${student.name}`);
+    toast.info(`Opening full profile for ${student.firstName} ${student.lastName}`);
     // router.push(`/university/students/${student.id}`);
   };
 
-  const handleUpdateEmploymentStatus = (student: Student) => {
+  const handleVerifyStudent = (student: Student, action: 'approve' | 'reject') => {
     setSelectedStudent(student);
-    setNewEmploymentStatus(student.employmentStatus);
-    setShowEmploymentModal(true);
+    setVerificationAction(action);
+    setShowVerificationModal(true);
   };
 
-  const handleSaveEmploymentStatus = () => {
-    if (selectedStudent) {
-      const updatedStudents = students.map((s) =>
-        s.id === selectedStudent.id
-          ? {
-              ...s,
-              employmentStatus: newEmploymentStatus,
-              lastUpdated: new Date().toISOString().split("T")[0],
-            }
-          : s
-      );
-      setStudents(updatedStudents);
-      setSelectedStudent({
-        ...selectedStudent,
-        employmentStatus: newEmploymentStatus,
+  const handleSaveVerification = async () => {
+    if (!selectedStudent) return;
+
+    try {
+      const response = await universityApi.verifyStudent(selectedStudent.id, {
+        action: verificationAction,
+        reason: verificationAction === 'reject' ? rejectionReason : undefined,
       });
-      setShowEmploymentModal(false);
-      toast.success(
-        `Employment status updated to ${newEmploymentStatus} for ${selectedStudent.name}`
-      );
+
+      if (response.success) {
+        // Refresh students list
+        const studentsResponse = await universityApi.getStudents();
+        if (studentsResponse.success) {
+          const allStudents = studentsResponse.students || studentsResponse.data || [];
+          setStudents(allStudents);
+          setFilteredStudents(allStudents);
+          const pending = allStudents.filter((s: Student) => s.verificationStatus === 'pending');
+          setPendingStudents(pending);
+        }
+
+        setShowVerificationModal(false);
+        setRejectionReason('');
+        setSelectedStudent(null);
+        toast.success(`Student ${verificationAction === 'approve' ? 'approved' : 'rejected'} successfully`);
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to verify student');
     }
   };
 
   const handleGenerateStudentReport = (student: Student) => {
-    toast.info(`Generating report for ${student.name}`);
+    toast.info(`Generating report for ${student.firstName} ${student.lastName}`);
     const reportData = {
-      studentName: student.name,
-      studentId: student.studentId,
-      department: student.department,
-      employmentStatus: student.employmentStatus,
+      studentName: `${student.firstName} ${student.lastName}`,
+      rollNumber: student.rollNumber,
+      major: student.major,
+      year: student.year,
+      status: student.status,
+      verificationStatus: student.verificationStatus,
       skills: student.skills,
-      gpa: student.gpa,
       generatedAt: new Date().toLocaleString(),
     };
     console.log("Student Report:", reportData);
@@ -270,16 +261,16 @@ export default function StudentManagement() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Department
+                    Major
                   </label>
                   <select
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                    value={filters.department}
+                    value={filters.major}
                     onChange={(e) =>
-                      setFilters({ ...filters, department: e.target.value })
+                      setFilters({ ...filters, major: e.target.value })
                     }
                   >
-                    <option value="all">All Departments</option>
+                    <option value="all">All Majors</option>
                     <option value="Computer Science">Computer Science</option>
                     <option value="Software Engineering">
                       Software Engineering
@@ -302,33 +293,31 @@ export default function StudentManagement() {
                     }
                   >
                     <option value="all">All Years</option>
-                    <option value="First Year">First Year</option>
-                    <option value="Second Year">Second Year</option>
-                    <option value="Third Year">Third Year</option>
-                    <option value="Final Year">Final Year</option>
-                    <option value="Graduated">Graduated</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Employment Status
+                    Verification Status
                   </label>
                   <select
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
-                    value={filters.employmentStatus}
+                    value={filters.verificationStatus}
                     onChange={(e) =>
                       setFilters({
                         ...filters,
-                        employmentStatus: e.target.value,
+                        verificationStatus: e.target.value,
                       })
                     }
                   >
                     <option value="all">All Status</option>
-                    <option value="unemployed">Unemployed</option>
-                    <option value="seeking">Seeking</option>
-                    <option value="internship">Internship</option>
-                    <option value="employed">Employed</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
                   </select>
                 </div>
 
@@ -340,7 +329,7 @@ export default function StudentManagement() {
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Search by name, ID, or skills..."
+                      placeholder="Search by name, roll number..."
                       className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 focus:outline-none focus:border-blue-500"
                       value={filters.search}
                       onChange={(e) =>
@@ -351,6 +340,71 @@ export default function StudentManagement() {
                 </div>
               </div>
             </div>
+
+            {/* Pending Verifications Section */}
+            {pendingStudents.length > 0 && (
+              <div className="bg-gradient-to-br from-amber-50 to-white border border-amber-200 p-6 rounded-lg shadow-md mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg bg-amber-100 p-2">
+                      <Clock className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Pending Verifications
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {pendingStudents.length} student{pendingStudents.length !== 1 ? 's' : ''} waiting for verification
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {pendingStudents.slice(0, 5).map((student) => (
+                    <div
+                      key={student.id}
+                      className="bg-white p-4 rounded-lg border border-amber-200 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-800">
+                            {student.firstName} {student.lastName}
+                          </h4>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                            <span className="inline-flex items-center gap-1">
+                              <IdCard className="h-4 w-4" />
+                              {student.rollNumber || 'No Roll Number'}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Building2 className="h-4 w-4" />
+                              {student.major}
+                            </span>
+                            <span>Year {student.year}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleVerifyStudent(student, 'approve')}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm transition-colors"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleVerifyStudent(student, 'reject')}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Student List */}
@@ -389,22 +443,22 @@ export default function StudentManagement() {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <h4 className="text-lg font-semibold text-gray-800">
-                              {student.name}
+                              {student.firstName} {student.lastName}
                             </h4>
                             <p className="text-gray-600">
                               <span className="inline-flex items-center gap-1">
                                 <IdCard className="h-4 w-4 text-gray-500" />
-                                {student.studentId}
+                                {student.rollNumber || 'No Roll Number'}
                               </span>{" "}
                               •{" "}
                               <span className="inline-flex items-center gap-1">
                                 <Building2 className="h-4 w-4 text-gray-500" />
-                                {student.department}
+                                {student.major}
                               </span>
                             </p>
                             <p className="text-sm text-gray-500 inline-flex items-center gap-1">
                               <Mail className="h-4 w-4 text-gray-400" />
-                              {student.email}
+                              {student.User.email}
                             </p>
                           </div>
                           <div className="flex flex-col space-y-2">
@@ -413,18 +467,18 @@ export default function StudentManagement() {
                                 student.status
                               )}`}
                             >
-                              {student.status.charAt(0).toUpperCase() +
-                                student.status.slice(1)}
+                              {student.status.replace('_', ' ').charAt(0).toUpperCase() +
+                                student.status.replace('_', ' ').slice(1)}
                             </span>
                             <span
-                              className={`px-3 py-1 rounded-full text-sm font-medium ${getEmploymentColor(
-                                student.employmentStatus
+                              className={`px-3 py-1 rounded-full text-sm font-medium ${getVerificationColor(
+                                student.verificationStatus
                               )}`}
                             >
-                              {student.employmentStatus
+                              {student.verificationStatus
                                 .charAt(0)
                                 .toUpperCase() +
-                                student.employmentStatus.slice(1)}
+                                student.verificationStatus.slice(1)}
                             </span>
                           </div>
                         </div>
@@ -451,12 +505,12 @@ export default function StudentManagement() {
                               Year: {student.year}
                             </span>
                             <span className="inline-flex items-center gap-1">
-                              <BarChart3 className="h-4 w-4 text-gray-500" />
-                              GPA: {student.gpa}
+                              <BadgeCheck className="h-4 w-4 text-gray-500" />
+                              Status: {student.verificationStatus}
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <CalendarDays className="h-4 w-4 text-gray-500" />
-                              Updated: {student.lastUpdated}
+                              Updated: {new Date(student.updatedAt).toLocaleDateString()}
                             </span>
                           </div>
                         </div>
@@ -494,32 +548,27 @@ export default function StudentManagement() {
                             <p className="inline-flex items-center gap-2">
                               <UserRound className="h-4 w-4 text-gray-500" />
                               <span className="font-medium">Name:</span>{" "}
-                              {selectedStudent.name}
+                              {selectedStudent.firstName} {selectedStudent.lastName}
                             </p>
                             <p className="inline-flex items-center gap-2">
                               <Mail className="h-4 w-4 text-gray-500" />
                               <span className="font-medium">Email:</span>{" "}
-                              {selectedStudent.email}
+                              {selectedStudent.User.email}
                             </p>
                             <p className="inline-flex items-center gap-2">
                               <IdCard className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium">Student ID:</span>{" "}
-                              {selectedStudent.studentId}
+                              <span className="font-medium">Roll Number:</span>{" "}
+                              {selectedStudent.rollNumber || 'Not provided'}
                             </p>
                             <p className="inline-flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium">Department:</span>{" "}
-                              {selectedStudent.department}
+                              <span className="font-medium">Major:</span>{" "}
+                              {selectedStudent.major}
                             </p>
                             <p className="inline-flex items-center gap-2">
                               <GraduationCap className="h-4 w-4 text-gray-500" />
                               <span className="font-medium">Year:</span>{" "}
                               {selectedStudent.year}
-                            </p>
-                            <p className="inline-flex items-center gap-2">
-                              <BarChart3 className="h-4 w-4 text-gray-500" />
-                              <span className="font-medium">GPA:</span>{" "}
-                              {selectedStudent.gpa}
                             </p>
                           </div>
                         </div>
@@ -532,32 +581,32 @@ export default function StudentManagement() {
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between items-center">
                               <span className="font-medium">
-                                Academic Status:
+                                Job Status:
                               </span>
                               <span
                                 className={`px-2 py-1 rounded-full text-xs ${getStatusColor(
                                   selectedStudent.status
                                 )}`}
                               >
-                                {selectedStudent.status}
+                                {selectedStudent.status.replace('_', ' ')}
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="font-medium">
-                                Employment Status:
+                                Verification Status:
                               </span>
                               <span
-                                className={`px-2 py-1 rounded-full text-xs ${getEmploymentColor(
-                                  selectedStudent.employmentStatus
+                                className={`px-2 py-1 rounded-full text-xs ${getVerificationColor(
+                                  selectedStudent.verificationStatus
                                 )}`}
                               >
-                                {selectedStudent.employmentStatus}
+                                {selectedStudent.verificationStatus}
                               </span>
                             </div>
                             <p className="inline-flex items-center gap-2">
                               <CalendarDays className="h-4 w-4 text-gray-500" />
                               <span className="font-medium">Last Updated:</span>{" "}
-                              {selectedStudent.lastUpdated}
+                              {new Date(selectedStudent.updatedAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -585,21 +634,30 @@ export default function StudentManagement() {
                             Quick Actions
                           </h4>
                           <div className="grid grid-cols-1 gap-2">
+                            {selectedStudent.verificationStatus === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleVerifyStudent(selectedStudent, 'approve')}
+                                  className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm transition-colors"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  Approve Verification
+                                </button>
+                                <button
+                                  onClick={() => handleVerifyStudent(selectedStudent, 'reject')}
+                                  className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  Reject Verification
+                                </button>
+                              </>
+                            )}
                             <button
                               onClick={() => handleViewFullProfile(selectedStudent)}
                               className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm transition-colors"
                             >
                               <UserRound className="h-4 w-4" />
                               View Full Profile
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleUpdateEmploymentStatus(selectedStudent)
-                              }
-                              className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
-                            >
-                              <BadgeCheck className="h-4 w-4" />
-                              Update Employment Status
                             </button>
                             <button
                               onClick={() =>
@@ -634,65 +692,62 @@ export default function StudentManagement() {
         </main>
       </SidebarInset>
 
-      {/* Employment Status Modal */}
-      {showEmploymentModal && selectedStudent && (
+      {/* Verification Modal */}
+      {showVerificationModal && selectedStudent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">
-              Update Employment Status
+              {verificationAction === 'approve' ? 'Approve' : 'Reject'} Student Verification
             </h3>
             <p className="text-gray-600 mb-4">
-              Update employment status for {selectedStudent.name}
+              {verificationAction === 'approve'
+                ? `Approve verification request for ${selectedStudent.firstName} ${selectedStudent.lastName}?`
+                : `Reject verification request for ${selectedStudent.firstName} ${selectedStudent.lastName}`
+              }
             </p>
 
-            <div className="space-y-3 mb-6">
-              {(["unemployed", "seeking", "internship", "employed"] as const).map(
-                (status) => (
-                  <label
-                    key={status}
-                    className="flex items-center space-x-3 cursor-pointer"
-                  >
-                    <input
-                      type="radio"
-                      name="employmentStatus"
-                      value={status}
-                      checked={newEmploymentStatus === status}
-                      onChange={(e) =>
-                        setNewEmploymentStatus(
-                          e.target.value as Student["employmentStatus"]
-                        )
-                      }
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="capitalize inline-flex items-center gap-2">
-                      {status === "employed" && (
-                        <Briefcase className="h-4 w-4 text-green-600" />
-                      )}
-                      {status === "internship" && (
-                        <Hourglass className="h-4 w-4 text-yellow-600" />
-                      )}
-                      {status === "seeking" && (
-                        <Search className="h-4 w-4 text-orange-600" />
-                      )}
-                      {status === "unemployed" && (
-                        <Users className="h-4 w-4 text-red-600" />
-                      )}
-                      {status}
-                    </span>
-                  </label>
-                )
-              )}
+            {verificationAction === 'reject' && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rejection Reason <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Please provide a reason for rejection..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500"
+                  rows={4}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="rounded-lg bg-gray-50 p-3 mb-6">
+              <div className="text-sm space-y-1">
+                <p><span className="font-medium">Name:</span> {selectedStudent.firstName} {selectedStudent.lastName}</p>
+                <p><span className="font-medium">Roll Number:</span> {selectedStudent.rollNumber || 'N/A'}</p>
+                <p><span className="font-medium">Major:</span> {selectedStudent.major}</p>
+                <p><span className="font-medium">Year:</span> {selectedStudent.year}</p>
+              </div>
             </div>
 
             <div className="flex space-x-3">
               <button
-                onClick={handleSaveEmploymentStatus}
-                className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={handleSaveVerification}
+                disabled={verificationAction === 'reject' && !rejectionReason.trim()}
+                className={`flex-1 py-2 rounded-lg text-white transition-colors ${
+                  verificationAction === 'approve'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                }`}
               >
-                Save Changes
+                {verificationAction === 'approve' ? 'Approve' : 'Reject'}
               </button>
               <button
-                onClick={() => setShowEmploymentModal(false)}
+                onClick={() => {
+                  setShowVerificationModal(false);
+                  setRejectionReason('');
+                }}
                 className="flex-1 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
               >
                 Cancel

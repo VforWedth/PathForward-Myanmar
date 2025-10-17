@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
+import Link from 'next/link';
 
 import { AppSidebar } from '@/components/ui/company/app-sidebar';
 import {
@@ -21,16 +22,21 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { Briefcase, PlusCircle, X } from 'lucide-react';
 
 interface JobForm {
   title: string;
   description: string;
   requirements: string;
+  responsibilities: string;
   location: string;
-  type: 'full-time' | 'part-time' | 'contract' | 'internship';
+  jobType: 'full-time' | 'part-time' | 'contract' | 'internship' | 'freelance';
   workMode: 'onsite' | 'remote' | 'ojt' | 'hybrid';
-  salary: string;
-  category: string;
+  salaryRange: string;
+  skillsRequired: string[];
+  majorsPreferred: string[];
+  experienceLevel: 'entry' | 'mid' | 'senior';
+  numberOfPositions: number;
   applicationDeadline: string;
   targetUniversities: string[];
   isPublic: boolean;
@@ -51,19 +57,27 @@ export default function PostJob() {
     title: '',
     description: '',
     requirements: '',
+    responsibilities: '',
     location: '',
-    type: 'full-time',
+    jobType: 'full-time',
     workMode: 'onsite',
-    salary: '',
-    category: '',
+    salaryRange: '',
+    skillsRequired: [],
+    majorsPreferred: [],
+    experienceLevel: 'entry',
+    numberOfPositions: 1,
     applicationDeadline: '',
     targetUniversities: [],
     isPublic: true,
   });
 
+  // For handling multi-value inputs
+  const [skillInput, setSkillInput] = useState('');
+  const [majorInput, setMajorInput] = useState('');
+
   // Protect route and fetch connected universities
   useEffect(() => {
-    if (user === undefined) return; // wait for hydration if your store sets undefined first
+    if (user === undefined) return;
     if (!user || user.role !== 'company') {
       router.replace('/login');
       return;
@@ -105,17 +119,65 @@ export default function PostJob() {
     if (!formData.location.trim()) return 'Please enter a location.';
     if (!formData.description.trim()) return 'Please enter a job description.';
     if (!formData.requirements.trim()) return 'Please enter job requirements.';
-    if (!formData.category.trim()) return 'Please select a category.';
+    if (!formData.responsibilities.trim()) return 'Please enter job responsibilities.';
     if (!formData.applicationDeadline) return 'Please set an application deadline.';
+    if (formData.numberOfPositions < 1) return 'Number of positions must be at least 1.';
 
     const today = new Date();
     const dl = new Date(formData.applicationDeadline);
-    // zero-out time for fair compare
     today.setHours(0, 0, 0, 0);
     dl.setHours(0, 0, 0, 0);
     if (dl < today) return 'Deadline cannot be in the past.';
 
+    if (!formData.isPublic && formData.targetUniversities.length === 0) {
+      return 'Please select at least one target university or make the job public.';
+    }
+
     return null;
+  };
+
+  const addSkill = () => {
+    const skill = skillInput.trim();
+    if (skill && !formData.skillsRequired.includes(skill)) {
+      setFormData({ ...formData, skillsRequired: [...formData.skillsRequired, skill] });
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setFormData({
+      ...formData,
+      skillsRequired: formData.skillsRequired.filter(s => s !== skill)
+    });
+  };
+
+  const addMajor = () => {
+    const major = majorInput.trim();
+    if (major && !formData.majorsPreferred.includes(major)) {
+      setFormData({ ...formData, majorsPreferred: [...formData.majorsPreferred, major] });
+      setMajorInput('');
+    }
+  };
+
+  const removeMajor = (major: string) => {
+    setFormData({
+      ...formData,
+      majorsPreferred: formData.majorsPreferred.filter(m => m !== major)
+    });
+  };
+
+  const toggleUniversity = (universityId: string) => {
+    if (formData.targetUniversities.includes(universityId)) {
+      setFormData({
+        ...formData,
+        targetUniversities: formData.targetUniversities.filter(id => id !== universityId)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        targetUniversities: [...formData.targetUniversities, universityId]
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,14 +193,18 @@ export default function PostJob() {
     try {
       const payload = {
         title: formData.title.trim(),
-        location: formData.location.trim(),
         description: formData.description.trim(),
         requirements: formData.requirements.trim(),
-        salary: formData.salary.trim(),
-        category: formData.category.trim(),
-        type: formData.type,
+        responsibilities: formData.responsibilities.trim(),
+        location: formData.location.trim(),
         workMode: formData.workMode,
-        applicationDeadline: formData.applicationDeadline,
+        jobType: formData.jobType,
+        salaryRange: formData.salaryRange.trim() || null,
+        skillsRequired: formData.skillsRequired,
+        majorsPreferred: formData.majorsPreferred,
+        experienceLevel: formData.experienceLevel,
+        numberOfPositions: formData.numberOfPositions,
+        deadline: formData.applicationDeadline,
         targetUniversities: formData.targetUniversities,
         isPublic: formData.isPublic,
       };
@@ -168,11 +234,10 @@ export default function PostJob() {
     }
   };
 
-  // Optional loading gate while auth hydrates
   if (user === undefined) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading…</div>
+      <div className="min-h-screen bg-[#F5EFEB] flex items-center justify-center">
+        <div className="text-[#567C8D]">Loading…</div>
       </div>
     );
   }
@@ -183,19 +248,59 @@ export default function PostJob() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* Shared header to match the rest of company pages */}
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4 w-full">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+        {/* Themed Gradient Header */}
+        <header className="relative isolate border-b border-black/5 bg-gradient-to-r from-[#2F4156] via-[#2F4156] to-[#567C8D] text-white shadow-lg">
+          {/* blobs */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 -left-24 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
+            <div className="absolute -bottom-20 right-10 h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl" />
+          </div>
+
+          <div className="relative mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+            {/* LEFT: title */}
+            <div className="flex items-center gap-3">
+              <Briefcase className="h-6 w-6" />
+              <span className="text-base font-semibold sm:text-lg">
+                Post New Job
+              </span>
+            </div>
+
+            {/* RIGHT (desktop): quick links */}
+            <div className="hidden items-center gap-2 md:flex">
+              <Link
+                href="/company/jobs"
+                className="inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/20"
+              >
+                Back to Jobs
+              </Link>
+              <Link
+                href="/company/dashboard"
+                className="inline-flex items-center gap-2 rounded-md bg-white text-[#2F4156] px-3 py-1.5 text-sm"
+              >
+                Dashboard
+              </Link>
+            </div>
+          </div>
+
+          {/* Breadcrumb Row */}
+          <div className="relative mx-auto flex max-w-7xl items-center gap-2 px-4 pb-3 sm:px-6">
+            <SidebarTrigger
+              className="rounded-md bg-white/10 px-2 py-1.5 text-white hover:bg-white/20"
+              aria-label="Toggle sidebar"
+            />
+            <Separator orientation="vertical" className="mr-2 h-4 bg-white/30" />
             <Breadcrumb>
-              <BreadcrumbList>
+              <BreadcrumbList className="text-white/90">
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">Company</BreadcrumbLink>
+                  <BreadcrumbLink href="#" className="hover:text-white">
+                    Company
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/company/jobs">Jobs</BreadcrumbLink>
+                  <BreadcrumbLink href="/company/jobs" className="hover:text-white">
+                    Jobs
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -204,239 +309,351 @@ export default function PostJob() {
               </BreadcrumbList>
             </Breadcrumb>
 
-            <div className="ml-auto pr-4">
-              <button
-                onClick={() => router.push('/company/dashboard')}
-                className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 text-sm"
-              >
-                Back to Dashboard
-              </button>
+            {/* mobile trigger */}
+            <div className="ml-auto md:hidden">
+              <SidebarTrigger className="text-white" aria-label="Toggle sidebar" />
             </div>
           </div>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="max-w-4xl mx-auto w-full">
-            <div className="bg-white p-8 rounded-lg shadow-md">
-              <h1 className="text-3xl font-bold text-gray-800 mb-6">Post a New Job</h1>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Job Title *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 mb-2">Job Type *</label>
-                    <select
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.type}
-                      onChange={(e) =>
-                        setFormData({ ...formData, type: e.target.value as JobForm['type'] })
-                      }
-                    >
-                      <option value="full-time">Full Time</option>
-                      <option value="part-time">Part Time</option>
-                      <option value="contract">Contract</option>
-                      <option value="internship">Internship</option>
-                    </select>
-                  </div>
+        {/* Page Body */}
+        <div className="min-h-[calc(100vh-4rem)] bg-[#F5EFEB]">
+          <div className="mx-auto max-w-7xl p-6 sm:p-8">
+            <section className="relative overflow-hidden rounded-2xl border border-[#C8D9E6] bg-white/70 shadow-sm backdrop-blur-sm">
+              {/* subtle pattern tint */}
+              <div className="absolute inset-0 bg-[radial-gradient(1200px_300px_at_0%_-10%,rgba(16,44,36,0.08),transparent),radial-gradient(800px_200px_at_100%_120%,rgba(86,124,141,0.08),transparent)]" />
+              <div className="relative z-10 grid gap-6 p-6">
+                <div className="flex items-center gap-2 text-[#2F4156]">
+                  <PlusCircle className="h-5 w-5" />
+                  <h1 className="text-xl font-semibold">Create a job posting</h1>
                 </div>
+                <p className="max-w-prose text-sm text-[#567C8D]">
+                  Share role details, requirements, and timelines. All fields marked with * are required.
+                </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Location *</label>
-                    <input
-                      type="text"
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 mb-2">Work Mode *</label>
-                    <select
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.workMode}
-                      onChange={(e) =>
-                        setFormData({ ...formData, workMode: e.target.value as JobForm['workMode'] })
-                      }
-                    >
-                      <option value="onsite">Onsite</option>
-                      <option value="remote">Remote</option>
-                      <option value="ojt">On-Job Training (OJT)</option>
-                      <option value="hybrid">Hybrid</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-gray-700 mb-2">Salary Range</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      placeholder="e.g., $50,000 - $70,000"
-                      value={formData.salary}
-                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 mb-2">Category *</label>
-                    <select
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    >
-                      <option value="">Select Category</option>
-                      <option value="engineering">Engineering</option>
-                      <option value="design">Design</option>
-                      <option value="marketing">Marketing</option>
-                      <option value="sales">Sales</option>
-                      <option value="finance">Finance</option>
-                      <option value="hr">Human Resources</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Job Description *</label>
-                  <textarea
-                    rows={6}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    placeholder="Describe the job responsibilities, expectations, and what makes your company great..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Requirements *</label>
-                  <textarea
-                    rows={4}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    placeholder="List the required skills, qualifications, and experience..."
-                    value={formData.requirements}
-                    onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Application Deadline *</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    value={formData.applicationDeadline}
-                    onChange={(e) =>
-                      setFormData({ ...formData, applicationDeadline: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Job Visibility Settings */}
-                <div className="border-t pt-6 mt-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Job Visibility</h3>
-                  
-                  <div className="mb-4">
-                    <label className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={formData.isPublic}
-                        onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-gray-700">
-                        Make this job public (visible to all students)
-                      </span>
-                    </label>
-                    <p className="text-sm text-gray-500 ml-7 mt-1">
-                      If unchecked, only students from selected universities can see this job
-                    </p>
-                  </div>
-
-                  {connectedUniversities.length > 0 && (
+                {/* Form Card */}
+                <form onSubmit={handleSubmit} className="grid gap-6">
+                  {/* Title / Job Type */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                      <label className="block text-gray-700 mb-2">
-                        Target Universities {!formData.isPublic && '(Required)'}
-                      </label>
-                      <p className="text-sm text-gray-500 mb-3">
-                        Select universities whose students can see this job posting
-                      </p>
-                      <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                        {connectedUniversities.map((uni) => (
-                          <label key={uni.id} className="flex items-start space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={formData.targetUniversities.includes(uni.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData({
-                                    ...formData,
-                                    targetUniversities: [...formData.targetUniversities, uni.id]
-                                  });
-                                } else {
-                                  setFormData({
-                                    ...formData,
-                                    targetUniversities: formData.targetUniversities.filter(id => id !== uni.id)
-                                  });
-                                }
-                              }}
-                              className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                            />
-                            <div>
-                              <div className="text-gray-800 font-medium">{uni.universityName}</div>
-                              <div className="text-sm text-gray-500">{uni.location}</div>
-                            </div>
-                          </label>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Title *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g., Software Engineer"
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Type *</label>
+                      <select
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.jobType}
+                        onChange={(e) =>
+                          setFormData({ ...formData, jobType: e.target.value as JobForm['jobType'] })
+                        }
+                      >
+                        <option value="full-time">Full Time</option>
+                        <option value="part-time">Part Time</option>
+                        <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                        <option value="freelance">Freelance</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Work Mode / Experience Level */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Work Mode *</label>
+                      <select
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.workMode}
+                        onChange={(e) => setFormData({ ...formData, workMode: e.target.value as JobForm['workMode'] })}
+                      >
+                        <option value="onsite">On-site</option>
+                        <option value="remote">Remote</option>
+                        <option value="ojt">OJT (On-the-Job Training)</option>
+                        <option value="hybrid">Hybrid</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Experience Level *</label>
+                      <select
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.experienceLevel}
+                        onChange={(e) => setFormData({ ...formData, experienceLevel: e.target.value as JobForm['experienceLevel'] })}
+                      >
+                        <option value="entry">Entry Level</option>
+                        <option value="mid">Mid Level</option>
+                        <option value="senior">Senior Level</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Location / Salary / Positions */}
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Location *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g., Yangon, Myanmar"
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.location}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Salary Range</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., $50,000 - $70,000"
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.salaryRange}
+                        onChange={(e) => setFormData({ ...formData, salaryRange: e.target.value })}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-[#2F4156]">Number of Positions *</label>
+                      <input
+                        type="number"
+                        min="1"
+                        required
+                        className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={formData.numberOfPositions}
+                        onChange={(e) => setFormData({ ...formData, numberOfPositions: parseInt(e.target.value) || 1 })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Job Description *</label>
+                    <textarea
+                      rows={5}
+                      required
+                      placeholder="Describe the role, expectations, and what makes your company great..."
+                      className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Responsibilities */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Responsibilities *</label>
+                    <textarea
+                      rows={4}
+                      required
+                      placeholder="List the key responsibilities and duties for this position..."
+                      className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.responsibilities}
+                      onChange={(e) => setFormData({ ...formData, responsibilities: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Requirements */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Requirements *</label>
+                    <textarea
+                      rows={4}
+                      required
+                      placeholder="List the required skills, qualifications, and experience..."
+                      className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.requirements}
+                      onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                    />
+                  </div>
+
+                  {/* Skills Required */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Required Skills</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        placeholder="e.g., JavaScript, React, Node.js"
+                        className="flex-1 rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={skillInput}
+                        onChange={(e) => setSkillInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addSkill();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={addSkill}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    {formData.skillsRequired.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.skillsRequired.map((skill, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-[#F5EFEB] text-[#2F4156] rounded-full text-sm ring-1 ring-[#E3EAF1]"
+                          >
+                            {skill}
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill)}
+                              className="hover:text-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
-                  {connectedUniversities.length === 0 && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-yellow-800">
-                        ℹ️ You haven't connected with any universities yet. 
-                        <a href="/company/universities" className="underline ml-1">Connect with universities</a> to share targeted job postings.
-                      </p>
+                  {/* Majors Preferred */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Preferred Majors</label>
+                    <div className="flex gap-2 mb-2">
+                      <input
+                        type="text"
+                        placeholder="e.g., Computer Science, Information Technology"
+                        className="flex-1 rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        value={majorInput}
+                        onChange={(e) => setMajorInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addMajor();
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={addMajor}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        Add
+                      </button>
                     </div>
-                  )}
-                </div>
+                    {formData.majorsPreferred.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.majorsPreferred.map((major, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-[#F5EFEB] text-[#2F4156] rounded-full text-sm ring-1 ring-[#E3EAF1]"
+                          >
+                            {major}
+                            <button
+                              type="button"
+                              onClick={() => removeMajor(major)}
+                              className="hover:text-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                <div className="flex space-x-4 pt-6">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400"
-                  >
-                    {isLoading ? 'Posting Job...' : 'Post Job'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/company/jobs')}
-                    className="px-8 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
+                  {/* Application Deadline */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-[#2F4156]">Application Deadline *</label>
+                    <input
+                      type="date"
+                      required
+                      className="w-full rounded-lg border border-[#E3EAF1] px-4 py-2 text-[#2F4156] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                      value={formData.applicationDeadline}
+                      onChange={(e) =>
+                        setFormData({ ...formData, applicationDeadline: e.target.value })
+                      }
+                    />
+                  </div>
+
+                  {/* Target Universities Section */}
+                  <div className="border-t border-[#E3EAF1] pt-6">
+                    <h3 className="text-lg font-semibold text-[#2F4156] mb-4">Job Visibility</h3>
+
+                    <div className="mb-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.isPublic}
+                          onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+                          className="w-4 h-4 text-emerald-600 border-[#E3EAF1] rounded focus:ring-emerald-500"
+                        />
+                        <span className="text-sm text-[#2F4156]">
+                          Make this job public (visible to all students)
+                        </span>
+                      </label>
+                    </div>
+
+                    {!formData.isPublic && connectedUniversities.length > 0 && (
+                      <div>
+                        <p className="text-sm text-[#567C8D] mb-3">
+                          Select universities that can see this job posting:
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {connectedUniversities.map((uni) => (
+                            <label
+                              key={uni.id}
+                              className="flex items-start gap-2 p-3 border border-[#E3EAF1] rounded-lg cursor-pointer hover:bg-[#F5EFEB] transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={formData.targetUniversities.includes(uni.id)}
+                                onChange={() => toggleUniversity(uni.id)}
+                                className="mt-1 w-4 h-4 text-emerald-600 border-[#E3EAF1] rounded focus:ring-emerald-500"
+                              />
+                              <div>
+                                <div className="font-medium text-[#2F4156] text-sm">{uni.universityName}</div>
+                                <div className="text-xs text-[#567C8D]">{uni.location}</div>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {!formData.isPublic && connectedUniversities.length === 0 && (
+                      <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                        You don't have any connected universities. Please make the job public or connect with universities first.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#2F4156] px-5 py-2.5 text-white shadow-sm ring-1 ring-black/10 transition hover:translate-y-[-1px] hover:bg-[#243447] disabled:opacity-70"
+                    >
+                      <PlusCircle className="h-5 w-5" />
+                      {isLoading ? 'Posting Job…' : 'Post Job'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/company/jobs')}
+                      className="rounded-xl bg-white px-5 py-2.5 text-[#2F4156] ring-1 ring-[#C8D9E6] transition hover:bg-[#C8D9E6]/30"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
           </div>
         </div>
       </SidebarInset>

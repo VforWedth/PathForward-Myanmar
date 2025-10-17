@@ -121,6 +121,7 @@ const register = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name || user.email.split('@')[0], // Use name or fallback to email prefix
         role: user.role,
         isVerified: user.isVerified
       },
@@ -214,6 +215,7 @@ const login = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: user.name || user.email.split('@')[0], // Use name or fallback to email prefix
         role: user.role,
         isVerified: user.isVerified
       }
@@ -276,8 +278,32 @@ const getMe = async (req, res) => {
   }
 };
 
+// @desc    Logout user (optional - mainly for logging purposes)
+// @route   POST /api/auth/logout
+// @access  Private
+const logout = async (req, res) => {
+  try {
+    // For JWT-based auth, logout is mainly client-side
+    // This endpoint can be used for logging logout events
+    console.log(`User ${req.user.id} (${req.user.email}) logged out`);
+    
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during logout',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
-  getMe
+  getMe,
+  logout
 };

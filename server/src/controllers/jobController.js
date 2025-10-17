@@ -1,5 +1,6 @@
 const { Job, Company, Application, Student, Freelancer, User } = require('../models');
 const { Op } = require('sequelize');
+const { notifyUniversitiesNewJob, notifyUniversitiesJobUpdate, notifyUniversitiesJobDelete } = require('./sseController');
 
 /**
  * @desc    Create a new job posting
@@ -123,6 +124,25 @@ exports.createJob = async (req, res) => {
       isPublic: isPublic !== false, // Default to true unless explicitly set to false
       status: 'active'
     });
+
+    // Broadcast job to universities via SSE for real-time updates
+    const jobData = job.toJSON();
+    notifyUniversitiesNewJob(
+      job.id,
+      {
+        ...jobData,
+        Company: {
+          id: company.id,
+          companyName: company.companyName,
+          industry: company.industry,
+          location: company.location
+        }
+      },
+      jobData.targetUniversities || [],
+      jobData.isPublic !== false
+    );
+
+    console.log(`[SSE] Job "${job.title}" broadcast to universities (public: ${jobData.isPublic !== false})`);
 
     res.status(201).json({
       success: true,
@@ -352,6 +372,25 @@ exports.updateJob = async (req, res) => {
       isPublic: isPublic !== undefined ? isPublic : job.isPublic
     });
 
+    // Broadcast job update to universities via SSE
+    const updatedJobData = job.toJSON();
+    notifyUniversitiesJobUpdate(
+      job.id,
+      {
+        ...updatedJobData,
+        Company: {
+          id: company.id,
+          companyName: company.companyName,
+          industry: company.industry,
+          location: company.location
+        }
+      },
+      updatedJobData.targetUniversities || [],
+      updatedJobData.isPublic !== false
+    );
+
+    console.log(`[SSE] Job "${job.title}" update broadcast to universities`);
+
     res.json({
       success: true,
       message: 'Job updated successfully',
@@ -399,7 +438,14 @@ exports.deleteJob = async (req, res) => {
       });
     }
 
+    const jobTitle = job.title;
+    const jobId = job.id;
+
     await job.destroy();
+
+    // Broadcast job deletion to universities via SSE
+    notifyUniversitiesJobDelete(jobId, jobTitle);
+    console.log(`[SSE] Job "${jobTitle}" deletion broadcast to universities`);
 
     res.json({
       success: true,

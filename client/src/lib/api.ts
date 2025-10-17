@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
+const SERVER_URL = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000';
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -28,11 +28,35 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // Only redirect to login if we're not already on the login page
+      // This prevents infinite redirect loops
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+      const isAuthPage = currentPath === '/login' || currentPath === '/register';
+
+      if (!isAuthPage) {
+        localStorage.removeItem('token');
+
+        // Store the current path to redirect back after login
+        if (typeof window !== 'undefined' && currentPath !== '/') {
+          localStorage.setItem('redirectAfterLogin', currentPath);
+        }
+
+        // Use a more graceful redirect with a message
+        window.location.href = '/login?session=expired';
+      }
     }
     return Promise.reject(error);
   }
 );
 
+// Utility function to get full URL for uploaded files
+export const getFileUrl = (relativePath: string | undefined | null): string | null => {
+  if (!relativePath) return null;
+  // If it's already a full URL, return as is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+  // Otherwise, prepend the server URL
+  return `${SERVER_URL}${relativePath}`;
+};
 export default api;

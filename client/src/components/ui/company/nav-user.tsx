@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown, LogOut, User } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -29,6 +29,7 @@ type NavUserProps = {
 
 export function NavUser({ user, onLogout, onProfile }: NavUserProps) {
   const { isMobile } = useSidebar()
+
   const initials =
     user?.name
       ?.split(" ")
@@ -81,9 +82,15 @@ export function NavUser({ user, onLogout, onProfile }: NavUserProps) {
             sideOffset={4}
           >
             {onProfile && (
-              <DropdownMenuItem onClick={onProfile}>Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={onProfile}>
+                <User />
+                Profile
+              </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={onLogout}>Log out</DropdownMenuItem>
+            <DropdownMenuItem onClick={onLogout}>
+              <LogOut />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
