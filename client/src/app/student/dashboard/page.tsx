@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
-import { FileText, User2, Compass, Sparkles, Award, Target, TrendingUp } from 'lucide-react';
+import { FileText, User2, Compass, Sparkles, Award, Target, TrendingUp, Building2, CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { StudentTopNav } from '@/components/ui/student/top-nav';
+import * as studentApi from '@/lib/studentApi';
 
 interface DashboardStats {
   applications: number;
@@ -27,6 +28,18 @@ interface Certificate {
   };
 }
 
+interface StudentProfile {
+  universityId?: string;
+  rollNumber?: string;
+  verificationStatus: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  University?: {
+    id: string;
+    universityName: string;
+    location: string;
+  };
+}
+
 export default function StudentDashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -39,6 +52,7 @@ export default function StudentDashboard() {
   });
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -51,19 +65,23 @@ export default function StudentDashboard() {
       try {
         const API_BASE_URL = 'http://localhost:5000';
         const token = localStorage.getItem('token');
-        
+
         const response = await fetch(`${API_BASE_URL}/api/student/dashboard`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
-        
+
         const data = await response.json();
-        console.log('Dashboard data:', data); // Debug log
-        
+        console.log('Dashboard API Response:', data);
+        console.log('Stats from API:', data.data?.stats);
+        console.log('Certificates from API:', data.data?.recentCertificates);
+
         if (data.success) {
-          setStats(data.data.stats);
+          const statsData = data.data.stats;
+          console.log('Setting stats:', statsData);
+          setStats(statsData);
           setCertificates(data.data.recentCertificates || []);
         } else {
           console.error('Failed to fetch dashboard:', data.message);
@@ -75,40 +93,31 @@ export default function StudentDashboard() {
       }
     };
 
-    fetchDashboard();
-  }, [user, router]);
+    // Fetch profile data
+    const fetchProfile = async () => {
+      try {
+        const response = await studentApi.getProfile();
+        if (response.success) {
+          console.log('=== PROFILE DEBUG ===');
+          console.log('Full profile data:', response.data);
+          console.log('universityId:', response.data.universityId);
+          console.log('universityId type:', typeof response.data.universityId);
+          console.log('universityId is null:', response.data.universityId === null);
+          console.log('universityId is undefined:', response.data.universityId === undefined);
+          console.log('verificationStatus:', response.data.verificationStatus);
+          console.log('University object:', response.data.University);
+          console.log('rollNumber:', response.data.rollNumber);
+          console.log('====================');
+          setProfile(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
 
-  // Replace with API data (e.g., SWR/React Query)
-  const topApps: JobApplication[] = [
-    {
-      id: '1',
-      jobTitle: 'Frontend Developer Intern',
-      company: 'Google',
-      status: 'interview',
-      appliedDate: '2024-01-15',
-      location: 'Mountain View, CA',
-      salary: '$85,000',
-      interviewDate: '2024-02-01',
-    },
-    {
-      id: '2',
-      jobTitle: 'Software Engineering Intern',
-      company: 'Microsoft',
-      status: 'under-review',
-      appliedDate: '2024-01-10',
-      location: 'Redmond, WA',
-      salary: '$82,000',
-    },
-    {
-      id: '3',
-      jobTitle: 'Full Stack Developer',
-      company: 'Tech Startup',
-      status: 'applied',
-      appliedDate: '2024-01-20',
-      location: 'San Francisco, CA',
-      salary: '$95,000',
-    },
-  ];
+    fetchDashboard();
+    fetchProfile();
+  }, [user, router]);
 
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
@@ -178,8 +187,122 @@ export default function StudentDashboard() {
           </div>
         </motion.section>
 
-        {/* Skills Test Section */}
+        {/* University Verification Section */}
         <section className="mt-10">
+          {!profile?.universityId || profile?.verificationStatus === 'pending' || profile?.verificationStatus === 'rejected' ? (
+            <div className={`rounded-2xl border p-6 shadow-sm ${
+              profile?.verificationStatus === 'pending'
+                ? 'border-amber-200 bg-gradient-to-br from-amber-50 to-white'
+                : profile?.verificationStatus === 'rejected'
+                ? 'border-red-200 bg-gradient-to-br from-red-50 to-white'
+                : 'border-blue-200 bg-gradient-to-br from-blue-50 to-white'
+            }`}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`rounded-lg p-2 ${
+                  profile?.verificationStatus === 'pending'
+                    ? 'bg-amber-100'
+                    : profile?.verificationStatus === 'rejected'
+                    ? 'bg-red-100'
+                    : 'bg-blue-100'
+                }`}>
+                  {profile?.verificationStatus === 'pending' ? (
+                    <Clock className="h-6 w-6 text-amber-600" />
+                  ) : profile?.verificationStatus === 'rejected' ? (
+                    <XCircle className="h-6 w-6 text-red-600" />
+                  ) : (
+                    <Building2 className="h-6 w-6 text-blue-600" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-[#2F4156]">
+                    {profile?.verificationStatus === 'pending'
+                      ? 'Verification Pending'
+                      : profile?.verificationStatus === 'rejected'
+                      ? 'Verification Rejected'
+                      : 'Verify Your University'}
+                  </h3>
+                  <p className="text-sm text-[#567C8D]">
+                    {profile?.verificationStatus === 'pending'
+                      ? 'Your request is being reviewed by your university'
+                      : profile?.verificationStatus === 'rejected'
+                      ? 'Your verification was rejected. Please resubmit with correct information.'
+                      : 'Get verified to unlock exclusive opportunities'}
+                  </p>
+                </div>
+              </div>
+              <p className="text-[#567C8D] mb-4">
+                {profile?.verificationStatus === 'pending'
+                  ? 'You will receive a notification once your university approves your verification request. This usually takes 1-2 business days.'
+                  : profile?.verificationStatus === 'rejected'
+                  ? `Reason: ${profile?.rejectionReason || 'Please contact your university for more information.'}`
+                  : 'Connect with your university to access job postings, internships, and career resources exclusively for verified students.'}
+              </p>
+              {profile?.verificationStatus !== 'pending' && (
+                <Link
+                  href="/student/verify-university"
+                  className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-white shadow-sm transition hover:translate-y-[-1px] ${
+                    profile?.verificationStatus === 'rejected'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-[#2F4156] hover:bg-[#243447]'
+                  }`}
+                >
+                  <Building2 className="h-5 w-5" />
+                  {profile?.verificationStatus === 'rejected' ? 'Resubmit Verification' : 'Verify Your University'}
+                </Link>
+              )}
+            </div>
+          ) : profile?.verificationStatus === 'approved' && profile?.University ? (
+            <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-lg bg-emerald-100 p-2">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-[#2F4156]">Verified Student</h3>
+                    <p className="text-sm text-[#567C8D]">
+                      {profile.University.universityName} • {profile.University.location}
+                    </p>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700 ring-1 ring-emerald-600/15">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Verified
+                </div>
+              </div>
+              <p className="mt-4 text-[#567C8D]">
+                You now have access to exclusive opportunities from companies partnered with your university.
+              </p>
+            </div>
+          ) : null}
+        </section>
+
+        {/* Browse Jobs Section */}
+        <section className="mt-10">
+          <div className="rounded-2xl border border-[#C8D9E6] bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="rounded-lg bg-purple-100 p-2">
+                <Compass className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold text-[#2F4156]">Ready to Explore?</h3>
+            </div>
+            <p className="mb-4 text-[#567C8D]">
+              {profile?.verificationStatus === 'approved'
+                ? 'Browse exclusive job opportunities from companies partnered with your university.'
+                : 'Verify your university account to access exclusive job opportunities.'}
+            </p>
+            <Link
+              href={profile?.verificationStatus === 'approved' ? '/student/jobs' : '/student/verify-university'}
+              className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-white shadow-sm transition hover:translate-y-[-1px] hover:bg-purple-700"
+            >
+              <Compass className="h-5 w-5" />
+              {profile?.verificationStatus === 'approved' ? 'Browse Jobs' : 'Get Verified'}
+            </Link>
+          </div>
+        </section>
+
+        {/* Skills Test Section */}
+        <section className="mt-6">
           <div className="rounded-2xl border border-[#C8D9E6] bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm">
             <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
               <div>
@@ -188,24 +311,15 @@ export default function StudentDashboard() {
                   <h3 className="text-xl font-bold text-[#2F4156]">Validate Your Skills</h3>
                 </div>
                 <p className="mb-4 text-[#567C8D]">
-                  Take our skills assessments to earn certificates and showcase your expertise to employers. 
+                  Take our skills assessments to earn certificates and showcase your expertise to employers.
                   Score 85% or higher to unlock your certificate!
                 </p>
-                
-                <div className="mb-4 flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 ring-1 ring-[#E3EAF1]">
-                    <Award className="h-5 w-5 text-blue-600" />
-                    <div>
-                      <div className="text-sm font-medium text-[#2F4156]">{stats.certificates}</div>
-                      <div className="text-xs text-[#567C8D]">Certificates</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 ring-1 ring-[#E3EAF1]">
-                    <TrendingUp className="h-5 w-5 text-emerald-600" />
-                    <div>
-                      <div className="text-sm font-medium text-[#2F4156]">{stats.quizzesTaken}</div>
-                      <div className="text-xs text-[#567C8D]">Tests Taken</div>
-                    </div>
+
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-white px-4 py-2 ring-1 ring-[#E3EAF1] w-fit">
+                  <TrendingUp className="h-5 w-5 text-emerald-600" />
+                  <div>
+                    <div className="text-sm font-medium text-[#2F4156]">{stats.quizzesTaken}</div>
+                    <div className="text-xs text-[#567C8D]">Tests Taken</div>
                   </div>
                 </div>
 
@@ -217,121 +331,68 @@ export default function StudentDashboard() {
                   Take Skills Test
                 </Link>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Certificates Section */}
+        <section className="mt-6">
+          <div className="rounded-2xl border border-[#C8D9E6] bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+            <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <Award className="h-6 w-6 text-emerald-600" />
+                  <h3 className="text-xl font-bold text-[#2F4156]">My Certificates</h3>
+                </div>
+                <p className="mb-4 text-[#567C8D]">
+                  View and download your earned certificates. Share them with employers to showcase your expertise!
+                </p>
+
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-white px-4 py-2 ring-1 ring-[#E3EAF1] w-fit">
+                  <Award className="h-5 w-5 text-emerald-600" />
+                  <div>
+                    <div className="text-sm font-medium text-[#2F4156]">{stats.certificates}</div>
+                    <div className="text-xs text-[#567C8D]">Certificates Earned</div>
+                  </div>
+                </div>
+
+                <Link
+                  href="/student/certificates"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-white shadow-sm transition hover:translate-y-[-1px] hover:bg-emerald-700"
+                >
+                  <Award className="h-5 w-5" />
+                  View Certificates
+                </Link>
+              </div>
 
               {/* Recent Certificates */}
               {certificates.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-[#2F4156]">Recent Certificates</h4>
                   {certificates.slice(0, 2).map((cert) => (
-                    <div
+                    <Link
                       key={cert.id}
-                      className="flex items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-[#E3EAF1]"
+                      href={`/student/quiz/result/${cert.id}`}
+                      className="flex items-center gap-3 rounded-lg bg-white p-3 ring-1 ring-[#E3EAF1] transition hover:bg-emerald-50 hover:ring-emerald-200"
                     >
-                      <div className="rounded-lg bg-blue-100 p-2">
-                        <Award className="h-5 w-5 text-blue-600" />
+                      <div className="rounded-lg bg-emerald-100 p-2">
+                        <Award className="h-5 w-5 text-emerald-600" />
                       </div>
                       <div className="flex-1">
                         <div className="text-sm font-medium text-[#2F4156]">{cert.Quiz.category}</div>
                         <div className="text-xs text-[#567C8D]">{cert.score}% • {cert.Quiz.difficulty}</div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                   <Link
                     href="/student/certificates"
-                    className="block text-center text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="block text-center text-sm font-medium text-emerald-600 hover:text-emerald-700"
                   >
-                    View all →
+                    View all certificates →
                   </Link>
                 </div>
               )}
             </div>
-          </div>
-        </section>
-
-        {/* Activity & Announcements */}
-        <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="rounded-2xl border border-[#C8D9E6] bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <Compass className="h-5 w-5 text-[#2F4156]" />
-                <h4 className="text-lg font-semibold text-[#2F4156]">Recent activity</h4>
-              </div>
-              <ol className="relative ml-3 border-l border-[#E3EAF1] pl-6">
-                {[
-                  {
-                    title: 'Uploaded CV',
-                    time: 'Today · 4:15 PM',
-                    desc: 'Your CV is now visible to recruiters.',
-                  },
-                  {
-                    title: 'Applied to UI/UX Intern · Nebula Labs',
-                    time: 'Yesterday · 10:05 AM',
-                    desc: 'Status: Under review',
-                  },
-                  {
-                    title: 'New review from Bright Hill International',
-                    time: 'Oct 10 · 8:30 PM',
-                    desc: '"Great communication and eagerness to learn."',
-                  },
-                ].map((item, i) => (
-                  <li key={i} className="mb-6 last:mb-0">
-                    <div className="absolute -left-[7px] mt-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="font-medium text-[#2F4156]">{item.title}</p>
-                        <span className="text-xs text-[#567C8D]">{item.time}</span>
-                      </div>
-                      <p className="text-sm text-[#567C8D]">{item.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              <div className="mt-4">
-                <Link
-                  href="/student/notifications"
-                  className="text-sm font-medium text-[#2F4156] underline underline-offset-4 hover:text-[#243447]"
-                >
-                  View all activity
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-[#C8D9E6] bg-white p-6 shadow-sm">
-              <h4 className="mb-2 text-lg font-semibold text-[#2F4156]">This week's tips</h4>
-              <ul className="list-disc space-y-2 pl-5 text-sm text-[#567C8D]">
-                <li>Tailor your CV for each role—mirror keywords from the job post.</li>
-                <li>Ask for feedback after interviews to grow faster.</li>
-                <li>Keep your LinkedIn headline clear and outcome-focused.</li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-[#C8D9E6] bg-gradient-to-br from-emerald-50 to-white p-6 ring-1 ring-emerald-600/10">
-              <h4 className="mb-1 text-lg font-semibold text-[#2F4156]">Need guidance?</h4>
-              <p className="text-sm text-[#2F4156]/80">
-                Try the career compass to discover roles that match your skills.
-              </p>
-              <Link
-                href="/university/dashboard"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#2F4156] px-3 py-2 text-white shadow-sm transition hover:translate-y-[-1px]"
-              >
-                <Compass className="h-4 w-4" /> Browse Jobs
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Empty state demo block */}
-        <section className="mt-10">
-          <div className="rounded-2xl border border-dashed border-[#C8D9E6] bg-white/60 p-6 text-center">
-            <p className="mx-auto inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-medium text-[#2F4156] ring-1 ring-[#E3EAF1]">
-              <Sparkles className="h-4 w-4" /> Coming soon
-            </p>
-            <h5 className="mt-3 text-lg font-semibold text-[#2F4156]">Personalized analytics</h5>
-            <p className="mx-auto mt-1 max-w-prose text-sm text-[#567C8D]">
-              See your application funnel, interview conversion, and salary insights—tailored just for you.
-            </p>
           </div>
         </section>
       </main>

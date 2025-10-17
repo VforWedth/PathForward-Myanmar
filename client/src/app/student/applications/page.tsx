@@ -34,7 +34,7 @@ interface JobApplication {
 
 export default function JobApplicationsPage() {
   const router = useRouter();
-  const { user, logout, fetchProfileData } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [filter, setFilter] = useState<'all' | JobApplication['status']>('all');
 
@@ -42,60 +42,67 @@ export default function JobApplicationsPage() {
     if (!user || user.role !== 'student') {
       router.push('/login');
       return;
-    } else {
-      // Fetch profile data to get name information
-      fetchProfileData();
     }
-    // Mock data — replace with API call
-    setApplications([
-      {
-        id: '1',
-        jobTitle: 'Frontend Developer Intern',
-        company: 'Google',
-        status: 'interview',
-        appliedDate: '2024-01-15',
-        location: 'Mountain View, CA',
-        salary: '$85,000',
-        interviewDate: '2024-02-01',
-      },
-      {
-        id: '2',
-        jobTitle: 'Software Engineering Intern',
-        company: 'Microsoft',
-        status: 'under-review',
-        appliedDate: '2024-01-10',
-        location: 'Redmond, WA',
-        salary: '$82,000',
-      },
-      {
-        id: '3',
-        jobTitle: 'Full Stack Developer',
-        company: 'Tech Startup',
-        status: 'applied',
-        appliedDate: '2024-01-20',
-        location: 'San Francisco, CA',
-        salary: '$95,000',
-      },
-      {
-        id: '4',
-        jobTitle: 'Backend Engineer',
-        company: 'Amazon',
-        status: 'rejected',
-        appliedDate: '2024-01-05',
-        location: 'Seattle, WA',
-        salary: '$90,000',
-      },
-      {
-        id: '5',
-        jobTitle: 'Data Science Intern',
-        company: 'Netflix',
-        status: 'accepted',
-        appliedDate: '2024-01-08',
-        location: 'Los Gatos, CA',
-        salary: '$88,000',
-      },
-    ]);
+
+    fetchApplications();
   }, [user, router]);
+
+  const fetchApplications = async () => {
+    try {
+      const API_BASE_URL = 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+
+      console.log('Fetching applications from:', `${API_BASE_URL}/api/student/applications`);
+
+      const response = await fetch(`${API_BASE_URL}/api/student/applications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+      console.log('Applications API Response:', data);
+
+      if (data.success && data.applications) {
+        console.log('Raw applications count:', data.applications.length);
+        // Map API response to component format
+        const mappedApplications: JobApplication[] = data.applications.map((app: any) => {
+          console.log('Mapping application:', app);
+          return {
+            id: app.id,
+            jobTitle: app.Job?.title || 'Unknown Job',
+            company: app.Job?.Company?.companyName || 'Unknown Company',
+            status: mapStatus(app.status),
+            appliedDate: app.createdAt,
+            companyLogo: app.Job?.Company?.logo,
+            location: app.Job?.location || 'Not specified',
+            salary: app.Job?.salary ? `$${app.Job.salary}` : undefined,
+            notes: app.coverLetter,
+          };
+        });
+
+        console.log('Mapped applications:', mappedApplications);
+        setApplications(mappedApplications);
+      } else {
+        console.log('No applications found or API error:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
+  };
+
+  // Map backend status to frontend status
+  const mapStatus = (backendStatus: string): JobApplication['status'] => {
+    const statusMap: Record<string, JobApplication['status']> = {
+      'pending': 'applied',
+      'reviewing': 'under-review',
+      'shortlisted': 'interview',
+      'rejected': 'rejected',
+      'accepted': 'accepted',
+    };
+    return statusMap[backendStatus] || 'applied';
+  };
 
   const filtered = useMemo(
     () => applications.filter((a) => filter === 'all' || a.status === filter),

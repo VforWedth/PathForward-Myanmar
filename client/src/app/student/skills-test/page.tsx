@@ -42,17 +42,24 @@ export default function SkillsTestPage() {
 
   const fetchQuizzes = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = 'http://localhost:5000';
       const token = localStorage.getItem('token');
-      
+
+      console.log('Fetching quizzes from:', `${API_BASE_URL}/api/quizzes`);
+
       const response = await fetch(`${API_BASE_URL}/api/quizzes`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
+      console.log('Quizzes API response:', data);
+
       if (data.success) {
+        console.log('Setting quizzes:', data.data);
         setQuizzes(data.data);
+      } else {
+        console.error('Failed to fetch quizzes:', data);
       }
     } catch (error) {
       console.error('Error fetching quizzes:', error);
@@ -194,7 +201,7 @@ export default function SkillsTestPage() {
         {/* View My Attempts */}
         <div className="mt-8 text-center">
           <Link
-            href="/student/quiz/attempts"
+            href="/student/quiz/result"
             className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
           >
             View My Attempts & Scores

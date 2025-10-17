@@ -47,7 +47,6 @@ import {
   updateProfile,
   uploadCV,
   uploadProfilePicture,
-  uploadCSV,
   updateStatus,
   addEducation,
   updateEducation,
@@ -99,7 +98,6 @@ export default function StudentProfilePage() {
   // File uploads
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
-  const [csvFile, setCsvFile] = useState<File | null>(null);
   
   // Education, Experience, Certificates
   const [education, setEducation] = useState<any[]>([]);
@@ -166,10 +164,26 @@ export default function StudentProfilePage() {
 
   const handleSave = async () => {
     if (!profile) return;
-    
+
     try {
       setSaving(true);
-      await updateProfile(profile);
+
+      // Update basic profile information
+      await updateProfile({
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        major: profile.major,
+        year: profile.year,
+        location: profile.location,
+        jobPreference: profile.jobPreference,
+        portfolioUrl: profile.portfolioUrl,
+        bio: profile.bio,
+        skills: profile.skills
+      });
+
+      // Update status separately
+      await updateStatus(profile.status as 'available' | 'on_job' | 'internship_completed');
+
       toast.success('Profile updated successfully!');
       setIsEditing(false);
       loadProfile(); // Reload to get fresh data
@@ -200,7 +214,7 @@ export default function StudentProfilePage() {
     updateProfileField('skills', profile.skills.filter((s) => s !== skillToRemove));
   };
 
-  const handleFileUpload = async (type: 'cv' | 'picture' | 'csv', file: File) => {
+  const handleFileUpload = async (type: 'cv' | 'picture', file: File) => {
     try {
       if (type === 'cv') {
         const res = await uploadCV(file);
@@ -210,10 +224,6 @@ export default function StudentProfilePage() {
         const res = await uploadProfilePicture(file);
         toast.success('Profile picture uploaded successfully');
         setProfileImageFile(null);
-      } else if (type === 'csv') {
-        const res = await uploadCSV(file);
-        toast.success('Profile updated from CSV successfully');
-        setCsvFile(null);
       }
       loadProfile(); // Reload profile to show updated data
     } catch (error: any) {
@@ -900,37 +910,6 @@ export default function StudentProfilePage() {
                       </a>
                     </Button>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* CSV Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-[#2F4156]">
-                  <FileText className="h-5 w-5" /> CSV Upload
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-3 text-sm text-[#567C8D]">Upload CSV to bulk update profile</p>
-                <div className="rounded-xl border border-dashed border-[#C8D9E6] bg-[#F5EFEB]/40 p-4 text-center">
-                  <Upload className="mx-auto h-6 w-6 text-[#567C8D]" />
-                  <p className="mt-2 text-sm text-[#2F4156]">Choose CSV file</p>
-                  <Input 
-                    type="file" 
-                    accept=".csv" 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setCsvFile(file);
-                        handleFileUpload('csv', file);
-                      }
-                    }} 
-                    className="mt-3" 
-                  />
-                  <p className="mt-2 text-xs text-[#567C8D]">
-                    CSV should contain columns: firstName, lastName, major, year, location, jobPreference, portfolioUrl, bio, skills
-                  </p>
                 </div>
               </CardContent>
             </Card>

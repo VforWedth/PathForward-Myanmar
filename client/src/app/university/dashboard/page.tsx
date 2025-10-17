@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import AuthGuard from "@/components/AuthGuard";
-import LogoutConfirmDialog from "@/components/LogoutConfirmDialog";
-import { useLogout } from "@/hooks/useLogout";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
 
 // shadcn/ui sidebar primitives
@@ -23,7 +21,6 @@ export default function UniversityDashboard() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [activeTab] = useState("overview");
-  const { initiateLogout, confirmLogout, cancelLogout, showConfirm, isLoggingOut } = useLogout();
 
   // AuthGuard will handle authentication and role checking
 
@@ -142,24 +139,6 @@ export default function UniversityDashboard() {
             </div>
 
             <div className="ml-auto flex items-center gap-4">
-              {/* <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">University Admin</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-              </div>
-              <button
-                onClick={initiateLogout}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition"
-              >
-                Logout
-              </button> */}
-
-              {/* Logout confirmation dialog */}
-              <LogoutConfirmDialog
-                isOpen={showConfirm}
-                onConfirm={confirmLogout}
-                onCancel={cancelLogout}
-                isLoading={isLoggingOut}
-              />
             </div>
           </div>
         </header>

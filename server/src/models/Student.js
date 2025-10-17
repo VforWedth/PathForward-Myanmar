@@ -23,6 +23,10 @@ const Student = sequelize.define('Student', {
       key: 'id'
     }
   },
+  rollNumber: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   firstName: {
     type: DataTypes.STRING,
     allowNull: false

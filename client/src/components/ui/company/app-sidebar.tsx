@@ -16,8 +16,6 @@ import {
 } from '@/components/ui/sidebar'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { useLogout } from '@/hooks/useLogout'
-import LogoutConfirmDialog from '@/components/LogoutConfirmDialog'
 
 const companyNav = {
   user: {
@@ -60,8 +58,7 @@ const companyNav = {
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
-  const { user } = useAuthStore()
-  const { initiateLogout, confirmLogout, cancelLogout, showConfirm, isLoggingOut } = useLogout()
+  const { user, logout } = useAuthStore()
   const [companyName, setCompanyName] = useState('Company Admin')
 
   // Fetch company profile to get company name
@@ -175,21 +172,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             email: user?.email || 'company@example.com',
             avatar: logo.src,
           }}
-          onLogout={initiateLogout}
+          onLogout={logout}
           onProfile={() => console.log('profile')}
         />
       </SidebarFooter>
 
       {/* RAIL */}
       <SidebarRail className="bg-[#2F4156] text-white border-r border-[#243447]" />
-
-      {/* Logout Confirmation Dialog */}
-      <LogoutConfirmDialog
-        isOpen={showConfirm}
-        onConfirm={confirmLogout}
-        onCancel={cancelLogout}
-        isLoading={isLoggingOut}
-      />
     </Sidebar>
   )
 }

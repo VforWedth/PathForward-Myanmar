@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, Briefcase, LogOut, School, Star, User2, Menu, ChevronDown } from 'lucide-react';
@@ -27,7 +26,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import LogoutConfirmDialog from '@/components/LogoutConfirmDialog';
 
 type TopNavProps = {
   userName?: string;
@@ -46,22 +44,6 @@ function getInitials(name?: string) {
 export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavProps) {
   const pathname = usePathname();
   const onDashboard = pathname?.startsWith('/student/dashboard');
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleLogoutClick = () => {
-    setShowLogoutDialog(true);
-  };
-
-  const handleLogoutConfirm = async () => {
-    setIsLoggingOut(true);
-    try {
-      await onLogout();
-    } finally {
-      setIsLoggingOut(false);
-      setShowLogoutDialog(false);
-    }
-  };
 
   const quickLinks = [
     {
@@ -193,7 +175,7 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-red-600 focus:text-red-600"
-                  onClick={handleLogoutClick}
+                  onClick={onLogout}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Logout
@@ -264,7 +246,7 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
                       Profile
                     </Link>
                   </Button>
-                  <Button onClick={handleLogoutClick} className="mt-2 w-full justify-start">
+                  <Button onClick={onLogout} className="mt-2 w-full justify-start">
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
                   </Button>
@@ -274,14 +256,6 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
           </Sheet>
         </div>
       </div>
-
-      {/* Centralized Logout Confirmation Dialog */}
-      <LogoutConfirmDialog
-        isOpen={showLogoutDialog}
-        onConfirm={handleLogoutConfirm}
-        onCancel={() => setShowLogoutDialog(false)}
-        isLoading={isLoggingOut}
-      />
     </div>
   );
 }

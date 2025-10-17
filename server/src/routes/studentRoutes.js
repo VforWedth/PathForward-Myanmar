@@ -26,7 +26,13 @@ const {
   submitReview,
   getMyReviews,
   getCertificates,
-  findPeers
+  submitVerificationRequest,
+  getUniversities,
+  findPeers,
+  getAvailableJobs,
+  getJobDetails,
+  applyForJob,
+  getMyApplications
 } = require('../controllers/studentController');
 
 const router = express.Router();
@@ -75,6 +81,19 @@ router.get('/reviews', getMyReviews);
 // Peer finder route
 router.get('/peers', findPeers);
 
+// Certificate routes
 router.get('/certificates', getCertificates);
+
+// University verification routes
+router.get('/universities', getUniversities);
+router.post('/verify-university', submitVerificationRequest);
+
+// Jobs routes
+router.get('/jobs', getAvailableJobs);
+router.get('/jobs/:id', getJobDetails);
+router.post('/jobs/:id/apply', applyForJob);
+
+// Application routes
+router.get('/applications', getMyApplications);
 
 module.exports = router;

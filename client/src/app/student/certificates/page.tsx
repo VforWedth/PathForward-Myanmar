@@ -48,10 +48,10 @@ export default function CertificatesPage() {
 
   const fetchCertificates = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = 'http://localhost:5000';
       const token = localStorage.getItem('token');
 
-      console.log('Fetching certificates...');
+      console.log('Fetching certificates from:', `${API_BASE_URL}/api/student/certificates`);
 
       const response = await fetch(`${API_BASE_URL}/api/student/certificates`, {
         headers: {
