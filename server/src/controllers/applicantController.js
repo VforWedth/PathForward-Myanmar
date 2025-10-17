@@ -71,7 +71,7 @@ exports.getApplicants = async (req, res) => {
               },
               {
                 model: University,
-                attributes: ['name']
+                attributes: ['universityName']
               }
             ]
           });
@@ -79,15 +79,15 @@ exports.getApplicants = async (req, res) => {
           if (student) {
             applicantDetails = {
               id: student.id,
-              name: student.fullName,
+              name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Unknown',
               email: student.User?.email,
               phone: student.User?.phone,
-              university: student.University?.name,
+              university: student.University?.universityName,
               major: student.major,
               year: student.year,
               skills: student.skills || [],
-              experience: `${student.year} year student`,
-              education: `${student.major} at ${student.University?.name || 'University'}`
+              experience: `${student.year || 'N/A'} year student`,
+              education: `${student.major || 'N/A'} at ${student.University?.universityName || 'University'}`
             };
           }
         } else if (app.applicantType === 'freelancer') {
@@ -226,7 +226,7 @@ exports.getApplicantById = async (req, res) => {
           },
           {
             model: University,
-            attributes: ['name']
+            attributes: ['universityName']
           }
         ]
       });
@@ -234,10 +234,10 @@ exports.getApplicantById = async (req, res) => {
       if (student) {
         applicantDetails = {
           id: student.id,
-          name: student.fullName,
+          name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Unknown',
           email: student.User?.email,
           phone: student.User?.phone,
-          university: student.University?.name,
+          university: student.University?.universityName,
           major: student.major,
           year: student.year,
           skills: student.skills || [],

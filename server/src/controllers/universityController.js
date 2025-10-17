@@ -223,9 +223,24 @@ const verifyStudent = async (req, res) => {
         verificationStatus: 'approved'
       });
 
-      // Update user verification status
-      await student.user.update({
-        isVerified: true
+      // Update user verification status properly
+      if (student.User) {
+        await student.User.update({
+          isVerified: true
+        });
+      }
+
+      // Reload student with updated associations
+      await student.reload({
+        include: [
+          {
+            model: User
+          },
+          {
+            model: University,
+            attributes: ['id', 'universityName', 'location']
+          }
+        ]
       });
 
       res.json({
@@ -238,6 +253,19 @@ const verifyStudent = async (req, res) => {
       await student.update({
         verificationStatus: 'rejected',
         rejectionReason: reason
+      });
+
+      // Reload student with updated associations
+      await student.reload({
+        include: [
+          {
+            model: User
+          },
+          {
+            model: University,
+            attributes: ['id', 'universityName', 'location']
+          }
+        ]
       });
 
       res.json({

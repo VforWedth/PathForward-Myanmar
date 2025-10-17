@@ -19,20 +19,25 @@ const getDashboard = async (req, res) => {
 
     // Get application stats
     const totalApplications = await Application.count({
-      where: { studentId: student.id }
+      where: {
+        applicantId: student.id,
+        applicantType: 'student'
+      }
     });
 
     const interviewsCount = await Application.count({
       where: {
-        studentId: student.id,
-        status: 'interview'
+        applicantId: student.id,
+        applicantType: 'student',
+        status: 'shortlisted'
       }
     });
 
     const offersCount = await Application.count({
       where: {
-        studentId: student.id,
-        status: 'offer'
+        applicantId: student.id,
+        applicantType: 'student',
+        status: 'accepted'
       }
     });
 
@@ -48,6 +53,14 @@ const getDashboard = async (req, res) => {
       }
     });
 
+    console.log('Dashboard Stats for student', student.id, ':', {
+      applications: totalApplications,
+      interviews: interviewsCount,
+      offers: offersCount,
+      quizzesTaken: totalQuizzesTaken,
+      certificates: certificatesEarned
+    });
+
     // Get recent certificates
     const recentCertificates = await QuizAttempt.findAll({
       where: {
@@ -61,6 +74,8 @@ const getDashboard = async (req, res) => {
       limit: 3,
       order: [['completedAt', 'DESC']]
     });
+
+    console.log('Recent certificates count:', recentCertificates.length);
 
     // Get recent activity (last 10 items)
     const recentActivity = await Activity.findAll({
@@ -78,7 +93,7 @@ const getDashboard = async (req, res) => {
       }
     });
 
-    res.json({
+    const responseData = {
       success: true,
       data: {
         stats: {
@@ -92,7 +107,11 @@ const getDashboard = async (req, res) => {
         recentCertificates,
         alertsCount: unreadNotifications
       }
-    });
+    };
+
+    console.log('Sending dashboard response:', JSON.stringify(responseData, null, 2));
+
+    res.json(responseData);
   } catch (error) {
     console.error('Get dashboard error:', error);
     res.status(500).json({
@@ -1072,6 +1091,97 @@ const getCertificates = async (req, res) => {
   }
 };
 
+// @desc    Submit university verification request
+// @route   POST /api/student/verify-university
+// @access  Private (Student)
+const submitVerificationRequest = async (req, res) => {
+  try {
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { universityId, rollNumber } = req.body;
+
+    if (!universityId || !rollNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'University ID and roll number are required'
+      });
+    }
+
+    // Verify university exists
+    const university = await University.findByPk(universityId);
+    if (!university) {
+      return res.status(404).json({
+        success: false,
+        message: 'University not found'
+      });
+    }
+
+    // Update student with university info and reset to pending
+    await student.update({
+      universityId,
+      rollNumber,
+      verificationStatus: 'pending',
+      rejectionReason: null
+    });
+
+    // Log activity
+    const { Activity } = require('../models');
+    await Activity.create({
+      studentId: student.id,
+      type: 'verification_submitted',
+      title: 'Verification Request Submitted',
+      description: `Submitted verification request to ${university.universityName}`
+    });
+
+    res.json({
+      success: true,
+      message: 'Verification request submitted successfully',
+      data: {
+        verificationStatus: student.verificationStatus,
+        universityName: university.universityName
+      }
+    });
+  } catch (error) {
+    console.error('Submit verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get all universities
+// @route   GET /api/student/universities
+// @access  Private (Student)
+const getUniversities = async (req, res) => {
+  try {
+    const universities = await University.findAll({
+      attributes: ['id', 'universityName', 'location', 'logo'],
+      order: [['universityName', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      data: universities
+    });
+  } catch (error) {
+    console.error('Get universities error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Find peer students for collaboration
 // @route   GET /api/student/peers
 // @access  Private (Student)
@@ -1224,6 +1334,460 @@ const findPeers = async (req, res) => {
   }
 };
 
+// @desc    Get available jobs for verified students
+// @route   GET /api/student/jobs
+// @access  Private (Student)
+const getAvailableJobs = async (req, res) => {
+  try {
+    const student = await Student.findOne({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: University,
+          attributes: ['id', 'universityName', 'location']
+        }
+      ]
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    // Check if student is verified
+    if (student.verificationStatus !== 'approved' || !student.universityId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must be a verified student to browse jobs',
+        requiresVerification: true,
+        verificationStatus: student.verificationStatus
+      });
+    }
+
+    const { Op } = require('sequelize');
+    const { Job, Company, UniversityCompanyConnection } = require('../models');
+
+    const {
+      page = 1,
+      limit = 20,
+      jobType,
+      workMode,
+      experienceLevel,
+      search,
+      companyId
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    // Get companies connected to student's university
+    const connections = await UniversityCompanyConnection.findAll({
+      where: {
+        universityId: student.universityId,
+        status: 'active'
+      },
+      attributes: ['companyId']
+    });
+
+    const connectedCompanyIds = connections.map(conn => conn.companyId);
+
+    if (connectedCompanyIds.length === 0) {
+      return res.json({
+        success: true,
+        jobs: [],
+        pagination: {
+          total: 0,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          pages: 0
+        },
+        message: 'No companies are currently connected to your university'
+      });
+    }
+
+    // Build where clause for jobs
+    const whereClause = {
+      companyId: { [Op.in]: connectedCompanyIds },
+      status: 'active',
+      [Op.and]: [
+        // Valid deadline
+        {
+          [Op.or]: [
+            { deadline: { [Op.gt]: new Date() } },
+            { deadline: null }
+          ]
+        },
+        // Show public jobs OR jobs targeted to this university
+        {
+          [Op.or]: [
+            { isPublic: true },
+            {
+              isPublic: false,
+              targetUniversities: { [Op.contains]: [student.universityId] }
+            }
+          ]
+        }
+      ]
+    };
+
+    // Apply filters
+    if (jobType) {
+      whereClause.jobType = jobType;
+    }
+
+    if (workMode) {
+      whereClause.workMode = workMode;
+    }
+
+    if (experienceLevel) {
+      whereClause.experienceLevel = experienceLevel;
+    }
+
+    if (companyId) {
+      whereClause.companyId = companyId;
+    }
+
+    if (search) {
+      whereClause[Op.and].push({
+        [Op.or]: [
+          { title: { [Op.iLike]: `%${search}%` } },
+          { description: { [Op.iLike]: `%${search}%` } }
+        ]
+      });
+    }
+
+    // Fetch jobs with pagination
+    const jobs = await Job.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: Company,
+          attributes: ['id', 'companyName', 'industry', 'location', 'logo', 'website']
+        }
+      ],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      distinct: true
+    });
+
+    res.json({
+      success: true,
+      jobs: jobs.rows,
+      university: {
+        id: student.University.id,
+        name: student.University.universityName
+      },
+      pagination: {
+        total: jobs.count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(jobs.count / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get available jobs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get single job details
+// @route   GET /api/student/jobs/:id
+// @access  Private (Student)
+const getJobDetails = async (req, res) => {
+  try {
+    const student = await Student.findOne({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: University,
+          attributes: ['id', 'universityName']
+        }
+      ]
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    // Check if student is verified
+    if (student.verificationStatus !== 'approved' || !student.universityId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must be a verified student to view job details',
+        requiresVerification: true
+      });
+    }
+
+    const { Op } = require('sequelize');
+    const { Job, Company, UniversityCompanyConnection, Application } = require('../models');
+
+    // Get job details
+    const job = await Job.findOne({
+      where: { id: req.params.id, status: 'active' },
+      include: [
+        {
+          model: Company,
+          attributes: ['id', 'companyName', 'industry', 'location', 'logo', 'website', 'description']
+        }
+      ]
+    });
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Check if company is connected to student's university
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId: student.universityId,
+        companyId: job.companyId,
+        status: 'active'
+      }
+    });
+
+    if (!connection) {
+      return res.status(403).json({
+        success: false,
+        message: 'This job is not available for your university'
+      });
+    }
+
+    // Check if job is targeted to specific universities
+    if (!job.isPublic && !job.targetUniversities.includes(student.universityId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'This job is not available for your university'
+      });
+    }
+
+    // Check if student has already applied
+    const existingApplication = await Application.findOne({
+      where: {
+        jobId: job.id,
+        applicantId: student.id,
+        applicantType: 'student'
+      }
+    });
+
+    res.json({
+      success: true,
+      job,
+      hasApplied: !!existingApplication,
+      application: existingApplication
+    });
+  } catch (error) {
+    console.error('Get job details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Apply for a job
+// @route   POST /api/student/jobs/:id/apply
+// @access  Private (Student)
+const applyForJob = async (req, res) => {
+  try {
+    const student = await Student.findOne({
+      where: { userId: req.user.id },
+      include: [
+        {
+          model: University,
+          attributes: ['id', 'universityName']
+        }
+      ]
+    });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    // Check if student is verified
+    if (student.verificationStatus !== 'approved' || !student.universityId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must be a verified student to apply for jobs'
+      });
+    }
+
+    const { Op } = require('sequelize');
+    const { Job, Company, UniversityCompanyConnection, Application } = require('../models');
+    const { coverLetter } = req.body;
+
+    // Get job details
+    const job = await Job.findOne({
+      where: { id: req.params.id, status: 'active' },
+      include: [
+        {
+          model: Company,
+          attributes: ['id', 'companyName']
+        }
+      ]
+    });
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found or no longer active'
+      });
+    }
+
+    // Check deadline
+    if (job.deadline && new Date(job.deadline) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Application deadline has passed'
+      });
+    }
+
+    // Check if company is connected to student's university
+    const connection = await UniversityCompanyConnection.findOne({
+      where: {
+        universityId: student.universityId,
+        companyId: job.companyId,
+        status: 'active'
+      }
+    });
+
+    if (!connection) {
+      return res.status(403).json({
+        success: false,
+        message: 'This job is not available for your university'
+      });
+    }
+
+    // Check if already applied
+    const existingApplication = await Application.findOne({
+      where: {
+        jobId: job.id,
+        applicantId: student.id,
+        applicantType: 'student'
+      }
+    });
+
+    if (existingApplication) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already applied for this job',
+        application: existingApplication
+      });
+    }
+
+    // Create application
+    const application = await Application.create({
+      jobId: job.id,
+      applicantId: student.id,
+      applicantType: 'student',
+      coverLetter: coverLetter || null,
+      status: 'pending'
+    });
+
+    // Log activity
+    const { Activity } = require('../models');
+    await Activity.create({
+      studentId: student.id,
+      type: 'job_application',
+      title: `Applied to ${job.title}`,
+      description: `Applied to ${job.title} at ${job.Company.companyName}`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully',
+      application
+    });
+  } catch (error) {
+    console.error('Apply for job error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get my applications
+// @route   GET /api/student/applications
+// @access  Private (Student)
+const getMyApplications = async (req, res) => {
+  try {
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    console.log('getMyApplications called for user:', req.user.id);
+    console.log('Student found:', student ? student.id : 'NOT FOUND');
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { Application, Job, Company } = require('../models');
+    const { status } = req.query;
+
+    const whereClause = {
+      applicantId: student.id,
+      applicantType: 'student'
+    };
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    console.log('Querying applications with whereClause:', whereClause);
+
+    const applications = await Application.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Job,
+          attributes: ['id', 'title', 'jobType', 'workMode', 'location', 'status'],
+          include: [
+            {
+              model: Company,
+              attributes: ['id', 'companyName', 'logo', 'industry']
+            }
+          ]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    console.log('Found applications:', applications.length);
+    console.log('Applications data:', JSON.stringify(applications, null, 2));
+
+    res.json({
+      success: true,
+      applications
+    });
+  } catch (error) {
+    console.error('Get my applications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getDashboard,
   getActivity,
@@ -1248,5 +1812,11 @@ module.exports = {
   submitReview,
   getMyReviews,
   getCertificates,
-  findPeers
+  submitVerificationRequest,
+  getUniversities,
+  findPeers,
+  getAvailableJobs,
+  getJobDetails,
+  applyForJob,
+  getMyApplications
 };
