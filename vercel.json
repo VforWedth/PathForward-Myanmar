@@ -1,27 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "server/src/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "client/package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server/src/index.js"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "client/$1"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "installCommand": "pnpm install --no-frozen-lockfile"
+  "buildCommand": "cd client && pnpm run build",
+  "outputDirectory": "client/.next",
+  "installCommand": "cd client && pnpm install --no-frozen-lockfile",
+  "framework": "nextjs"
 }
