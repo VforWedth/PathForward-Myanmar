@@ -23,6 +23,7 @@ import {
 import { toast, ToastContainer } from 'react-toastify';
 import Link from 'next/link';
 import { Users, Filter, ArrowLeft } from 'lucide-react';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface Applicant {
   id: string;
@@ -63,6 +64,12 @@ export default function CompanyApplicants() {
     university: 'all',
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 10,
+    totalItems: 0,
+    totalPages: 0
+  });
 
   // auth + data load
   useEffect(() => {
@@ -122,7 +129,7 @@ export default function CompanyApplicants() {
     };
 
     fetchApplicants();
-  }, [user, router, filters]);
+  }, [user, router, filters, pagination.currentPage]);
 
   // positions for filter (from data)
   const positionOptions = useMemo(() => {
@@ -155,7 +162,7 @@ export default function CompanyApplicants() {
   // derived filtered list
   const filteredApplicants = useMemo(() => {
     const q = filters.search.trim().toLowerCase();
-    return applicants.filter(app => {
+    const filtered = applicants.filter(app => {
       if (filters.status !== 'all' && app.status !== filters.status) return false;
       if (filters.position !== 'all' && app.position !== filters.position) return false;
       if (!q) return true;
@@ -164,7 +171,29 @@ export default function CompanyApplicants() {
       const skillHit = app.skills.some(s => s.toLowerCase().includes(q));
       return nameHit || emailHit || skillHit;
     });
+
+    // Update pagination total
+    setPagination(prev => ({
+      ...prev,
+      totalItems: filtered.length,
+      totalPages: Math.ceil(filtered.length / prev.itemsPerPage)
+    }));
+
+    return filtered;
   }, [applicants, filters]);
+
+  // Paginated applicants
+  const paginatedApplicants = useMemo(() => {
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+    return filteredApplicants.slice(startIndex, endIndex);
+  }, [filteredApplicants, pagination.currentPage, pagination.itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+    setSelectedApplicant(null); // Clear selection when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const updateApplicationStatus = async (applicantId: string, status: Applicant['status']) => {
     try {
@@ -399,12 +428,26 @@ export default function CompanyApplicants() {
                   <h3 className="text-xl font-semibold text-[#2F4156]">
                     Applicants ({filteredApplicants.length})
                   </h3>
-                  <span className="text-sm text-[#567C8D]">
-                    Showing {filteredApplicants.length} of {applicants.length} total
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-[#567C8D]">Per page:</label>
+                    <select
+                      className="rounded-lg border border-[#C8D9E6] bg-white px-2 py-1 text-sm text-[#2F4156] focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      value={pagination.itemsPerPage}
+                      onChange={(e) => setPagination(prev => ({
+                        ...prev,
+                        itemsPerPage: Number(e.target.value),
+                        currentPage: 1
+                      }))}
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
                 </div>
 
-                {filteredApplicants.length === 0 ? (
+                {paginatedApplicants.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#C8D9E6] bg-white/60 p-8 text-center shadow-sm">
                     <svg
                       className="mx-auto mb-4 h-16 w-16 text-[#C8D9E6]"
@@ -423,8 +466,9 @@ export default function CompanyApplicants() {
                     <p className="text-sm text-[#567C8D]">Try adjusting your filters</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {filteredApplicants.map(applicant => (
+                  <>
+                    <div className="space-y-4">
+                      {paginatedApplicants.map(applicant => (
                       <div
                         key={applicant.id}
                         className={`cursor-pointer rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
@@ -471,8 +515,23 @@ export default function CompanyApplicants() {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {pagination.totalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination
+                          currentPage={pagination.currentPage}
+                          totalPages={pagination.totalPages}
+                          totalItems={pagination.totalItems}
+                          itemsPerPage={pagination.itemsPerPage}
+                          onPageChange={handlePageChange}
+                          itemName="applicants"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 

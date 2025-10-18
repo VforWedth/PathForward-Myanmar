@@ -8,6 +8,8 @@ import { FileText, User2, Compass, Sparkles, Award, Target, TrendingUp, Building
 import { motion } from 'framer-motion';
 import { StudentTopNav } from '@/components/ui/student/top-nav';
 import * as studentApi from '@/lib/studentApi';
+import { FAQSection } from '@/components/faq/FAQSection';
+import { getFAQsByCategory, getGeneralFAQs } from '@/components/faq/FAQData';
 
 interface DashboardStats {
   applications: number;
@@ -402,6 +404,14 @@ export default function StudentDashboard() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="mt-6">
+          <FAQSection
+            faqs={[...getFAQsByCategory('students'), ...getGeneralFAQs()]}
+            title="Student Help & FAQ"
+          />
         </section>
       </main>
 

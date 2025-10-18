@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Sparkles, Briefcase, Users, MessageSquare, PlusCircle } from 'lucide-react';
 import { TopApplicants, CompanyApplicant } from './top-applicants';
 import { AppSidebar } from '@/components/ui/company/app-sidebar';
+import { FAQSection } from '@/components/faq/FAQSection';
+import { getFAQsByCategory, getGeneralFAQs } from '@/components/faq/FAQData';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -285,7 +287,18 @@ export default function CompanyDashboard() {
                 </div>
               </div>
             </section>
+
+            {/* FAQ Section */}
+            <section className="mt-10">
+              <FAQSection
+                faqs={[...getFAQsByCategory('companies'), ...getGeneralFAQs()]}
+                title="Company Help & FAQ"
+              />
+            </section>
           </div>
+                <footer className="mx-auto mt-12 max-w-7xl px-6 pb-10 text-center text-xs text-[#567C8D]">
+        Built with ♥ for learners — PathForward Myanmar
+      </footer>
         </div>
       </SidebarInset>
     </SidebarProvider>

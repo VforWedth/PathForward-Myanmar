@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import AuthGuard from "@/components/AuthGuard";
 import SessionTimeoutWarning from "@/components/SessionTimeoutWarning";
+import { FAQSection } from "@/components/faq/FAQSection";
+import { getFAQsByCategory, getGeneralFAQs } from "@/components/faq/FAQData";
 
 // shadcn/ui sidebar primitives
 import {
@@ -268,6 +270,14 @@ export default function UniversityDashboard() {
                   </ul>
                 </div>
               </div>
+            </section>
+
+            {/* FAQ Section */}
+            <section className="mt-8">
+              <FAQSection
+                faqs={[...getFAQsByCategory('universities'), ...getGeneralFAQs()]}
+                title="University Help & FAQ"
+              />
             </section>
 
             {/* ✅ Quick Actions REMOVED as requested */}

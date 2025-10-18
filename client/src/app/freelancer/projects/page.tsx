@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
+import { Pagination } from '@/components/ui/Pagination';
 import {
   ArrowLeft,
   Plus,
@@ -35,6 +36,12 @@ export default function MyProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 9, // 9 projects per page for nice 3-column grid
+    totalItems: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     if (user === undefined) return;
@@ -46,6 +53,34 @@ export default function MyProjects() {
 
     fetchProjects();
   }, [user, router, filterStatus]);
+
+  // Filtered projects
+  const filteredProjects = useMemo(() => {
+    const filtered = filterStatus === 'all'
+      ? projects
+      : projects.filter(p => p.status === filterStatus);
+
+    // Update pagination
+    setPagination(prev => ({
+      ...prev,
+      totalItems: filtered.length,
+      totalPages: Math.ceil(filtered.length / prev.itemsPerPage)
+    }));
+
+    return filtered;
+  }, [projects, filterStatus]);
+
+  // Paginated projects
+  const paginatedProjects = useMemo(() => {
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+    return filteredProjects.slice(startIndex, endIndex);
+  }, [filteredProjects, pagination.currentPage, pagination.itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const fetchProjects = async () => {
     try {
@@ -176,27 +211,49 @@ export default function MyProjects() {
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Filter */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex items-center gap-4">
-            <Filter className="h-5 w-5 text-gray-600" />
-            <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="in-progress">In Progress</option>
-              <option value="completed">Completed</option>
-              <option value="archived">Archived</option>
-            </select>
-            <span className="text-sm text-gray-600">
-              {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Filter className="h-5 w-5 text-gray-600" />
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset to first page
+                }}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
+              </select>
+              <span className="text-sm text-gray-600">
+                {filteredProjects.length} {filteredProjects.length === 1 ? 'project' : 'projects'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600">Per page:</label>
+              <select
+                className="px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+                value={pagination.itemsPerPage}
+                onChange={(e) => setPagination(prev => ({
+                  ...prev,
+                  itemsPerPage: Number(e.target.value),
+                  currentPage: 1
+                }))}
+              >
+                <option value="6">6</option>
+                <option value="9">9</option>
+                <option value="12">12</option>
+                <option value="24">24</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Projects Grid */}
-        {projects.length === 0 ? (
+        {paginatedProjects.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <Briefcase className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-800 mb-2">No projects found</h3>
@@ -216,8 +273,9 @@ export default function MyProjects() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project) => (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedProjects.map((project) => (
               <div
                 key={project.id}
                 className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition"
@@ -290,8 +348,23 @@ export default function MyProjects() {
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-8">
+                <Pagination
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  totalItems={pagination.totalItems}
+                  itemsPerPage={pagination.itemsPerPage}
+                  onPageChange={handlePageChange}
+                  itemName="projects"
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

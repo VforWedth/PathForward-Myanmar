@@ -1,11 +1,12 @@
 // app/university/students/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "react-toastify";
 import * as universityApi from "@/lib/universityApi";
+import { Pagination } from "@/components/ui/Pagination";
 
 // Sidebar layout primitives
 import {
@@ -75,6 +76,12 @@ export default function StudentManagement() {
     verificationStatus: "all",
     search: "",
   });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 10,
+    totalItems: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     if (!user || user.role !== "university") {
@@ -134,8 +141,28 @@ export default function StudentManagement() {
       );
     }
 
+    // Update pagination
+    setPagination(prev => ({
+      ...prev,
+      totalItems: filtered.length,
+      totalPages: Math.ceil(filtered.length / prev.itemsPerPage)
+    }));
+
     setFilteredStudents(filtered);
   }, [students, filters]);
+
+  // Paginated students
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+    return filteredStudents.slice(startIndex, endIndex);
+  }, [filteredStudents, pagination.currentPage, pagination.itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+    setSelectedStudent(null); // Clear selection when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const getStatusColor = (status: Student["status"]) => {
     switch (status) {
@@ -413,12 +440,26 @@ export default function StudentManagement() {
                   <h3 className="text-xl font-semibold">
                     Students ({filteredStudents.length})
                   </h3>
-                  <span className="text-sm text-gray-500">
-                    Showing {filteredStudents.length} of {students.length} total
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-gray-600">Per page:</label>
+                    <select
+                      className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      value={pagination.itemsPerPage}
+                      onChange={(e) => setPagination(prev => ({
+                        ...prev,
+                        itemsPerPage: Number(e.target.value),
+                        currentPage: 1
+                      }))}
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </div>
                 </div>
 
-                {filteredStudents.length === 0 ? (
+                {paginatedStudents.length === 0 ? (
                   <div className="bg-white p-8 rounded-lg shadow-md text-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
                       <Users className="w-8 h-8 text-gray-300" />
@@ -429,8 +470,9 @@ export default function StudentManagement() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {filteredStudents.map((student) => (
+                  <>
+                    <div className="space-y-4">
+                      {paginatedStudents.map((student) => (
                       <div
                         key={student.id}
                         className={`bg-white p-6 rounded-lg shadow-md border-l-4 cursor-pointer transition-all ${
@@ -515,8 +557,23 @@ export default function StudentManagement() {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {pagination.totalPages > 1 && (
+                      <div className="mt-6">
+                        <Pagination
+                          currentPage={pagination.currentPage}
+                          totalPages={pagination.totalPages}
+                          totalItems={pagination.totalItems}
+                          itemsPerPage={pagination.itemsPerPage}
+                          onPageChange={handlePageChange}
+                          itemName="students"
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 

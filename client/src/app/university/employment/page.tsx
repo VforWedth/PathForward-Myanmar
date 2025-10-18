@@ -73,123 +73,93 @@ export default function EmploymentTracking() {
       return;
     }
 
-    // const fetchEmploymentData = async () => {
-    //   try {
-    //     const token = localStorage.getItem('token');
-    //     const response = await fetch(
-    //       `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/employment-stats`,
-    //       {
-    //         headers: {
-    //           'Authorization': `Bearer ${token}`
-    //         }
-    //       }
-    //     );
-
-    //     if (response.ok) {
-    //       const data = await response.json();
-    //       if (data.success && data.stats) {
-    //         // Map backend data to frontend format
-    //         const backendStats = data.stats.students;
-    //         const employmentRate = backendStats.employmentRate || 0;
-
-    //         setStats({
-    //           totalStudents: backendStats.total || 0,
-    //           employed: backendStats.onJob || 0,
-    //           seeking: backendStats.available || 0,
-    //           internship: backendStats.onJob || 0, // Backend uses onJob for both employed and internship
-    //           unemployed: (backendStats.total - backendStats.onJob - backendStats.internshipCompleted) || 0,
-    //           employmentRate: Math.round(employmentRate)
-    //         });
-
-    //         // Map top companies if available
-    //         if (data.stats.topCompanies && data.stats.topCompanies.length > 0) {
-    //           setTopCompanies(data.stats.topCompanies.map((company: any) => ({
-    //             name: company.companyName || company.name,
-    //             hiredCount: company.studentCount || company.hiredCount || 0,
-    //             industry: company.industry || 'Technology'
-    //           })));
-    //         } else {
-    //           setTopCompanies([]);
-    //         }
-
-    //         // Generate trends based on current data (since backend doesn't provide historical trends yet)
-    //         // TODO: Backend should store historical data for accurate trends
-    //         const currentEmployedRate = employmentRate;
-    //         const currentSeekingRate = 100 - employmentRate;
-
-    //         // Generate approximate 7-month trend
-    //         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
-    //         const currentMonth = new Date().getMonth();
-    //         const generatedTrends: EmploymentTrend[] = [];
-
-    //         for (let i = 6; i >= 0; i--) {
-    //           const monthIndex = (currentMonth - i + 12) % 12;
-    //           const monthName = monthNames[monthIndex];
-    //           const year = new Date().getFullYear();
-
-    //           // Simulate gradual improvement in employment rate
-    //           const employedRate = Math.max(30, currentEmployedRate - (i * 3));
-    //           const seekingRate = 100 - employedRate;
-
-    //           generatedTrends.push({
-    //             month: `${monthName} ${year}`,
-    //             employed: Math.round(employedRate),
-    //             seeking: Math.round(seekingRate)
-    //           });
-    //         }
-
-    //         setTrends(generatedTrends);
-
-    //         toast.success('Employment data loaded successfully');
-    //       } else {
-    //         toast.error('Failed to load employment statistics');
-    //       }
-    //     } else {
-    //       console.error('Failed to fetch employment data:', response.status);
-    //       toast.error('Failed to load employment data');
-    //     }
-    //   } catch (error) {
-    //     console.error('Error fetching employment data:', error);
-    //     toast.error('Failed to load employment data');
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    // };
-
-    // fetchEmploymentData();
-    // Mock data
-    const mockStats: EmploymentStats = {
-      totalStudents: 1250,
-      employed: 650,
-      seeking: 300,
-      internship: 150,
-      unemployed: 150,
-      employmentRate: 72,
-    };
-
-    const mockTrends: EmploymentTrend[] = [
-      { month: "Jan 2023", employed: 45, seeking: 55 },
-      { month: "Feb 2023", employed: 52, seeking: 48 },
-      { month: "Mar 2023", employed: 58, seeking: 42 },
-      { month: "Apr 2023", employed: 61, seeking: 39 },
-      { month: "May 2023", employed: 65, seeking: 35 },
-      { month: "Jun 2023", employed: 68, seeking: 32 },
-      { month: "Jul 2023", employed: 72, seeking: 28 },
-    ];
-
-    const mockTopCompanies: TopCompany[] = [
-      { name: "Tech Solutions Myanmar", hiredCount: 45, industry: "Technology" },
-      { name: "Myanmar FinTech", hiredCount: 32, industry: "Finance" },
-      { name: "Digital Innovations Co.", hiredCount: 28, industry: "E-commerce" },
-      { name: "Yangon Software House", hiredCount: 25, industry: "Technology" },
-      { name: "Mandalay Tech Park", hiredCount: 22, industry: "Technology" },
-    ];
-
-    setStats(mockStats);
-    setTrends(mockTrends);
-    setTopCompanies(mockTopCompanies);
-    setIsLoading(false);
+    fetchEmploymentData();
   }, [user, router]);
+
+  const fetchEmploymentData = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/employment-stats`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const apiStats = data.stats;
+
+          // Map API data to our stats structure
+          const employed = apiStats.students.onJob + apiStats.students.internshipCompleted;
+          const seeking = apiStats.students.available;
+          const unemployed = apiStats.students.total - employed - seeking;
+
+          setStats({
+            totalStudents: apiStats.students.total,
+            employed: employed,
+            seeking: seeking,
+            internship: apiStats.students.internshipCompleted,
+            unemployed: unemployed > 0 ? unemployed : 0,
+            employmentRate: apiStats.students.employmentRate,
+          });
+
+          // Generate trend data (last 6 months based on current employment rate)
+          const now = new Date();
+          const trendData: EmploymentTrend[] = [];
+          for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            // Simulate trend - in real scenario, this would come from historical data
+            const variation = Math.random() * 10 - 5; // Random variation
+            const employedPct = Math.max(0, Math.min(100, apiStats.students.employmentRate + variation - (5 - i) * 3));
+            trendData.push({
+              month: monthName,
+              employed: Math.round(employedPct),
+              seeking: Math.round(100 - employedPct)
+            });
+          }
+          setTrends(trendData);
+
+          // Process top companies from accepted applications
+          const companyMap = new Map<string, { name: string; hiredCount: number; industry: string }>();
+
+          if (apiStats.topCompanies && apiStats.topCompanies.length > 0) {
+            apiStats.topCompanies.forEach((app: any) => {
+              if (app.Job && app.Job.Company) {
+                const company = app.Job.Company;
+                const key = company.id;
+                if (companyMap.has(key)) {
+                  companyMap.get(key)!.hiredCount++;
+                } else {
+                  companyMap.set(key, {
+                    name: company.companyName,
+                    hiredCount: 1,
+                    industry: company.industry || 'Various'
+                  });
+                }
+              }
+            });
+          }
+
+          const topCompaniesList = Array.from(companyMap.values())
+            .sort((a, b) => b.hiredCount - a.hiredCount)
+            .slice(0, 5);
+
+          setTopCompanies(topCompaniesList);
+        }
+      } else {
+        toast.error('Failed to fetch employment data');
+      }
+    } catch (error) {
+      console.error('Error fetching employment data:', error);
+      toast.error('Error loading employment statistics');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Actions
   const handleGenerateReports = () => {

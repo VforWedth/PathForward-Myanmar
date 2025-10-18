@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Users, Filter, MessageCircle, Star, MapPin, Loader2 } from 'lucide-react';
 import { peerApi, Peer, PeerFilters } from '@/lib/peerApi';
 import { toast } from 'react-toastify';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 // Use the Peer interface from peerApi instead of TeamMember
 
@@ -113,7 +115,13 @@ const PeerFinder: React.FC = () => {
             Connect with skilled professionals for your next project
           </p>
         </div>
-
+        <Link
+              href="/student/dashboard"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-[#2F4156] ring-1 ring-[#C8D9E6] transition hover:bg-[#C8D9E6]/30"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Link>
         {/* Search and Filter Bar */}
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">

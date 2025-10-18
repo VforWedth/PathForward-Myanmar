@@ -17,6 +17,7 @@ router.get('/dashboard/recent-activities', freelancerController.getRecentActivit
 // Job browsing routes
 router.get('/jobs', freelancerController.getPublicJobs);
 router.get('/jobs/:id', freelancerController.getJobById);
+router.get('/recommendations', freelancerController.getRecommendedJobs);
 
 // Application routes
 router.post('/jobs/:id/apply', freelancerController.applyForJob);

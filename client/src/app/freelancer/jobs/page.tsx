@@ -39,6 +39,12 @@ export default function FindJobs() {
     experienceLevel: 'all',
     location: ''
   });
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 20,
+    pages: 0
+  });
 
   useEffect(() => {
     if (user === undefined) return;
@@ -49,12 +55,20 @@ export default function FindJobs() {
     }
 
     fetchJobs();
-  }, [user, router, filters]);
+  }, [user, router, pagination.page]);
+
+  const handleApplyFilters = () => {
+    setPagination({ ...pagination, page: 1 }); // Reset to page 1
+    fetchJobs();
+  };
 
   const fetchJobs = async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
+
+      params.append('page', pagination.page.toString());
+      params.append('limit', pagination.limit.toString());
 
       if (filters.search) params.append('search', filters.search);
       if (filters.jobType !== 'all') params.append('jobType', filters.jobType);
@@ -74,6 +88,9 @@ export default function FindJobs() {
       if (response.ok) {
         const data = await response.json();
         setJobs(data.data || []);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       }
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -160,6 +177,7 @@ export default function FindJobs() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  onKeyPress={(e) => e.key === 'Enter' && handleApplyFilters()}
                 />
               </div>
             </div>
@@ -208,6 +226,14 @@ export default function FindJobs() {
                 <option value="senior">Senior Level</option>
               </select>
             </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={handleApplyFilters}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Apply Filters
+            </button>
           </div>
         </div>
 
@@ -299,6 +325,32 @@ export default function FindJobs() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && jobs.length > 0 && pagination.pages > 1 && (
+          <div className="mt-8 flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} jobs
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                disabled={pagination.page === 1}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                disabled={pagination.page >= pagination.pages}
+                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

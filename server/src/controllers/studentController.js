@@ -1730,6 +1730,9 @@ const getMyApplications = async (req, res) => {
   try {
     const student = await Student.findOne({ where: { userId: req.user.id } });
 
+    console.log('getMyApplications called for user:', req.user.id);
+    console.log('Student found:', student ? student.id : 'NOT FOUND');
+
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -1738,7 +1741,9 @@ const getMyApplications = async (req, res) => {
     }
 
     const { Application, Job, Company } = require('../models');
-    const { status } = req.query;
+    const { status, page = 1, limit = 10 } = req.query;
+
+    const offset = (page - 1) * limit;
 
     const whereClause = {
       applicantId: student.id,
@@ -1749,12 +1754,14 @@ const getMyApplications = async (req, res) => {
       whereClause.status = status;
     }
 
-    const applications = await Application.findAll({
+    console.log('Querying applications with whereClause:', whereClause);
+
+    const { count, rows: applications } = await Application.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: Job,
-          attributes: ['id', 'title', 'jobType', 'workMode', 'location', 'status'],
+          attributes: ['id', 'title', 'jobType', 'workMode', 'location', 'status', 'salaryRange'],
           include: [
             {
               model: Company,
@@ -1763,12 +1770,23 @@ const getMyApplications = async (req, res) => {
           ]
         }
       ],
-      order: [['createdAt', 'DESC']]
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      distinct: true
     });
+
+    console.log('Found applications:', applications.length);
 
     res.json({
       success: true,
-      applications
+      applications,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
     });
   } catch (error) {
     console.error('Get my applications error:', error);
@@ -1794,32 +1812,59 @@ const withdrawApplication = async (req, res) => {
       });
     }
 
-    const { Application } = require('../models');
+    const { Application, Job, Company } = require('../models');
 
+    // Find application
     const application = await Application.findOne({
       where: {
         id: req.params.id,
         applicantId: student.id,
         applicantType: 'student'
-      }
+      },
+      include: [
+        {
+          model: Job,
+          attributes: ['id', 'title'],
+          include: [
+            {
+              model: Company,
+              attributes: ['id', 'companyName']
+            }
+          ]
+        }
+      ]
     });
 
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: 'Application not found'
+        message: 'Application not found or you do not have permission to withdraw it'
       });
     }
 
-    // Only allow withdrawal of pending applications
-    if (application.status !== 'pending') {
+    // Check if application can be withdrawn
+    if (application.status === 'accepted') {
       return res.status(400).json({
         success: false,
-        message: 'Can only withdraw pending applications'
+        message: 'Cannot withdraw an accepted application. Please contact the company directly.'
       });
     }
 
+    // Store job info before deleting
+    const jobTitle = application.Job?.title || 'Unknown Job';
+    const companyName = application.Job?.Company?.companyName || 'Unknown Company';
+
+    // Delete the application
     await application.destroy();
+
+    // Log activity
+    const { Activity } = require('../models');
+    await Activity.create({
+      studentId: student.id,
+      type: 'application_withdrawn',
+      title: `Withdrew application`,
+      description: `Withdrew application for ${jobTitle} at ${companyName}`
+    });
 
     res.json({
       success: true,

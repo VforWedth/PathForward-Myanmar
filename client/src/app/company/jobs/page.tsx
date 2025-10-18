@@ -35,6 +35,7 @@ import {
   Clock,
   Search,
 } from 'lucide-react';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface Job {
   id: string;
@@ -60,6 +61,12 @@ export default function CompanyJobs() {
   // NEW: filters
   const [status, setStatus] = useState<StatusFilter>('all');
   const [query, setQuery] = useState('');
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    itemsPerPage: 10,
+    totalItems: 0,
+    totalPages: 0
+  });
 
   useEffect(() => {
     if (!user || user.role !== 'company') {
@@ -159,13 +166,34 @@ export default function CompanyJobs() {
   // NEW: derived filtered list
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return jobs.filter((j) => {
+    const filteredJobs = jobs.filter((j) => {
       if (status !== 'all' && j.status !== status) return false;
       if (!q) return true;
       const hay = `${j.title} ${j.location} ${j.type}`.toLowerCase();
       return hay.includes(q);
     });
+
+    // Update pagination
+    setPagination(prev => ({
+      ...prev,
+      totalItems: filteredJobs.length,
+      totalPages: Math.ceil(filteredJobs.length / prev.itemsPerPage)
+    }));
+
+    return filteredJobs;
   }, [jobs, status, query]);
+
+  // Paginated jobs
+  const paginatedJobs = useMemo(() => {
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
+  }, [filtered, pagination.currentPage, pagination.itemsPerPage]);
+
+  const handlePageChange = (page: number) => {
+    setPagination(prev => ({ ...prev, currentPage: page }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Counts for tabs
   const counts = useMemo(() => {
@@ -303,9 +331,35 @@ export default function CompanyJobs() {
                   </div>
                 </div>
 
+                {/* Showing info and Per Page selector */}
+                {pagination.totalItems > 0 && (
+                  <div className="px-6 py-4 border-b border-[#E3EAF1] flex items-center justify-between">
+                    <p className="text-sm text-[#567C8D]">
+                      Showing {paginatedJobs.length} of {pagination.totalItems} jobs
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-[#567C8D]">Per page:</label>
+                      <select
+                        className="rounded-lg border border-[#E3EAF1] bg-white px-2 py-1 text-sm text-[#2F4156] focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        value={pagination.itemsPerPage}
+                        onChange={(e) => setPagination(prev => ({
+                          ...prev,
+                          itemsPerPage: Number(e.target.value),
+                          currentPage: 1
+                        }))}
+                      >
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 {/* List */}
                 <div className="divide-y divide-[#E3EAF1]">
-                  {filtered.map((job) => (
+                  {paginatedJobs.map((job) => (
                     <div key={job.id} className="p-6 transition hover:bg-[#F5EFEB]/50">
                       <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div className="flex-1">
@@ -365,7 +419,21 @@ export default function CompanyJobs() {
                   ))}
                 </div>
 
-                {filtered.length === 0 && (
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="px-6 py-6">
+                    <Pagination
+                      currentPage={pagination.currentPage}
+                      totalPages={pagination.totalPages}
+                      totalItems={pagination.totalItems}
+                      itemsPerPage={pagination.itemsPerPage}
+                      onPageChange={handlePageChange}
+                      itemName="jobs"
+                    />
+                  </div>
+                )}
+
+                {paginatedJobs.length === 0 && (
                   <div className="p-12 text-center text-[#567C8D]">
                     <svg
                       className="mx-auto mb-4 h-20 w-20 text-[#C8D9E6]"
