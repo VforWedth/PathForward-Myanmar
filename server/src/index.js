@@ -17,11 +17,39 @@ dotenv.config();
 // Initialize express
 const app = express();
 
-// Middleware
+// Middleware - CORS Configuration
+// Allow multiple origins for flexibility
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://path-forward-mm.vercel.app',
+  'https://path-forward-myanmar-5qtvifmmj-phone-moe-htets-projects.vercel.app'
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // In development, allow all origins
+      if (process.env.NODE_ENV !== 'production') {
+        callback(null, true);
+      } else {
+        console.warn(`⚠️  Blocked CORS request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -74,19 +102,34 @@ const initializeDatabase = async () => {
     console.log('✅ Database models synchronized');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
+    // Don't exit process, let server start even if DB fails initially
   }
 };
 
-// Initialize database for serverless
-initializeDatabase();
+// Start server function
+const startServer = async () => {
+  // Initialize database
+  await initializeDatabase();
 
-// Start server (only for local development)
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
+  // Start listening on PORT
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('='.repeat(50));
+    console.log('🚀 PathForward Myanmar Server Started');
+    console.log('='.repeat(50));
+    console.log(`📍 Port: ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📍 Client URL: ${process.env.CLIENT_URL || 'Not set'}`);
+    console.log(`📍 Database: ${process.env.DB_NAME || 'Not set'}`);
+    console.log(`📍 CORS Origins: ${allowedOrigins.length} configured`);
+    console.log('='.repeat(50));
   });
-}
+};
 
-// Export for Vercel serverless
+// Start the server
+startServer().catch(error => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
+});
+
+// Export for serverless environments (if needed in future)
 module.exports = app;
