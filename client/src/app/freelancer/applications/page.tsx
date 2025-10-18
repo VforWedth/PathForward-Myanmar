@@ -46,6 +46,12 @@ export default function MyApplications() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0
+  });
 
   useEffect(() => {
     if (user === undefined) return;
@@ -56,12 +62,14 @@ export default function MyApplications() {
     }
 
     fetchApplications();
-  }, [user, router, filterStatus]);
+  }, [user, router, filterStatus, pagination.page]);
 
   const fetchApplications = async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
+      params.append('page', pagination.page.toString());
+      params.append('limit', pagination.limit.toString());
       if (filterStatus !== 'all') params.append('status', filterStatus);
 
       const response = await fetch(
@@ -76,6 +84,9 @@ export default function MyApplications() {
       if (response.ok) {
         const data = await response.json();
         setApplications(data.data || []);
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -83,6 +94,11 @@ export default function MyApplications() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFilterChange = (newStatus: string) => {
+    setFilterStatus(newStatus);
+    setPagination({ ...pagination, page: 1 }); // Reset to page 1 when filter changes
   };
 
   const handleWithdraw = async (applicationId: string) => {
@@ -199,7 +215,7 @@ export default function MyApplications() {
             <select
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) => handleFilterChange(e.target.value)}
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -378,6 +394,34 @@ export default function MyApplications() {
               )}
             </div>
           </div>
+
+          {/* Pagination */}
+          {!isLoading && filteredApplications.length > 0 && pagination.pages > 1 && (
+            <div className="mt-6 lg:col-span-2">
+              <div className="flex items-center justify-between bg-white rounded-lg shadow-sm p-4">
+                <p className="text-sm text-gray-600">
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                  {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} applications
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                    disabled={pagination.page >= pagination.pages}
+                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

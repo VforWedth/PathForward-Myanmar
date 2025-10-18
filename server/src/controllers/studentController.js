@@ -1741,7 +1741,9 @@ const getMyApplications = async (req, res) => {
     }
 
     const { Application, Job, Company } = require('../models');
-    const { status } = req.query;
+    const { status, page = 1, limit = 10 } = req.query;
+
+    const offset = (page - 1) * limit;
 
     const whereClause = {
       applicantId: student.id,
@@ -1754,12 +1756,12 @@ const getMyApplications = async (req, res) => {
 
     console.log('Querying applications with whereClause:', whereClause);
 
-    const applications = await Application.findAll({
+    const { count, rows: applications } = await Application.findAndCountAll({
       where: whereClause,
       include: [
         {
           model: Job,
-          attributes: ['id', 'title', 'jobType', 'workMode', 'location', 'status'],
+          attributes: ['id', 'title', 'jobType', 'workMode', 'location', 'status', 'salaryRange'],
           include: [
             {
               model: Company,
@@ -1768,15 +1770,23 @@ const getMyApplications = async (req, res) => {
           ]
         }
       ],
-      order: [['createdAt', 'DESC']]
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      distinct: true
     });
 
     console.log('Found applications:', applications.length);
-    console.log('Applications data:', JSON.stringify(applications, null, 2));
 
     res.json({
       success: true,
-      applications
+      applications,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
     });
   } catch (error) {
     console.error('Get my applications error:', error);

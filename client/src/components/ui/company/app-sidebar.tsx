@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sidebar'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
+import { FAQSidebarLink } from '@/components/faq/FAQSidebarLink'
 
 const companyNav = {
   user: {
@@ -179,6 +180,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               'text-white rounded-md transition-all duration-150 hover:text-white data-[active=true]:!bg-[#6BB9F0]/25 aria-[current=page]:!bg-[#6BB9F0]/25',
           }))}
         />
+
+        {/* FAQ Link at bottom of sidebar */}
+        <div className="mt-auto px-3 py-2">
+          <FAQSidebarLink className="text-white hover:!bg-[#6BB9F0]/25" />
+        </div>
       </SidebarContent>
 
       {/* FOOTER */}

@@ -1,513 +1,357 @@
 // app/page.tsx
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { motion } from 'framer-motion';
+import {
+  GraduationCap,
+  Building2,
+  Users,
+  Briefcase,
+  TrendingUp,
+  Award,
+  Target,
+  Sparkles,
+  ChevronRight,
+  CheckCircle2
+} from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
+import { brandMessaging } from '@/config/brand';
+import { Footer } from '@/components/brand/Footer';
 
-// Mock data - replace with actual API calls
-const featuredUniversities = [
-  {
-    id: 1,
-    name: 'Stanford University',
-    logo: '/university-logos/stanford.svg',
-    description: 'Leading research institution in Silicon Valley',
-    students: '17,000+',
-    programs: '200+',
-    location: 'Stanford, CA'
-  },
-  {
-    id: 2,
-    name: 'MIT',
-    logo: '/university-logos/mit.svg',
-    description: 'World-renowned for technology and innovation',
-    students: '11,000+',
-    programs: '150+',
-    location: 'Cambridge, MA'
-  },
-  {
-    id: 3,
-    name: 'Harvard University',
-    logo: '/university-logos/harvard.svg',
-    description: 'Ivy League institution with global impact',
-    students: '21,000+',
-    programs: '300+',
-    location: 'Cambridge, MA'
-  },
-  {
-    id: 4,
-    name: 'UC Berkeley',
-    logo: '/university-logos/berkeley.svg',
-    description: 'Public Ivy with strong industry connections',
-    students: '45,000+',
-    programs: '350+',
-    location: 'Berkeley, CA'
+export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, user, isInitialized, checkAuth } = useAuthStore();
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    if (isAuthenticated && user) {
+      switch (user.role) {
+        case 'admin':
+          router.push('/admin/dashboard');
+          break;
+        case 'student':
+          router.push('/student/dashboard');
+          break;
+        case 'company':
+          router.push('/company/dashboard');
+          break;
+        case 'university':
+          router.push('/university/dashboard');
+          break;
+        case 'freelancer':
+          router.push('/freelancer/dashboard');
+          break;
+        default:
+          router.push('/login');
+      }
+    }
+  }, [isAuthenticated, user, isInitialized, router]);
+
+  if (!isInitialized) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-lg font-medium">Loading...</p>
+        </motion.div>
+      </main>
+    );
   }
-];
 
-const featuredCompanies = [
-  {
-    id: 1,
-    name: 'Google',
-    logo: '/company-logos/google.svg',
-    description: 'Technology company specializing in Internet-related services',
-    industry: 'Technology',
-    employees: '150,000+',
-    location: 'Mountain View, CA'
-  },
-  {
-    id: 2,
-    name: 'Microsoft',
-    logo: '/company-logos/microsoft.svg',
-    description: 'Leading technology corporation in software development',
-    industry: 'Technology',
-    employees: '220,000+',
-    location: 'Redmond, WA'
-  },
-  {
-    id: 3,
-    name: 'Tesla',
-    logo: '/company-logos/tesla.svg',
-    description: 'Sustainable energy and electric vehicle manufacturer',
-    industry: 'Automotive',
-    employees: '100,000+',
-    location: 'Austin, TX'
-  },
-  {
-    id: 4,
-    name: 'Goldman Sachs',
-    logo: '/company-logos/goldman-sachs.svg',
-    description: 'Global investment banking and financial services',
-    industry: 'Finance',
-    employees: '40,000+',
-    location: 'New York, NY'
+  if (isAuthenticated && user) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-lg font-medium">Redirecting to your dashboard...</p>
+        </motion.div>
+      </main>
+    );
   }
-];
 
-const featuredJobs = [
-  {
-    id: 1,
-    title: 'Frontend Developer',
-    company: 'Google',
-    type: 'Full-time',
-    location: 'Mountain View, CA',
-    salary: '$120,000 - $150,000',
-    posted: '2 days ago',
-    description: 'Develop cutting-edge web applications using modern frameworks',
-    requirements: ['React', 'TypeScript', '3+ years experience']
-  },
-  {
-    id: 2,
-    title: 'Data Scientist',
-    company: 'Microsoft',
-    type: 'Full-time',
-    location: 'Remote',
-    salary: '$110,000 - $140,000',
-    posted: '1 week ago',
-    description: 'Analyze complex datasets and build machine learning models',
-    requirements: ['Python', 'ML', 'SQL', '5+ years experience']
-  },
-  {
-    id: 3,
-    title: 'Software Engineer',
-    company: 'Tesla',
-    type: 'Full-time',
-    location: 'Austin, TX',
-    salary: '$130,000 - $160,000',
-    posted: '3 days ago',
-    description: 'Build software for electric vehicles and energy products',
-    requirements: ['C++', 'Python', 'Embedded Systems']
-  },
-  {
-    id: 4,
-    title: 'Financial Analyst',
-    company: 'Goldman Sachs',
-    type: 'Internship',
-    location: 'New York, NY',
-    salary: '$80,000 - $100,000',
-    posted: '5 days ago',
-    description: 'Support financial modeling and investment analysis',
-    requirements: ['Finance Degree', 'Excel', 'Analytical Skills']
-  }
-];
+  const features = [
+    {
+      icon: GraduationCap,
+      title: 'Students',
+      description: 'Find opportunities, showcase skills, and connect with employers',
+      color: 'from-blue-500 to-cyan-500'
+    },
+    {
+      icon: Building2,
+      title: 'Companies',
+      description: 'Discover talented students and build your future workforce',
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      icon: Users,
+      title: 'Universities',
+      description: 'Track student progress and connect with industry partners',
+      color: 'from-green-500 to-emerald-500'
+    },
+    {
+      icon: Briefcase,
+      title: 'Freelancers',
+      description: 'Showcase projects and collaborate with teams',
+      color: 'from-orange-500 to-red-500'
+    }
+  ];
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState('universities');
+  const benefits = [
+    { text: 'AI-Powered Job Matching', icon: Sparkles },
+    { text: 'Skill Assessment & Certificates', icon: Award },
+    { text: 'Real-Time Collaboration', icon: Users },
+    { text: 'Career Growth Tracking', icon: TrendingUp }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Navigation */}
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-indigo-600">CareerConnect</h1>
-              </div>
-              <div className="hidden md:block ml-10">
-                <div className="flex items-baseline space-x-4">
-                  <a href="#universities" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Universities
-                  </a>
-                  <a href="#companies" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Companies
-                  </a>
-                  <a href="#jobs" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Jobs
-                  </a>
-                  <a href="#about" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
-                    About
-                  </a>
-                </div>
-              </div>
-            </div>
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 overflow-hidden">
+      {/* Animated Background Gradient */}
+      <div
+        className="fixed inset-0 opacity-30 pointer-events-none"
+        style={{
+          background: `radial-gradient(circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(99, 102, 241, 0.2), transparent 50%)`
+        }}
+      />
 
-            {/* Auth Buttons */}
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/login"
-                className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md text-sm font-medium transition duration-200"
-              >
-                Register
-              </Link>
-            </div>
+      {/* Navigation */}
+      <motion.nav
+        className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200"
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <Logo size="md" showText={true} linkTo="/" />
+          <div className="flex space-x-4">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/login')}
+              className="px-6 py-2 text-[var(--brand-primary)] font-medium hover:text-[var(--brand-primary-light)] transition"
+            >
+              Login
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.push('/register')}
+              className="px-6 py-2 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-light)] text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all hover-glow"
+            >
+              Get Started
+            </motion.button>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Section */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Connect Your Future
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Bridging the gap between top universities, leading companies, and talented students worldwide.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/register"
-                className="bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition duration-200"
+      <section className="pt-32 pb-20 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Content */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="inline-block mb-4"
               >
-                Get Started
-              </Link>
-              <a
-                href="#universities"
-                className="border border-indigo-600 text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-50 transition duration-200"
+                <span className="px-4 py-2 bg-[var(--brand-secondary)] text-[var(--brand-primary)] rounded-full text-sm font-semibold">
+                  {brandMessaging.tagline}
+                </span>
+              </motion.div>
+
+              <motion.h1
+                className="text-6xl lg:text-7xl font-bold mb-6 leading-tight text-[var(--brand-text-primary)]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
               >
-                Explore Partners
-              </a>
-            </div>
+                Connect Your
+                <span className="block bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-lighter)] text-transparent bg-clip-text animate-gradient">
+                  Career Journey
+                </span>
+              </motion.h1>
+
+              <motion.p
+                className="text-xl text-[var(--brand-text-secondary)] mb-8 leading-relaxed"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                {brandMessaging.description}
+              </motion.p>
+
+              <motion.div
+                className="flex flex-wrap gap-4 mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => router.push('/register')}
+                  className="px-8 py-4 bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-primary-light)] text-white rounded-xl font-semibold text-lg shadow-2xl hover:shadow-xl transition-all flex items-center space-x-2 group"
+                >
+                  <span>Start Your Journey</span>
+                  <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => router.push('/login')}
+                  className="px-8 py-4 bg-white text-[var(--brand-primary)] border-2 border-[var(--brand-primary)] rounded-xl font-semibold text-lg hover:bg-[var(--brand-secondary)] transition-all shadow-lg"
+                >
+                  Sign In
+                </motion.button>
+              </motion.div>
+
+              {/* Benefits */}
+              <motion.div
+                className="grid grid-cols-2 gap-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+              >
+                {benefits.map((benefit, index) => (
+                  <motion.div
+                    key={index}
+                    className="flex items-center space-x-2"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{benefit.text}</span>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
+
+            {/* Right Content - Animated Cards */}
+            <motion.div
+              className="relative"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <div className="grid grid-cols-2 gap-6">
+                {features.map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + index * 0.1 }}
+                    whileHover={{ scale: 1.05, rotate: index % 2 === 0 ? 2 : -2 }}
+                    className={`p-6 rounded-2xl bg-gradient-to-br ${feature.color} text-white shadow-2xl hover-lift cursor-pointer`}
+                  >
+                    <feature.icon className="w-12 h-12 mb-4" />
+                    <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+                    <p className="text-sm opacity-90">{feature.description}</p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Floating Elements */}
+              <motion.div
+                className="absolute -top-10 -right-10 w-32 h-32 bg-yellow-400 rounded-full opacity-20 blur-3xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 180, 360]
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+              <motion.div
+                className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-400 rounded-full opacity-20 blur-3xl"
+                animate={{
+                  scale: [1, 1.3, 1],
+                  rotate: [360, 180, 0]
+                }}
+                transition={{
+                  duration: 10,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="bg-indigo-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">50+</div>
-              <div className="text-indigo-200">Partner Universities</div>
+      <motion.section
+        className="py-16 px-6"
+        initial={{ opacity: 0, y: 50 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="glass rounded-3xl p-12 shadow-2xl">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {[
+                { number: '1000+', label: 'Students' },
+                { number: '500+', label: 'Companies' },
+                { number: '50+', label: 'Universities' },
+                { number: '95%', label: 'Success Rate' }
+              ].map((stat, index) => (
+                <motion.div
+                  key={index}
+                  className="text-center"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <div className="text-4xl md:text-5xl font-bold gradient-text-blue mb-2">
+                    {stat.number}
+                  </div>
+                  <div className="text-gray-600 font-medium">{stat.label}</div>
+                </motion.div>
+              ))}
             </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">500+</div>
-              <div className="text-indigo-200">Companies</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">10,000+</div>
-              <div className="text-indigo-200">Job Opportunities</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold mb-2">100,000+</div>
-              <div className="text-indigo-200">Students Hired</div>
-            </div>
           </div>
         </div>
-      </section>
-
-      {/* Universities Section */}
-      <section id="universities" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Partner Universities
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Connect with top educational institutions from around the world
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredUniversities.map((university) => (
-              <div
-                key={university.id}
-                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 p-6 border border-gray-100"
-              >
-                <div className="w-16 h-16 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
-                  <div className="text-2xl font-bold text-indigo-600">
-                    {university.name.split(' ').map(word => word[0]).join('')}
-                  </div>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {university.name}
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm">
-                  {university.description}
-                </p>
-                <div className="space-y-2 text-sm text-gray-500">
-                  <div className="flex justify-between">
-                    <span>Location:</span>
-                    <span className="font-medium">{university.location}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Students:</span>
-                    <span className="font-medium">{university.students}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Programs:</span>
-                    <span className="font-medium">{university.programs}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link
-              href="/register"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-200"
-            >
-              View All 50+ Universities
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Companies Section */}
-      <section id="companies" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Partner Companies
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Join leading organizations that trust our talent
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredCompanies.map((company) => (
-              <div
-                key={company.id}
-                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 p-6 border border-gray-100"
-              >
-                <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {company.name.split(' ').map(word => word[0]).join('')}
-                  </div>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {company.name}
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm">
-                  {company.description}
-                </p>
-                <div className="space-y-2 text-sm text-gray-500">
-                  <div className="flex justify-between">
-                    <span>Industry:</span>
-                    <span className="font-medium">{company.industry}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Employees:</span>
-                    <span className="font-medium">{company.employees}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Location:</span>
-                    <span className="font-medium">{company.location}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link
-              href="/register"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-200"
-            >
-              Explore 500+ Companies
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Jobs Section */}
-      <section id="jobs" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Featured Job Opportunities
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover your next career move with our curated job listings
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {featuredJobs.map((job) => (
-              <div
-                key={job.id}
-                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition duration-300 p-6 border border-gray-100"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                      {job.title}
-                    </h3>
-                    <p className="text-lg text-indigo-600 font-medium">
-                      {job.company}
-                    </p>
-                  </div>
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                    {job.type}
-                  </span>
-                </div>
-
-                <p className="text-gray-600 mb-4">
-                  {job.description}
-                </p>
-
-                <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {job.location}
-                  </div>
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                    </svg>
-                    {job.salary}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Requirements:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {job.requirements.map((req, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800"
-                      >
-                        {req}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">
-                    Posted {job.posted}
-                  </span>
-                  <Link
-                    href="/register"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition duration-200"
-                  >
-                    Apply Now
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link
-              href="/register"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition duration-200"
-            >
-              Browse All 10,000+ Jobs
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-indigo-700 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to Start Your Journey?
-          </h2>
-          <p className="text-xl text-indigo-200 mb-8 max-w-2xl mx-auto">
-            Join thousands of students and professionals who have found their dream opportunities through our platform.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/register"
-              className="bg-white text-indigo-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-50 transition duration-200"
-            >
-              Create Account
-            </Link>
-            <Link
-              href="/login"
-              className="border border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-600 transition duration-200"
-            >
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </section>
+      </motion.section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">CareerConnect</h3>
-              <p className="text-gray-400">
-                Bridging the gap between education and employment.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Students</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Find Jobs</a></li>
-                <li><a href="#" className="hover:text-white">University Partners</a></li>
-                <li><a href="#" className="hover:text-white">Career Resources</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Companies</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Post Jobs</a></li>
-                <li><a href="#" className="hover:text-white">Find Talent</a></li>
-                <li><a href="#" className="hover:text-white">Partnership</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Contact</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>contact@careerconnect.com</li>
-                <li>+1 (555) 123-4567</li>
-                <li>San Francisco, CA</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 CareerConnect. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <Footer />
+    </main>
   );
 }

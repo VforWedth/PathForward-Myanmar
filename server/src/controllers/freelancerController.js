@@ -8,7 +8,9 @@ const { Op } = require('sequelize');
  */
 exports.getPublicJobs = async (req, res) => {
   try {
-    const { search, jobType, workMode, experienceLevel, location } = req.query;
+    const { search, jobType, workMode, experienceLevel, location, page = 1, limit = 20 } = req.query;
+
+    const offset = (page - 1) * limit;
 
     // Build filter criteria
     const where = {
@@ -53,7 +55,7 @@ exports.getPublicJobs = async (req, res) => {
       where.location = { [Op.iLike]: `%${location}%` };
     }
 
-    const jobs = await Job.findAll({
+    const { count, rows: jobs } = await Job.findAndCountAll({
       where,
       include: [
         {
@@ -61,12 +63,21 @@ exports.getPublicJobs = async (req, res) => {
           attributes: ['id', 'companyName', 'industry', 'location', 'logo']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      distinct: true
     });
 
     res.json({
       success: true,
-      data: jobs
+      data: jobs,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
     });
   } catch (error) {
     console.error('Get public jobs error:', error);
@@ -237,7 +248,9 @@ exports.applyForJob = async (req, res) => {
  */
 exports.getMyApplications = async (req, res) => {
   try {
-    const { status } = req.query;
+    const { status, page = 1, limit = 10 } = req.query;
+
+    const offset = (page - 1) * limit;
 
     // Get freelancer profile
     const freelancer = await Freelancer.findOne({
@@ -261,7 +274,7 @@ exports.getMyApplications = async (req, res) => {
       where.status = status;
     }
 
-    const applications = await Application.findAll({
+    const { count, rows: applications } = await Application.findAndCountAll({
       where,
       include: [
         {
@@ -275,12 +288,21 @@ exports.getMyApplications = async (req, res) => {
           ]
         }
       ],
-      order: [['createdAt', 'DESC']]
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['createdAt', 'DESC']],
+      distinct: true
     });
 
     res.json({
       success: true,
-      data: applications
+      data: applications,
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(count / limit)
+      }
     });
   } catch (error) {
     console.error('Get my applications error:', error);
@@ -399,6 +421,127 @@ exports.withdrawApplication = async (req, res) => {
     });
   } catch (error) {
     console.error('Withdraw application error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get personalized job recommendations for freelancer
+ * @route   GET /api/freelancer/recommendations
+ * @access  Private (Freelancer)
+ */
+exports.getRecommendedJobs = async (req, res) => {
+  try {
+    const { limit = 5 } = req.query;
+
+    // Get freelancer profile
+    const freelancer = await Freelancer.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!freelancer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Freelancer profile not found'
+      });
+    }
+
+    // Get freelancer's skills and preferences
+    const freelancerSkills = freelancer.skills || [];
+    const freelancerExperience = freelancer.experienceLevel || 'entry';
+
+    // Get jobs the freelancer has already applied to
+    const appliedJobIds = await Application.findAll({
+      where: {
+        applicantId: freelancer.id,
+        applicantType: 'freelancer'
+      },
+      attributes: ['jobId']
+    }).then(apps => apps.map(app => app.jobId));
+
+    // Build recommendation query
+    const where = {
+      isPublic: true,
+      status: 'active',
+      id: { [Op.notIn]: appliedJobIds.length > 0 ? appliedJobIds : [0] }
+    };
+
+    // Add deadline filter - only show jobs that haven't expired
+    where.deadline = {
+      [Op.or]: [
+        { [Op.gte]: new Date() },
+        { [Op.is]: null }
+      ]
+    };
+
+    // Find jobs that match freelancer's profile
+    const allJobs = await Job.findAll({
+      where,
+      include: [
+        {
+          model: Company,
+          attributes: ['id', 'companyName', 'industry', 'location', 'logo']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 50 // Get more jobs to score
+    });
+
+    // Score each job based on relevance
+    const scoredJobs = allJobs.map(job => {
+      let score = 0;
+      const jobData = job.toJSON();
+
+      // Skill matching (highest weight)
+      if (freelancerSkills.length > 0 && jobData.skillsRequired) {
+        const matchingSkills = freelancerSkills.filter(skill =>
+          jobData.skillsRequired.some(reqSkill =>
+            reqSkill.toLowerCase().includes(skill.toLowerCase()) ||
+            skill.toLowerCase().includes(reqSkill.toLowerCase())
+          )
+        );
+        score += matchingSkills.length * 10;
+      }
+
+      // Experience level match
+      if (jobData.experienceLevel === freelancerExperience) {
+        score += 5;
+      }
+
+      // Job type preferences (freelance/contract jobs get higher score)
+      if (jobData.jobType === 'freelance' || jobData.jobType === 'contract') {
+        score += 3;
+      }
+
+      // Remote work preference
+      if (jobData.workMode === 'remote') {
+        score += 2;
+      }
+
+      // Recency bonus (newer jobs are slightly preferred)
+      const daysOld = Math.floor((new Date() - new Date(jobData.createdAt)) / (1000 * 60 * 60 * 24));
+      if (daysOld < 7) {
+        score += 2;
+      }
+
+      return { ...jobData, recommendationScore: score };
+    });
+
+    // Sort by score and get top recommendations
+    const recommendations = scoredJobs
+      .sort((a, b) => b.recommendationScore - a.recommendationScore)
+      .slice(0, parseInt(limit));
+
+    res.json({
+      success: true,
+      data: recommendations
+    });
+  } catch (error) {
+    console.error('Get recommended jobs error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

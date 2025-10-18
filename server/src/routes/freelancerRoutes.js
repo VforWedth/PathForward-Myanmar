@@ -13,6 +13,7 @@ router.use(authorize('freelancer'));
 // Job browsing routes
 router.get('/jobs', freelancerController.getPublicJobs);
 router.get('/jobs/:id', freelancerController.getJobById);
+router.get('/recommendations', freelancerController.getRecommendedJobs);
 
 // Application routes
 router.post('/jobs/:id/apply', freelancerController.applyForJob);

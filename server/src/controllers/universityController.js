@@ -1,13 +1,14 @@
-const { 
-  University, 
-  Student, 
-  Company, 
+const {
+  University,
+  Student,
+  Company,
   UniversityCompanyConnection,
   User,
   Application,
   Job
 } = require('../models');
 const { Op } = require('sequelize');
+//const { sequelize } = require('../config/database');
 
 // @desc    Get university profile
 // @route   GET /api/university/profile
