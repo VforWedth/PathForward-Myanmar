@@ -31,6 +31,10 @@ export default function UniversityDashboard() {
     pendingApprovals: 0,
   });
 
+  const [universityProfile, setUniversityProfile] = useState<{
+    universityName: string;
+  } | null>(null);
+
   const [recentActivities, setRecentActivities] = useState([
     { id: 1, action: "Loading...", time: "", type: "loading" },
   ]);
@@ -43,6 +47,25 @@ export default function UniversityDashboard() {
 
   const fetchDashboardData = async () => {
     try {
+      // Fetch university profile
+      const profileResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/profile`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        if (profileData.success) {
+          setUniversityProfile({
+            universityName: profileData.data.universityName
+          });
+        }
+      }
+
       // Fetch employment stats
       const statsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/employment-stats`,
@@ -150,7 +173,9 @@ export default function UniversityDashboard() {
             <section className="px-4 py-6 sm:px-0">
               <div className="bg-white overflow-hidden shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome!</h2>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                    {universityProfile?.universityName ? `Hi, ${universityProfile.universityName} 👋` : 'Welcome 👋'}
+                  </h2>
                   <p className="text-gray-600">
                     Manage your students, internships, and company partnerships from one centralized dashboard.
                   </p>

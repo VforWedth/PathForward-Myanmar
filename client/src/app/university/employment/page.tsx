@@ -73,6 +73,90 @@ export default function EmploymentTracking() {
       return;
     }
 
+    // const fetchEmploymentData = async () => {
+    //   try {
+    //     const token = localStorage.getItem('token');
+    //     const response = await fetch(
+    //       `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/university/employment-stats`,
+    //       {
+    //         headers: {
+    //           'Authorization': `Bearer ${token}`
+    //         }
+    //       }
+    //     );
+
+    //     if (response.ok) {
+    //       const data = await response.json();
+    //       if (data.success && data.stats) {
+    //         // Map backend data to frontend format
+    //         const backendStats = data.stats.students;
+    //         const employmentRate = backendStats.employmentRate || 0;
+
+    //         setStats({
+    //           totalStudents: backendStats.total || 0,
+    //           employed: backendStats.onJob || 0,
+    //           seeking: backendStats.available || 0,
+    //           internship: backendStats.onJob || 0, // Backend uses onJob for both employed and internship
+    //           unemployed: (backendStats.total - backendStats.onJob - backendStats.internshipCompleted) || 0,
+    //           employmentRate: Math.round(employmentRate)
+    //         });
+
+    //         // Map top companies if available
+    //         if (data.stats.topCompanies && data.stats.topCompanies.length > 0) {
+    //           setTopCompanies(data.stats.topCompanies.map((company: any) => ({
+    //             name: company.companyName || company.name,
+    //             hiredCount: company.studentCount || company.hiredCount || 0,
+    //             industry: company.industry || 'Technology'
+    //           })));
+    //         } else {
+    //           setTopCompanies([]);
+    //         }
+
+    //         // Generate trends based on current data (since backend doesn't provide historical trends yet)
+    //         // TODO: Backend should store historical data for accurate trends
+    //         const currentEmployedRate = employmentRate;
+    //         const currentSeekingRate = 100 - employmentRate;
+
+    //         // Generate approximate 7-month trend
+    //         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+    //         const currentMonth = new Date().getMonth();
+    //         const generatedTrends: EmploymentTrend[] = [];
+
+    //         for (let i = 6; i >= 0; i--) {
+    //           const monthIndex = (currentMonth - i + 12) % 12;
+    //           const monthName = monthNames[monthIndex];
+    //           const year = new Date().getFullYear();
+
+    //           // Simulate gradual improvement in employment rate
+    //           const employedRate = Math.max(30, currentEmployedRate - (i * 3));
+    //           const seekingRate = 100 - employedRate;
+
+    //           generatedTrends.push({
+    //             month: `${monthName} ${year}`,
+    //             employed: Math.round(employedRate),
+    //             seeking: Math.round(seekingRate)
+    //           });
+    //         }
+
+    //         setTrends(generatedTrends);
+
+    //         toast.success('Employment data loaded successfully');
+    //       } else {
+    //         toast.error('Failed to load employment statistics');
+    //       }
+    //     } else {
+    //       console.error('Failed to fetch employment data:', response.status);
+    //       toast.error('Failed to load employment data');
+    //     }
+    //   } catch (error) {
+    //     console.error('Error fetching employment data:', error);
+    //     toast.error('Failed to load employment data');
+    //   } finally {
+    //     setIsLoading(false);
+    //   }
+    // };
+
+    // fetchEmploymentData();
     // Mock data
     const mockStats: EmploymentStats = {
       totalStudents: 1250,

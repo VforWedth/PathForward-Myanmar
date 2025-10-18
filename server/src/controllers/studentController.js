@@ -1730,9 +1730,6 @@ const getMyApplications = async (req, res) => {
   try {
     const student = await Student.findOne({ where: { userId: req.user.id } });
 
-    console.log('getMyApplications called for user:', req.user.id);
-    console.log('Student found:', student ? student.id : 'NOT FOUND');
-
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -1752,8 +1749,6 @@ const getMyApplications = async (req, res) => {
       whereClause.status = status;
     }
 
-    console.log('Querying applications with whereClause:', whereClause);
-
     const applications = await Application.findAll({
       where: whereClause,
       include: [
@@ -1771,15 +1766,67 @@ const getMyApplications = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
-    console.log('Found applications:', applications.length);
-    console.log('Applications data:', JSON.stringify(applications, null, 2));
-
     res.json({
       success: true,
       applications
     });
   } catch (error) {
     console.error('Get my applications error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Withdraw application
+// @route   DELETE /api/student/applications/:id
+// @access  Private (Student)
+const withdrawApplication = async (req, res) => {
+  try {
+    const student = await Student.findOne({ where: { userId: req.user.id } });
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student profile not found'
+      });
+    }
+
+    const { Application } = require('../models');
+
+    const application = await Application.findOne({
+      where: {
+        id: req.params.id,
+        applicantId: student.id,
+        applicantType: 'student'
+      }
+    });
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found'
+      });
+    }
+
+    // Only allow withdrawal of pending applications
+    if (application.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Can only withdraw pending applications'
+      });
+    }
+
+    await application.destroy();
+
+    res.json({
+      success: true,
+      message: 'Application withdrawn successfully'
+    });
+  } catch (error) {
+    console.error('Withdraw application error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -1818,5 +1865,6 @@ module.exports = {
   getAvailableJobs,
   getJobDetails,
   applyForJob,
-  getMyApplications
+  getMyApplications,
+  withdrawApplication
 };

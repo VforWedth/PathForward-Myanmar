@@ -32,7 +32,8 @@ const {
   getAvailableJobs,
   getJobDetails,
   applyForJob,
-  getMyApplications
+  getMyApplications,
+  withdrawApplication
 } = require('../controllers/studentController');
 
 const router = express.Router();
@@ -95,5 +96,6 @@ router.post('/jobs/:id/apply', applyForJob);
 
 // Application routes
 router.get('/applications', getMyApplications);
+router.delete('/applications/:id', withdrawApplication);
 
 module.exports = router;

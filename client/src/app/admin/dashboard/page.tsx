@@ -1032,7 +1032,9 @@ export default function AdminDashboard() {
 
         <div className="max-w-7xl mx-auto p-8">
           <div className="mb-6">
-            <h2 className="text-3xl font-bold mb-2">Welcome, Admin!</h2>
+            <h2 className="text-3xl font-bold mb-2">
+              {user?.name ? `Hi, ${user.name} 👋` : 'Hi, Admin 👋'}
+            </h2>
             <p className="text-gray-600">
               Manage your platform efficiently with the tools below.
             </p>

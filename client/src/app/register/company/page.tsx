@@ -49,10 +49,26 @@ export default function CompanyRegistration() {
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${API_URL}/company/register`, {
+
+      const registrationData = {
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        role: 'company',
+        companyName: formData.companyName,
+        industry: formData.industry,
+        size: formData.size,
+        website: formData.website,
+        description: formData.description,
+        address: formData.address,
+      };
+
+      console.log('Sending company registration:', registrationData);
+
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(registrationData),
       });
 
       const data = await response.json();

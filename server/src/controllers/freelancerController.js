@@ -1,5 +1,187 @@
-const { Job, Company, Application, Freelancer, User } = require('../models');
+const { Job, Company, Application, Freelancer, User, Project } = require('../models');
 const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
+
+/**
+ * @desc    Get freelancer dashboard statistics
+ * @route   GET /api/freelancer/dashboard/stats
+ * @access  Private (Freelancer)
+ */
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Get freelancer profile
+    const freelancer = await Freelancer.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!freelancer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Freelancer profile not found'
+      });
+    }
+
+    // Get projects count
+    const projectsCount = await Project.count({
+      where: { freelancerId: freelancer.id }
+    });
+
+    const activeProjectsCount = await Project.count({
+      where: {
+        freelancerId: freelancer.id,
+        status: { [Op.in]: ['active', 'in-progress'] }
+      }
+    });
+
+    // Get applications statistics
+    const applicationsCount = await Application.count({
+      where: {
+        applicantId: freelancer.id,
+        applicantType: 'freelancer'
+      }
+    });
+
+    const pendingApplicationsCount = await Application.count({
+      where: {
+        applicantId: freelancer.id,
+        applicantType: 'freelancer',
+        status: 'pending'
+      }
+    });
+
+    const acceptedApplicationsCount = await Application.count({
+      where: {
+        applicantId: freelancer.id,
+        applicantType: 'freelancer',
+        status: 'accepted'
+      }
+    });
+
+    // Calculate profile completion percentage
+    const profileFields = [
+      freelancer.firstName,
+      freelancer.lastName,
+      freelancer.bio,
+      freelancer.skills && freelancer.skills.length > 0,
+      freelancer.portfolio,
+      freelancer.hourlyRate,
+      freelancer.availability
+    ];
+    const completedFields = profileFields.filter(field => field).length;
+    const profileCompletion = Math.round((completedFields / profileFields.length) * 100);
+
+    res.json({
+      success: true,
+      data: {
+        activeProjects: activeProjectsCount,
+        totalProjects: projectsCount,
+        totalApplications: applicationsCount,
+        pendingApplications: pendingApplicationsCount,
+        acceptedApplications: acceptedApplicationsCount,
+        profileCompletion,
+        availability: freelancer.availability || 'available'
+      }
+    });
+  } catch (error) {
+    console.error('Get dashboard stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    Get freelancer recent activities
+ * @route   GET /api/freelancer/dashboard/recent-activities
+ * @access  Private (Freelancer)
+ */
+exports.getRecentActivities = async (req, res) => {
+  try {
+    const freelancer = await Freelancer.findOne({
+      where: { userId: req.user.id }
+    });
+
+    if (!freelancer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Freelancer profile not found'
+      });
+    }
+
+    // Get recent applications
+    const recentApplications = await Application.findAll({
+      where: {
+        applicantId: freelancer.id,
+        applicantType: 'freelancer'
+      },
+      include: [
+        {
+          model: Job,
+          attributes: ['id', 'title', 'jobType'],
+          include: [
+            {
+              model: Company,
+              attributes: ['companyName']
+            }
+          ]
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
+
+    // Get recent projects
+    const recentProjects = await Project.findAll({
+      where: { freelancerId: freelancer.id },
+      attributes: ['id', 'title', 'status', 'projectType', 'createdAt', 'updatedAt'],
+      order: [['updatedAt', 'DESC']],
+      limit: 5
+    });
+
+    // Format activities
+    const activities = [];
+
+    recentApplications.forEach(app => {
+      activities.push({
+        id: app.id,
+        type: 'application',
+        title: `Applied to ${app.Job?.title || 'a job'}`,
+        description: `at ${app.Job?.Company?.companyName || 'a company'}`,
+        status: app.status,
+        date: app.createdAt
+      });
+    });
+
+    recentProjects.forEach(project => {
+      activities.push({
+        id: project.id,
+        type: 'project',
+        title: project.title,
+        description: `${project.status} - ${project.projectType}`,
+        status: project.status,
+        date: project.updatedAt
+      });
+    });
+
+    // Sort by date and limit to 10 most recent
+    activities.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const recentActivities = activities.slice(0, 10);
+
+    res.json({
+      success: true,
+      data: recentActivities
+    });
+  } catch (error) {
+    console.error('Get recent activities error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
 
 /**
  * @desc    Get all public job postings for freelancers

@@ -8,6 +8,10 @@ const { Op } = require('sequelize');
  */
 exports.createProject = async (req, res) => {
   try {
+    console.log('=== CREATE PROJECT REQUEST ===');
+    console.log('User ID:', req.user.id);
+    console.log('Request Body:', req.body);
+
     const {
       title,
       description,
@@ -20,6 +24,7 @@ exports.createProject = async (req, res) => {
 
     // Validate required fields
     if (!title || !description) {
+      console.log('Validation failed: Missing title or description');
       return res.status(400).json({
         success: false,
         message: 'Please provide title and description'
@@ -27,18 +32,23 @@ exports.createProject = async (req, res) => {
     }
 
     // Get freelancer profile
+    console.log('Fetching freelancer profile...');
     const freelancer = await Freelancer.findOne({
       where: { userId: req.user.id }
     });
 
     if (!freelancer) {
+      console.log('Freelancer not found for user:', req.user.id);
       return res.status(404).json({
         success: false,
         message: 'Freelancer profile not found'
       });
     }
 
+    console.log('Freelancer found:', freelancer.id);
+
     // Create project
+    console.log('Creating project...');
     const project = await Project.create({
       freelancerId: freelancer.id,
       title,
@@ -51,6 +61,9 @@ exports.createProject = async (req, res) => {
       status: 'active'
     });
 
+    console.log('Project created successfully:', project.id);
+    console.log('=== END CREATE PROJECT ===');
+
     res.status(201).json({
       success: true,
       message: 'Project created successfully',
@@ -58,6 +71,7 @@ exports.createProject = async (req, res) => {
     });
   } catch (error) {
     console.error('Create project error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Server error',

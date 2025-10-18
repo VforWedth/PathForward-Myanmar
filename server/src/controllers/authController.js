@@ -62,8 +62,9 @@ const register = async (req, res) => {
           major: profileData.major,
           year: profileData.year,
           location: profileData.location,
-          universityId: profileData.universityId,
+          universityId: null, // Will be assigned by university admin later
           jobPreference: profileData.jobPreference || 'onsite',
+          portfolioUrl: profileData.portfolioUrl,
           bio: profileData.bio,
           skills: profileData.skills || [],
           status: 'available',
@@ -103,7 +104,10 @@ const register = async (req, res) => {
           lastName: profileData.lastName,
           skills: profileData.skills || [],
           location: profileData.location,
+          portfolioUrl: profileData.portfolioUrl,
           bio: profileData.bio,
+          hourlyRate: profileData.hourlyRate,
+          availability: profileData.availability || 'available',
           verificationStatus: 'pending'
         });
         break;

@@ -8,7 +8,7 @@ const { Op } = require('sequelize');
  */
 exports.getApplicants = async (req, res) => {
   try {
-    const { status, position, search, jobId, city, major, university } = req.query;
+    const { status, position, search, jobId, city, major, university, limit, sort } = req.query;
 
     const company = await Company.findOne({
       where: { userId: req.user.id }
@@ -165,6 +165,11 @@ exports.getApplicants = async (req, res) => {
       filteredApplications = filteredApplications.filter(app =>
         app.applicant?.university?.toLowerCase().includes(university.toLowerCase())
       );
+    }
+
+    // Apply limit if provided
+    if (limit && !isNaN(parseInt(limit))) {
+      filteredApplications = filteredApplications.slice(0, parseInt(limit));
     }
 
     res.json({

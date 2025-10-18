@@ -37,6 +37,8 @@ export default function JobApplicationsPage() {
   const { user, logout } = useAuthStore();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [filter, setFilter] = useState<'all' | JobApplication['status']>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isWithdrawing, setIsWithdrawing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -49,10 +51,9 @@ export default function JobApplicationsPage() {
 
   const fetchApplications = async () => {
     try {
-      const API_BASE_URL = 'http://localhost:5000';
+      setIsLoading(true);
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
       const token = localStorage.getItem('token');
-
-      console.log('Fetching applications from:', `${API_BASE_URL}/api/student/applications`);
 
       const response = await fetch(`${API_BASE_URL}/api/student/applications`, {
         headers: {
@@ -62,13 +63,10 @@ export default function JobApplicationsPage() {
       });
 
       const data = await response.json();
-      console.log('Applications API Response:', data);
 
       if (data.success && data.applications) {
-        console.log('Raw applications count:', data.applications.length);
         // Map API response to component format
         const mappedApplications: JobApplication[] = data.applications.map((app: any) => {
-          console.log('Mapping application:', app);
           return {
             id: app.id,
             jobTitle: app.Job?.title || 'Unknown Job',
@@ -82,13 +80,46 @@ export default function JobApplicationsPage() {
           };
         });
 
-        console.log('Mapped applications:', mappedApplications);
         setApplications(mappedApplications);
-      } else {
-        console.log('No applications found or API error:', data);
       }
     } catch (error) {
       console.error('Error fetching applications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWithdrawApplication = async (applicationId: string) => {
+    if (!confirm('Are you sure you want to withdraw this application?')) {
+      return;
+    }
+
+    try {
+      setIsWithdrawing(applicationId);
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${API_BASE_URL}/api/student/applications/${applicationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the application from the list
+        setApplications(prev => prev.filter(app => app.id !== applicationId));
+        alert('Application withdrawn successfully');
+      } else {
+        alert(data.message || 'Failed to withdraw application');
+      }
+    } catch (error) {
+      console.error('Error withdrawing application:', error);
+      alert('Failed to withdraw application');
+    } finally {
+      setIsWithdrawing(null);
     }
   };
 
@@ -140,6 +171,22 @@ export default function JobApplicationsPage() {
       </CardContent>
     </Card>
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F5EFEB]">
+        <StudentTopNav userName={user?.name || user?.email?.split('@')[0]} alertsCount={3} onLogout={logout} />
+        <main className="mx-auto max-w-6xl p-6 md:p-8">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="mb-4 text-4xl">⏳</div>
+              <p className="text-lg text-[#567C8D]">Loading your applications...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F5EFEB]">
@@ -215,8 +262,10 @@ export default function JobApplicationsPage() {
                       <Button
                         variant="outline"
                         className="border-[#567C8D] text-[#567C8D] hover:bg-[#567C8D] hover:text-white"
+                        onClick={() => handleWithdrawApplication(a.id)}
+                        disabled={a.status !== 'applied' || isWithdrawing === a.id}
                       >
-                        Withdraw
+                        {isWithdrawing === a.id ? 'Withdrawing...' : 'Withdraw'}
                       </Button>
                     </div>
                   </div>

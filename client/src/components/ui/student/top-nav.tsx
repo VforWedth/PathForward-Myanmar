@@ -29,6 +29,8 @@ import {
 
 type TopNavProps = {
   userName?: string;
+  firstName?: string;
+  lastName?: string;
   alertsCount?: number;
   onLogout: () => void;
 };
@@ -41,9 +43,14 @@ function getInitials(name?: string) {
   return (first + last).toUpperCase() || 'U';
 }
 
-export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavProps) {
+export function StudentTopNav({ userName, firstName, lastName, alertsCount = 0, onLogout }: TopNavProps) {
   const pathname = usePathname();
   const onDashboard = pathname?.startsWith('/student/dashboard');
+
+  // Construct full name from firstName and lastName if available
+  const displayName = firstName && lastName
+    ? `${firstName} ${lastName}`
+    : userName || 'Student';
 
   const quickLinks = [
     {
@@ -154,16 +161,16 @@ export function StudentTopNav({ userName, alertsCount = 0, onLogout }: TopNavPro
                   aria-label="Account menu"
                 >
                   <span className="grid h-7 w-7 place-items-center rounded-full bg-white/20 text-sm font-bold">
-                    {getInitials(userName)}
+                    {getInitials(displayName)}
                   </span>
-                  <span className="hidden sm:inline text-sm">{userName ?? 'Account'}</span>
+                  <span className="hidden sm:inline text-sm">{displayName}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="flex items-center gap-2">
                   <User2 className="h-4 w-4" />
-                  {userName ?? 'Student'}
+                  {displayName}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>

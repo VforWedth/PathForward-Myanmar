@@ -11,7 +11,6 @@ import {
   MapPin,
   Phone,
   GraduationCap,
-  Building2,
   FileText,
   Globe,
   Loader2,
@@ -25,7 +24,6 @@ interface RegistrationForm {
   password: string;
   confirmPassword: string;
   phone: string;
-  universityId: string;
   major: string;
   year: number | '';
   location: string;
@@ -44,7 +42,6 @@ export default function StudentRegistration() {
     password: '',
     confirmPassword: '',
     phone: '',
-    universityId: '',
     major: '',
     year: '',
     location: '',
@@ -130,7 +127,6 @@ export default function StudentRegistration() {
         role: 'student',
         firstName: formData.firstName,
         lastName: formData.lastName,
-        universityId: formData.universityId || null,
         major: formData.major,
         year: formData.year || null,
         location: formData.location,
@@ -348,36 +344,19 @@ export default function StudentRegistration() {
             </div>
           </div>
 
-          {/* University & Major */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-700 mb-2">University ID</label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="universityId"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  value={formData.universityId}
-                  onChange={handleChange}
-                  placeholder="Leave empty if not applicable"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 mb-2">Major</label>
-              <div className="relative">
-                <GraduationCap className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="major"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                  value={formData.major}
-                  onChange={handleChange}
-                  placeholder="Computer Science"
-                />
-              </div>
+          {/* Major */}
+          <div>
+            <label className="block text-gray-700 mb-2">Major</label>
+            <div className="relative">
+              <GraduationCap className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                name="major"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                value={formData.major}
+                onChange={handleChange}
+                placeholder="Computer Science"
+              />
             </div>
           </div>
 

@@ -110,20 +110,22 @@ export default function CompanyDashboard() {
 
       if (applicantsResponse.ok) {
         const applicantsData = await applicantsResponse.json();
+        console.log('Applicants API Response:', applicantsData); // Debug log
         if (applicantsData.success && applicantsData.data) {
           // Transform backend data to match frontend interface
           const transformedApplicants = applicantsData.data.map((app: any) => ({
             id: app.id,
-            name: app.Student ? `${app.Student.firstName} ${app.Student.lastName}` : 'Unknown',
-            email: app.Student?.User?.email || 'N/A',
-            position: app.Job?.title || 'N/A',
+            name: app.applicant?.name || 'Unknown',
+            email: app.applicant?.email || 'N/A',
+            position: app.position || app.Job?.title || 'N/A',
             status: app.status,
             appliedDate: app.createdAt,
-            skills: app.Student?.skills || [],
-            experience: app.Student?.year || 'N/A',
-            education: app.Student?.major || 'N/A',
-            location: app.Student?.location || 'N/A',
+            skills: app.applicant?.skills || [],
+            experience: app.applicant?.experience || 'N/A',
+            education: app.applicant?.education || 'N/A',
+            location: app.applicant?.location || 'N/A',
           }));
+          console.log('Transformed Applicants:', transformedApplicants); // Debug log
           setTopApplicants(transformedApplicants);
         }
       }
@@ -222,7 +224,7 @@ export default function CompanyDashboard() {
                     <Sparkles className="h-4 w-4" /> Welcome back
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-[#2F4156] md:text-3xl">
-                    {user?.name ? `Hi, ${user.name} 👋` : 'Welcome 👋'}
+                    {companyProfile?.companyName ? `Hi, ${companyProfile.companyName} 👋` : user?.name ? `Hi, ${user.name} 👋` : 'Welcome 👋'}
                   </h2>
                   <p className="mt-2 max-w-prose text-[#567C8D]">
                     Manage postings, track applicants, and share feedback—all in one place.

@@ -10,6 +10,10 @@ const companyProjectController = require('../controllers/companyProjectControlle
 router.use(protect);
 router.use(authorize('freelancer'));
 
+// Dashboard routes
+router.get('/dashboard/stats', freelancerController.getDashboardStats);
+router.get('/dashboard/recent-activities', freelancerController.getRecentActivities);
+
 // Job browsing routes
 router.get('/jobs', freelancerController.getPublicJobs);
 router.get('/jobs/:id', freelancerController.getJobById);
