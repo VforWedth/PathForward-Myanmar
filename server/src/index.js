@@ -66,25 +66,27 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Start server
-const startServer = async () => {
+// Initialize database connection
+const initializeDatabase = async () => {
   try {
-    // Test database connection
     await testConnection();
-
-    // Sync database models
     await sequelize.sync({ alter: true });
     console.log('✅ Database models synchronized');
-
-    // Start listening
-    app.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
-      console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
+    console.error('❌ Database initialization error:', error);
   }
 };
 
-startServer();
+// Initialize database for serverless
+initializeDatabase();
+
+// Start server (only for local development)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
+
+// Export for Vercel serverless
+module.exports = app;
