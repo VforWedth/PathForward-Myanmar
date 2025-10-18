@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { Users, Building2, FileCheck2, ClipboardList, Command, Link as LinkIcon, LayoutDashboard } from "lucide-react";
 import { useEffect, useState } from "react";
+import { FAQSidebarLink } from "@/components/faq/FAQSidebarLink";
 
 import {
   Sidebar,
@@ -121,6 +122,11 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             );
           })}
         </nav>
+
+        {/* FAQ Link at bottom of sidebar */}
+        <div className="mt-auto px-2">
+          <FAQSidebarLink />
+        </div>
       </SidebarContent>
 
       <SidebarFooter>

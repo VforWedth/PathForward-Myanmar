@@ -37,6 +37,12 @@ export default function JobApplicationsPage() {
   const { user, logout } = useAuthStore();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [filter, setFilter] = useState<'all' | JobApplication['status']>('all');
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 0
+  });
 
   useEffect(() => {
     if (!user || user.role !== 'student') {
@@ -45,16 +51,25 @@ export default function JobApplicationsPage() {
     }
 
     fetchApplications();
-  }, [user, router]);
+  }, [user, router, pagination.page, filter]);
 
   const fetchApplications = async () => {
     try {
       const API_BASE_URL = 'http://localhost:5000';
       const token = localStorage.getItem('token');
 
-      console.log('Fetching applications from:', `${API_BASE_URL}/api/student/applications`);
+      const params = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+      });
 
-      const response = await fetch(`${API_BASE_URL}/api/student/applications`, {
+      if (filter !== 'all') {
+        params.append('status', mapStatusToBackend(filter));
+      }
+
+      console.log('Fetching applications from:', `${API_BASE_URL}/api/student/applications?${params}`);
+
+      const response = await fetch(`${API_BASE_URL}/api/student/applications?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -77,13 +92,17 @@ export default function JobApplicationsPage() {
             appliedDate: app.createdAt,
             companyLogo: app.Job?.Company?.logo,
             location: app.Job?.location || 'Not specified',
-            salary: app.Job?.salary ? `$${app.Job.salary}` : undefined,
+            salary: app.Job?.salaryRange || undefined,
             notes: app.coverLetter,
           };
         });
 
         console.log('Mapped applications:', mappedApplications);
         setApplications(mappedApplications);
+
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       } else {
         console.log('No applications found or API error:', data);
       }
@@ -102,6 +121,23 @@ export default function JobApplicationsPage() {
       'accepted': 'accepted',
     };
     return statusMap[backendStatus] || 'applied';
+  };
+
+  // Map frontend status to backend status
+  const mapStatusToBackend = (frontendStatus: JobApplication['status']): string => {
+    const statusMap: Record<JobApplication['status'], string> = {
+      'applied': 'pending',
+      'under-review': 'reviewing',
+      'interview': 'shortlisted',
+      'rejected': 'rejected',
+      'accepted': 'accepted',
+    };
+    return statusMap[frontendStatus] || 'pending';
+  };
+
+  const handleFilterChange = (newFilter: 'all' | JobApplication['status']) => {
+    setFilter(newFilter);
+    setPagination({ ...pagination, page: 1 }); // Reset to page 1 when filter changes
   };
 
   const filtered = useMemo(
@@ -153,7 +189,7 @@ export default function JobApplicationsPage() {
             <CardTitle className="text-[#2F4156]">Filter Applications</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs value={filter} onValueChange={(v: any) => setFilter(v)}>
+            <Tabs value={filter} onValueChange={(v: any) => handleFilterChange(v)}>
               <TabsList className="flex w-full flex-wrap gap-2 bg-[#F5EFEB] p-2">
                 <TabsTrigger value="all">All</TabsTrigger>
                 <TabsTrigger value="applied">Applied</TabsTrigger>
@@ -168,7 +204,7 @@ export default function JobApplicationsPage() {
 
         {/* Applications list */}
         <div className="mt-6 space-y-4">
-          {filtered.map((a) => (
+          {applications.map((a) => (
             <motion.div
               key={a.id}
               initial={{ opacity: 0, y: 8 }}
@@ -226,8 +262,34 @@ export default function JobApplicationsPage() {
           ))}
         </div>
 
+        {/* Pagination */}
+        {applications.length > 0 && pagination.pages > 1 && (
+          <div className="mt-6 flex items-center justify-between">
+            <p className="text-sm text-[#567C8D]">
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} applications
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                disabled={pagination.page === 1}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                disabled={pagination.page >= pagination.pages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
-        {filtered.length === 0 && (
+        {applications.length === 0 && (
           <Card className="mt-6 text-center">
             <CardContent className="py-12">
               <div className="mb-4 text-6xl">📝</div>
@@ -238,7 +300,7 @@ export default function JobApplicationsPage() {
                   : `No applications with status "${pretty(filter)}".`}
               </p>
               <Button asChild>
-                <Link href="/jobs" className="inline-flex items-center">
+                <Link href="/student/jobs" className="inline-flex items-center">
                   Browse Jobs <ExternalLink className="ml-2 h-4 w-4" />
                 </Link>
               </Button>

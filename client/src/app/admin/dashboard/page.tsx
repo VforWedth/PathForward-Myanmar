@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
 import AuthGuard from '@/components/AuthGuard';
+import { FAQSection } from '@/components/faq/FAQSection';
+import { getFAQsByCategory, getGeneralFAQs } from '@/components/faq/FAQData';
 
 // Types
 interface DashboardStats {
@@ -1047,6 +1049,7 @@ export default function AdminDashboard() {
                 { id: 'verification', name: 'Verification System' },
                 { id: 'jobs', name: 'Job Monitoring' },
                 { id: 'activity', name: 'Activity Tracking' },
+                { id: 'faq', name: 'Help & FAQ' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1064,7 +1067,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Tab Content */}
-          {isLoading && activeTab !== 'dashboard' ? (
+          {isLoading && activeTab !== 'dashboard' && activeTab !== 'faq' ? (
             <div className="flex justify-center items-center py-12">
               <div className="text-gray-600">Loading...</div>
             </div>
@@ -1075,6 +1078,15 @@ export default function AdminDashboard() {
               {activeTab === 'verification' && renderVerificationSystem()}
               {activeTab === 'jobs' && renderJobMonitoring()}
               {activeTab === 'activity' && renderActivityTracking()}
+              {activeTab === 'faq' && (
+                <div className="max-w-4xl mx-auto">
+                  <FAQSection
+                    faqs={[...getFAQsByCategory('admin'), ...getGeneralFAQs()]}
+                    title="Admin Help & FAQ"
+                    showViewAllLink={false}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>

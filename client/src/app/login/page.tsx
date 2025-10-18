@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'react-toastify';
+import { Logo } from '@/components/brand/Logo';
+import { brandMessaging } from '@/config/brand';
 
 export default function Login() {
   const router = useRouter();
@@ -102,43 +104,38 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[var(--brand-primary)] via-[var(--brand-primary-light)] to-[var(--brand-primary-lighter)] p-4 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-[var(--brand-primary-lighter)]/30 rounded-full opacity-20 blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-[var(--brand-primary-light)]/30 rounded-full opacity-20 blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/10 rounded-full opacity-10 blur-3xl animate-float"></div>
+      </div>
+
+      <div className="glass backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md relative z-10 border border-white/20 animate-scale-in">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
-            <svg
-              className="w-12 h-12 text-blue-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
+          <div className="flex justify-center mb-4">
+            <Logo size="xl" showText={false} linkTo="/" className="animate-float" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-800">
+          <h2 className="text-4xl font-bold text-white mb-2">
             Welcome Back
           </h2>
-          <p className="text-gray-600 mt-2">
-            Login to PathForward Myanmar
+          <p className="text-white/80 text-lg">
+            Login to {brandMessaging.name}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Field */}
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <label className="block text-white mb-2 font-medium">
               Email Address
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg
-                  className="h-5 w-5 text-gray-400"
+                  className="h-5 w-5 text-white/60"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -154,7 +151,7 @@ export default function Login() {
               <input
                 type="email"
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 text-white placeholder-white/50 backdrop-blur-sm transition-all hover:bg-white/20"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
@@ -165,14 +162,14 @@ export default function Login() {
           </div>
 
           {/* Password Field */}
-          <div>
-            <label className="block text-gray-700 mb-2 font-medium">
+          <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <label className="block text-white mb-2 font-medium">
               Password
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg
-                  className="h-5 w-5 text-gray-400"
+                  className="h-5 w-5 text-white/60"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -188,7 +185,7 @@ export default function Login() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-12 pr-12 py-3.5 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 text-white placeholder-white/50 backdrop-blur-sm transition-all hover:bg-white/20"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
@@ -198,11 +195,11 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                className="absolute inset-y-0 right-0 pr-4 flex items-center"
               >
                 {showPassword ? (
                   <svg
-                    className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                    className="h-5 w-5 text-white/60 hover:text-white transition"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -216,7 +213,7 @@ export default function Login() {
                   </svg>
                 ) : (
                   <svg
-                    className="h-5 w-5 text-gray-400 hover:text-gray-600"
+                    className="h-5 w-5 text-white/60 hover:text-white transition"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -240,7 +237,7 @@ export default function Login() {
           </div>
 
           {/* Remember Me & Forgot Password */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center">
               <input
                 id="remember-me"
@@ -249,11 +246,11 @@ export default function Login() {
                 onChange={(e) =>
                   setFormData({ ...formData, rememberMe: e.target.checked })
                 }
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-white/30 rounded cursor-pointer bg-white/10"
               />
               <label
                 htmlFor="remember-me"
-                className="ml-2 block text-sm text-gray-700 cursor-pointer"
+                className="ml-2 block text-sm text-white/80 cursor-pointer"
               >
                 Remember me
               </label>
@@ -262,7 +259,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => router.push('/forgot-password')}
-              className="text-sm text-blue-600 hover:text-blue-700 hover:underline font-medium"
+              className="text-sm text-white/80 hover:text-white hover:underline font-medium transition"
             >
               Forgot password?
             </button>
@@ -272,7 +269,8 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed font-medium text-lg shadow-md hover:shadow-lg"
+            className="w-full py-4 bg-white text-[var(--brand-primary)] rounded-xl hover:bg-white/90 transition-all disabled:bg-white/50 disabled:cursor-not-allowed font-bold text-lg shadow-2xl hover:shadow-white/50 hover-lift animate-fade-in-up"
+            style={{ animationDelay: '0.4s' }}
           >
             {isLoading ? (
               <span className="flex items-center justify-center">
@@ -304,13 +302,13 @@ export default function Login() {
         </form>
 
         {/* Divider */}
-        <div className="mt-6 mb-6">
+        <div className="mt-8 mb-6 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
+              <div className="w-full border-t border-white/20"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
+              <span className="px-4 glass text-white/80">
                 Don't have an account?
               </span>
             </div>
@@ -320,16 +318,17 @@ export default function Login() {
         {/* Register Link */}
         <button
           onClick={() => router.push('/register')}
-          className="w-full py-3 bg-white text-blue-600 border-2 border-blue-600 rounded-lg hover:bg-blue-50 transition font-medium"
+          className="w-full py-4 bg-white/10 text-white border-2 border-white/30 rounded-xl hover:bg-white/20 transition-all font-bold backdrop-blur-sm hover-lift animate-fade-in-up"
+          style={{ animationDelay: '0.6s' }}
         >
           Create New Account
         </button>
 
         {/* Help Text */}
-        <p className="mt-6 text-center text-xs text-gray-500">
+        <p className="mt-6 text-center text-sm text-white/70 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
           Having trouble logging in?{' '}
-          <a href="#" className="text-blue-600 hover:underline">
-            Contact Support
+          <a href="/" className="text-white hover:underline font-medium">
+            Back to Dashboard
           </a>
         </p>
       </div>

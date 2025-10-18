@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { Sparkles, Briefcase, Users, MessageSquare, PlusCircle } from 'lucide-react';
 import { TopApplicants, CompanyApplicant } from './top-applicants';
 import { AppSidebar } from '@/components/ui/company/app-sidebar';
+import { FAQSection } from '@/components/faq/FAQSection';
+import { getFAQsByCategory, getGeneralFAQs } from '@/components/faq/FAQData';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -282,6 +284,14 @@ export default function CompanyDashboard() {
                   ))}
                 </div>
               </div>
+            </section>
+
+            {/* FAQ Section */}
+            <section className="mt-10">
+              <FAQSection
+                faqs={[...getFAQsByCategory('companies'), ...getGeneralFAQs()]}
+                title="Company Help & FAQ"
+              />
             </section>
           </div>
         </div>

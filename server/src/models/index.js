@@ -57,6 +57,10 @@ Job.belongsTo(Company, { foreignKey: 'companyId' });
 Job.hasMany(Application, { foreignKey: 'jobId', onDelete: 'CASCADE' });
 Application.belongsTo(Job, { foreignKey: 'jobId' });
 
+// // Application Relationships
+// Student.hasMany(Application, { foreignKey: 'studentId', onDelete: 'CASCADE' });
+// Application.belongsTo(Student, { foreignKey: 'studentId' });
+
 // Review Relationships
 Company.hasMany(Review, { foreignKey: 'companyId', onDelete: 'CASCADE' });
 Review.belongsTo(Company, { foreignKey: 'companyId' });
