@@ -7,6 +7,7 @@ interface User {
   name?: string;
   role: 'admin' | 'student' | 'company' | 'university' | 'freelancer';
   isVerified: boolean;
+  profileData?: any; // Profile data from role-specific models
 }
 
 interface AuthState {
